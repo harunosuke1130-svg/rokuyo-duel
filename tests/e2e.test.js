@@ -363,11 +363,25 @@ test('mobile: 戦闘画面（長押ししてスワイプで交代・すぐ動か
   await page.evaluate(() => window.scrollTo(0, 0));
   const back = `#ally-back .bt-card[data-idx="${b0}"]`, front = `#ally-front .bt-card[data-idx="${f0}"]`;
   await touch(back, front, 0);
-  assert.equal((await H.state(page)).swapUsed, false, 'すぐ動かしたときは交代しない');
-  await touch(back, front, 420);
+  assert.equal((await H.state(page)).swapUsed, false, 'すぐ動かしたときは交代しない（スクロール扱い）');
+  // 固有スキルモード：キャラをタップすると確認画面。やめるとモードも終わる
+  await page.waitForTimeout(TAP_GUARD);
+  await page.click('#btn-skill-menu');
+  assert.equal(await page.getAttribute('#btn-skill-menu', 'aria-pressed'), 'true');
+  await page.click(back);
+  await page.waitForSelector('#modal[data-kind="skill"]:not(.hidden)');
+  assert.ok((await page.textContent('#modal h3')).includes('固有スキル'));
+  assert.ok(await page.$('#btn-confirm-skill'), '後衛のキャラも使える');
+  await page.click('#modal [data-close="1"].btn');
+  assert.equal(await page.getAttribute('#btn-skill-menu', 'aria-pressed'), 'false');
+  assert.equal((await H.state(page)).skillUsed, false);
+  // 交代モード中は、長押しなしですぐドラッグして交代できる
+  await page.waitForTimeout(450);
+  await page.click('#btn-swap');
+  await touch(back, front, 0);
   await H.waitMyAction(page);
   s = await H.state(page);
-  assert.ok(s.front.player.indexOf(b0) >= 0 && s.swapUsed, '長押ししてスワイプで交代');
+  assert.ok(s.front.player.indexOf(b0) >= 0 && s.swapUsed, '交代モードでスワイプして交代');
   // 履歴は「履歴」ボタンから
   await page.waitForTimeout(450);
   await page.click('#btn-log');
@@ -457,20 +471,24 @@ for (const kind of ['mobile', 'desktop']) {
     assert.equal(s.log.filter(l => l.kind === 'dice' && l.text.startsWith('あなたの出目')).length, 1, '連打しても1回');
     assert.equal(await page.$$eval('#move-options .mo-card', c => c.length), s.front.player.filter(i => s.teams.player[i].hp > 0).length);
 
-    // 交代をキャンセル → 確定（HP・CDは保持、数字は変わらない）
+    // 交代モード：1体選んでからやめる → 変化なし。前衛→後衛の順にタップ → 交代（HP・CDは保持、数字は変わらない）
     const out = s.front.player[0];
     const inn = s.teams.player.findIndex((u, i) => u.hp > 0 && s.front.player.indexOf(i) < 0);
-    await page.click('#btn-swap');
-    await page.click(`#modal .target-btn[data-target="${out}"]`);
-    await page.click('#modal [data-close="1"].btn');
-    assert.deepEqual((await H.state(page)).front.player, s.front.player);
     await page.waitForTimeout(TAP_GUARD);
+    await page.click('#btn-swap');
+    assert.equal(await page.getAttribute('#btn-swap', 'aria-pressed'), 'true');
+    await page.click(`#ally-front .bt-card[data-idx="${out}"]`);
+    assert.ok(await page.$(`#ally-front .bt-card.picked[data-idx="${out}"]`));
+    assert.equal(await page.isHidden('#modal'), true, '交代モードでは詳細を開かない');
+    await page.click('#btn-swap');
+    assert.equal(await page.getAttribute('#btn-swap', 'aria-pressed'), 'false');
+    assert.deepEqual((await H.state(page)).front.player, s.front.player);
     await page.evaluate(i => { const st = window.RikuyouApp.getState(); st.teams.player[i].hp = 41; st.teams.player[i].cd = 2; }, out);
     await page.click('#btn-swap');
-    await page.click(`#modal .target-btn[data-target="${out}"]`);
-    await page.click(`#modal .target-btn[data-target="${inn}"]`);
-    await page.dblclick('#btn-confirm-swap', { force: true }).catch(() => {});
+    await page.click(`#ally-front .bt-card[data-idx="${out}"]`);
+    await page.click(`#ally-back .bt-card[data-idx="${inn}"]`);
     await H.waitMyAction(page);
+    assert.equal(await page.getAttribute('#btn-swap', 'aria-pressed'), 'false', '交代したらモード終了');
     s = await H.state(page);
     assert.ok(s.front.player.indexOf(inn) >= 0 && s.front.player.indexOf(out) < 0);
     assert.equal(s.teams.player[out].hp, 41);

@@ -41,7 +41,9 @@
     room: null,
     heartbeat: null,
     formationShown: false,
-    fmDraft: null    // 準備画面で並べ中の配置（{ slots, leader }）。対人戦で依頼が戻されたときも引き継ぐ
+    fmDraft: null,   // 準備画面で並べ中の配置（{ slots, leader }）。対人戦で依頼が戻されたときも引き継ぐ
+    uiMode: null,    // 'swap'（交代：ドラッグか2体タップ）／'skill'（固有スキル：使うキャラをタップ）
+    swapPick: null   // 交代モードで先にタップしたキャラ
   };
 
   const foeIsCpu = () => bt.mode === 'cpu';
@@ -88,6 +90,7 @@
     bt.locked = true;
     bt.formationShown = false;
     bt.fmDraft = null;
+    bt.uiMode = null; bt.swapPick = null;
     bt.backend = opts.backend || null;
     bt.code = opts.code || null;
     bt.pushSeq = 0; bt.lastSeq = 0; bt.intentSeq = 0; bt.handledIntent = 0; bt.waiting = false; bt.room = null;
@@ -369,7 +372,8 @@
     if (u.barrier && u.hp > 0) tags.push('<span class="bt-tag barrier">結界</span>');
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
     const label = `${ch.name} HP${u.hp}/${u.maxHp}${st === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
-    return `<div class="bt-card unit-card ${kind}${mine ? ' mine' : ''}${st ? ' hp-' + st : ''}${u.hp <= 0 ? ' ko' : ''}" data-side="${side}" data-idx="${i}" data-pos="${kind}" role="button" tabindex="0" aria-label="${esc(label)}（詳細）">
+    const picked = mine && bt.uiMode === 'swap' && bt.swapPick === i;
+    return `<div class="bt-card unit-card ${kind}${mine ? ' mine' : ''}${picked ? ' picked' : ''}${st ? ' hp-' + st : ''}${u.hp <= 0 ? ' ko' : ''}" data-side="${side}" data-idx="${i}" data-pos="${kind}" role="button" tabindex="0" aria-label="${esc(label)}（詳細）">
       <span class="bt-art">${portrait(ch, { zoom: true })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${u.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(u) : ''}</span>
       ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}</span><span class="bt-hpline">${hpNum(u)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(u)}</span>`
         : `${hpBar(u)}${cd ? `<span class="bt-backcd">${cd}</span>` : ''}`}
@@ -472,14 +476,26 @@
     btn.classList.toggle('ready', !btn.disabled);
     const swapBtn = $('#btn-swap');
     const swapReason = bt.locked || bt.waiting ? '処理中' : E.swapBlockReason(s, bt.me);
+    const skillReason = skillModeBlock(s);
+    // 使えなくなったモードは解除する（相手のターン・交代済み・行動後など）
+    if (bt.uiMode === 'swap' && swapReason) setMode(null, true);
+    if (bt.uiMode === 'skill' && skillReason) setMode(null, true);
     swapBtn.disabled = !!swapReason;
-    swapBtn.querySelector('span').textContent = s.swapUsed && s.turnSide === bt.me ? '交代済み' : '交代';
+    swapBtn.setAttribute('aria-pressed', String(bt.uiMode === 'swap'));
+    swapBtn.querySelector('span').textContent = bt.uiMode === 'swap' ? 'やめる' : s.swapUsed && s.turnSide === bt.me ? '交代済み' : '交代';
+    const skBtn = $('#btn-skill-menu');
+    skBtn.disabled = !!skillReason;
+    skBtn.setAttribute('aria-pressed', String(bt.uiMode === 'skill'));
+    skBtn.querySelector('span').textContent = bt.uiMode === 'skill' ? 'やめる' : '固有スキル';
     const active = !(s.phase === 'over' || s.phase === 'formation' || s.phase === 'initiative');
-    $('#btn-skill-menu').disabled = !active;
-    // 交代できるか・できない理由を短く出す
+    $('#screen-battle').classList.toggle('mode-swap', bt.uiMode === 'swap');
+    $('#screen-battle').classList.toggle('mode-skill', bt.uiMode === 'skill');
+    // 今のモードと、交代できない理由を短く出す
     const hint = $('#drag-hint');
-    if (!active) hint.textContent = '';
-    else if (!swapReason) hint.textContent = '長押しで後衛と交代できます';
+    if (bt.uiMode === 'swap') hint.textContent = bt.swapPick !== null ? '入れ替える相手をタップ' : '前衛と後衛をドラッグ（または2体をタップ）';
+    else if (bt.uiMode === 'skill') hint.textContent = '固有スキルを使うキャラをタップ（後衛も可）';
+    else if (!active) hint.textContent = '';
+    else if (!swapReason) hint.textContent = '「交代」を押すか長押しで交代';
     else hint.textContent = s.turnSide === bt.me && s.phase !== 'roll' ? `交代：${swapReason}` : '';
 
     const flags = [];
@@ -525,27 +541,45 @@
     $('#modal-body').innerHTML = `<h3>戦闘履歴</h3><p class="muted">新しい順</p><ol class="log log-full">${logHtml()}</ol>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`;
   }
-  // 固有スキル：6体のスキルと使える状態（後衛も使える）
-  function showSkillList() {
-    const draw = () => {
-      const s = bt.state;
-      const team = s.teams[bt.me];
-      $('#modal-body').innerHTML = `<h3>固有スキル</h3>
-        <p class="muted">前衛・後衛どちらのキャラも使えます。チーム全体で1ターン1回、通常技の前に使います。</p>
-        <div class="target-list">${team.map((u, i) => {
-          if (u.hp <= 0) return '';
-          const ch = E.unitChar(u);
-          const reason = bt.locked || bt.waiting ? '処理中です' : E.skillBlockReason(s, bt.me, i);
-          return `<button type="button" class="target-btn skill-pick${reason ? ' unavailable' : ''}" data-skill="${i}">${emblem(ch, u, 'small')}
-            <span class="t-main"><b>${esc(ch.skill.name)}</b> <span class="muted">${esc(ch.name)}・${E.isFront(s, bt.me, i) ? '前衛' : '後衛'}</span><br>
-            <span class="muted">${esc(ch.skill.text)}</span>${reason ? `<br><span class="reason">${esc(reason)}</span>` : ''}</span></button>`;
-        }).join('')}</div>
-        <div class="modal-actions"><button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button></div>`;
-      $('#modal-body').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => showSkillModal(Number(b.dataset.skill))));
-    };
-    openModal('', { kind: 'skill-list', refresh: draw });
-    draw();
+  /* ---------- 交代モード・固有スキルモード ----------
+   * 「交代」を押すと、長押しなしでドラッグでき、2体を順にタップしても入れ替えられる。
+   * 「固有スキル」を押すと、味方のキャラをタップしてそのキャラの固有スキルの確認画面を開く。 */
+  function skillModeBlock(s) {
+    if (!s || bt.locked || bt.waiting) return '処理中です';
+    if (s.phase === 'over' || s.turnSide !== bt.me || (s.phase !== 'roll' && s.phase !== 'action')) return `${whoName(bt.foe)}のターンです`;
+    if (s.phase === 'roll' || !s.dice) return '数字を出してから使えます';
+    if (s.moveUsed) return 'このターンはすでに通常技を使いました';
+    if (s.skillUsed) return 'このターンはすでに固有スキルを使いました';
+    return null;
   }
+  function setMode(mode, quiet) {
+    bt.uiMode = mode;
+    bt.swapPick = null;
+    if (!quiet) render();
+  }
+  function toggleMode(mode) {
+    if (!bt.state) return;
+    if (bt.uiMode === mode) { setMode(null); return; }
+    const reason = mode === 'swap' ? (bt.locked || bt.waiting ? '処理中です' : E.swapBlockReason(bt.state, bt.me)) : skillModeBlock(bt.state);
+    if (reason) { toast(reason); return; }
+    setMode(mode);
+  }
+  // モード中に味方のカードをタップしたとき。処理したら true
+  function modeTap(side, idx) {
+    if (!bt.uiMode) return false;
+    const s = bt.state;
+    if (side !== bt.me) { toast(bt.uiMode === 'skill' ? '固有スキルを使う味方をタップしてください' : '入れ替える味方をタップしてください'); return true; }
+    if (s.teams[bt.me][idx].hp <= 0) { toast('戦闘不能のキャラは選べません'); return true; }
+    if (bt.uiMode === 'skill') { showSkillModal(idx); return true; }
+    const pick = bt.swapPick;
+    if (pick === null || pick === idx) { bt.swapPick = pick === idx ? null : idx; render(); return true; }
+    if (E.isFront(s, bt.me, pick) === E.isFront(s, bt.me, idx)) { bt.swapPick = idx; render(); return true; } // 同じ列なら選び直し
+    const out = E.isFront(s, bt.me, pick) ? pick : idx, inn = out === pick ? idx : pick;
+    setMode(null, true);
+    perform('swap', { out, in: inn });
+    return true;
+  }
+
   function showBattleMenu() {
     const over = bt.state && bt.state.phase === 'over';
     openModal(`<h3>メニュー</h3>
@@ -762,41 +796,6 @@
     });
   }
 
-  function showSwapModal() {
-    const s = bt.state;
-    let out = null, inn = null;
-    const draw = () => {
-      const reason = bt.locked || bt.waiting ? '処理中です' : E.swapBlockReason(s, bt.me);
-      const t = bt.state.teams[bt.me];
-      let body;
-      if (reason) body = `<p class="reason">交代できません：${esc(reason)}</p>`;
-      else if (out === null) body = `<h4>① 後衛へ下げる前衛を選ぶ</h4>${unitButtons(bt.me, E.frontAlive(s, bt.me))}`;
-      else if (inn === null) body = `<p>下げる前衛：<b>${esc(E.unitChar(t[out]).name)}</b></p><h4>② 前衛に出す後衛を選ぶ</h4>${unitButtons(bt.me, E.backAlive(s, bt.me))}`;
-      else {
-        body = `<div class="effect-box"><div>後衛へ：<b>${esc(E.unitChar(t[out]).name)}</b>（HP ${t[out].hp}・CD残${t[out].cd}）</div>
-          <div>前衛へ：<b>${esc(E.unitChar(t[inn]).name)}</b>（HP ${t[inn].hp}・CD残${t[inn].cd}）</div></div>
-          <p class="muted">HP・クールダウン・結界はそのまま引き継ぎます。交代してもターンは終わらず、出目は ${s.dice} のままです。</p>
-          <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" id="btn-confirm-swap">この交代を確定する</button></div>`;
-      }
-      $('#modal-body').innerHTML = `<h3>前衛と後衛を交代（1ターン1回）</h3>${body}
-        <div class="modal-actions">
-          ${out !== null && !reason ? '<button type="button" class="btn btn-ghost btn-block" id="btn-swap-back">一つ前に戻る</button>' : ''}
-          <button type="button" class="btn btn-ghost btn-block" data-close="1">交代をやめる</button>
-        </div>`;
-      const b = $('#modal-body');
-      b.querySelectorAll('[data-target]').forEach(x => x.addEventListener('click', () => {
-        if (out === null) out = Number(x.dataset.target); else inn = Number(x.dataset.target);
-        draw();
-      }));
-      const back = b.querySelector('#btn-swap-back');
-      if (back) back.addEventListener('click', () => { if (inn !== null) inn = null; else out = null; draw(); });
-      const c = b.querySelector('#btn-confirm-swap');
-      if (c) c.addEventListener('click', () => { c.disabled = true; perform('swap', { out, in: inn }); });
-    };
-    openModal('', { kind: 'swap' });
-    draw();
-  }
-
   function showMoveConfirm(idx) {
     const s = bt.state;
     const draw = () => {
@@ -886,7 +885,7 @@
       const c = $('#modal-body').querySelector('#btn-confirm-skill');
       if (c) c.addEventListener('click', () => { c.disabled = true; perform('skill', { user: userIdx }); });
     };
-    openModal('', { kind: 'skill', refresh: draw });
+    openModal('', { kind: 'skill', refresh: draw, onClose: () => { if (bt.uiMode === 'skill') setMode(null); } });
     draw();
   }
 
@@ -907,8 +906,8 @@
       if (bt.state.phase === 'over') { if (bt.opts && bt.opts.onShowResult) bt.opts.onShowResult(); return; }
       perform('roll', {});
     });
-    $('#btn-swap').addEventListener('click', () => { if (!bt.locked && !bt.waiting) showSwapModal(); });
-    $('#btn-skill-menu').addEventListener('click', () => { if (bt.state) showSkillList(); });
+    $('#btn-swap').addEventListener('click', () => toggleMode('swap'));
+    $('#btn-skill-menu').addEventListener('click', () => toggleMode('skill'));
     $('#btn-log').addEventListener('click', () => { if (bt.state) showLogModal(); });
     $('#btn-battle-menu').addEventListener('click', showBattleMenu);
     $('#move-options').addEventListener('click', e => {
@@ -920,7 +919,8 @@
     const layout = $('#screen-battle .bt-layout');
     const dragger = U.cardDrag(layout, {
       selector: '#screen-battle .bt-card.mine:not(.ko)', ghostClass: 'bt-ghost',
-      enabled: () => !!bt.state && bt.active,
+      enabled: () => !!bt.state && bt.active && bt.uiMode !== 'skill',
+      immediate: () => bt.uiMode === 'swap', // 交代モード中はタッチでもすぐ動かせる
       canStart: () => {
         const s = bt.state;
         if (s.turnSide !== bt.me || (s.phase !== 'roll' && s.phase !== 'action')) return `${whoName(bt.foe)}のターンです`;
@@ -932,15 +932,19 @@
       onDrop: (c, t) => {
         const a = Number(c.dataset.idx), b = Number(t.dataset.idx);
         const out = c.dataset.pos === 'front' ? a : b, inn = c.dataset.pos === 'front' ? b : a;
+        setMode(null, true);
         perform('swap', { out, in: inn });
       }
     });
     const cardClick = e => {
       if (U.tapGuarded() || dragger.suppressed() || !bt.state) return;
       const card = e.target.closest('.bt-card[data-idx]');
-      if (card) showDetailModal(card.dataset.side, Number(card.dataset.idx));
+      if (!card) return;
+      if (modeTap(card.dataset.side, Number(card.dataset.idx))) return;
+      showDetailModal(card.dataset.side, Number(card.dataset.idx));
     };
     ['#ally-front', '#ally-back', '#enemy-front', '#enemy-back'].forEach(sel => $(sel).addEventListener('click', cardClick));
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && bt.uiMode && !U.ui.modal) setMode(null); });
     layout.addEventListener('keydown', e => {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.bt-card[data-idx]')) { e.preventDefault(); e.target.click(); }
     });

@@ -133,7 +133,8 @@
   /* ---------- カードのドラッグ（Pointer Events。HTML標準のドラッグ＆ドロップは使わない） ----------
    * マウスは少し動かしたら、タッチは長押ししてから持ち上げる（長押し前に動いたらスクロールとして扱う）。
    * o: { selector, ghostClass, canStart(card) → 理由の文字列（動かせないとき）| null,
-   *      canDrop(card, target) → bool, onDrop(card, target), enabled() → bool }
+   *      canDrop(card, target) → bool, onDrop(card, target), enabled() → bool,
+   *      immediate() → true のあいだはタッチも長押しなしで動かし始める（交代モードなど） }
    * 戻り値：suppressed()（ドラッグ直後のクリックを無視する）, busy(), destroy() */
   const DRAG_HOLD_MS = 320, DRAG_SLOP = 8;
   function cardDrag(root, o) {
@@ -145,7 +146,7 @@
       const c = e.target.closest(o.selector);
       if (!c || !root.contains(c) || drag || (e.pointerType === 'mouse' && e.button !== 0) || (o.enabled && !o.enabled())) return;
       drag = { card: c, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
-        touch: e.pointerType !== 'mouse', active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
+        touch: e.pointerType !== 'mouse' && !(o.immediate && o.immediate()), active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
       if (drag.touch) drag.timer = setTimeout(begin, DRAG_HOLD_MS);
       window.addEventListener('pointermove', onMove, { passive: false });
       window.addEventListener('pointerup', onUp);

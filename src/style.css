@@ -1105,3 +1105,11 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
   .lg-panel { margin: 0; }
 }
 @media (max-width: 380px) { .lg-panel::before, .lg-panel::after { display: none; } }
+/* 交代モード・固有スキルモード */
+.bt-act[aria-pressed="true"] { background: linear-gradient(180deg, #e3c271, #b8913d); color: #1d1708; border-color: #f2d98d; box-shadow: 0 0 0 2px rgba(255, 230, 160, .55), 0 0 14px rgba(255, 200, 90, .7); }
+.bt-act-skill[aria-pressed="true"] svg { color: #3d2a08; }
+#screen-battle.mode-swap .bt-card.mine:not(.ko) { touch-action: none; cursor: grab; box-shadow: 0 0 0 2px rgba(120, 170, 255, .9), 0 3px 8px rgba(0, 0, 0, .55); }
+#screen-battle.mode-skill .bt-card.mine:not(.ko) { box-shadow: 0 0 0 2px rgba(190, 150, 255, .95), 0 0 14px rgba(170, 120, 255, .7); }
+#screen-battle.mode-swap .bt-enemy, #screen-battle.mode-skill .bt-enemy { opacity: .6; }
+.bt-card.picked { transform: translateY(-4px); box-shadow: 0 0 0 3px #e0a93a, 0 0 16px rgba(255, 190, 80, .9) !important; }
+#screen-battle.mode-swap .bt-drag-hint, #screen-battle.mode-skill .bt-drag-hint { color: #ffe08a; font-weight: 700; }
