@@ -73,7 +73,7 @@ rikuyou-duel/
 | 色・レイアウト | `src/style.css` の `:root` |
 | キャラの絵 | `src/img/chara/<キャラID>.webp`（例 `ryogen.webp`。縦長 約148:205、.png / .jpg / .svg も可） |
 | 戦闘の背景 | `src/img/battle/<背景ID>.webp`（`forest` / `sea` / `tower` / `arena`。横長推奨） |
-| ログインの歓迎の絵 | `src/img/login-welcome.webp` |
+| ログインの背景 | `src/img/login-bg-portrait.webp`（縦画面）・`login-bg-landscape.webp`（横画面） |
 | 属性マーク | `src/img/element/<属性ID>.webp`（`fire` / `water` / `nature` / `holy` / `dark`。正方形） |
 | ホームの背景・バナーの絵 | `src/img/home-bg-portrait.webp`（縦画面）・`home-bg-landscape.webp`（横画面）・`banner-dungeon.webp`・`banner-match.webp`・`banner-gacha.webp` |
 
