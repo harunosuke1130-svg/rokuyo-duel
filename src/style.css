@@ -530,24 +530,28 @@ body[data-screen="team"] .team-actions { bottom: calc(66px + env(safe-area-inset
 .tab-item.on::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: 0; height: 2px; border-radius: 2px; background: var(--gold2); box-shadow: 0 0 8px var(--gold); }
 @media (min-width: 700px) { .tabbar { padding-left: calc(50% - 320px) !important; padding-right: calc(50% - 320px) !important; } }
 
-/* ホーム：上の町の絵 */
+/* ホーム：画面いっぱいの町の背景（縦画面・横画面で絵を切り替え） */
 body[data-screen="home"] .topbar { display: none; }
-#screen-home { max-width: 640px; margin: 0 auto; }
-.home-hero {
-  position: relative; margin: 0 -12px; aspect-ratio: 1024 / 452;
-  background: #2a1f15 url("img/home-town.webp") center top / cover no-repeat;
-  padding: calc(8px + env(safe-area-inset-top, 0px)) 12px 0;
-  display: flex; flex-direction: column; justify-content: flex-start; gap: 6px;
-}
-.home-hero::before {
-  content: ""; position: absolute; inset: 0; pointer-events: none;
+body[data-screen="home"] { background: #2a1d14; }
+#screen-home { position: relative; max-width: 640px; margin: 0 auto; }
+#screen-home::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
   background:
-    radial-gradient(ellipse 60% 75% at 18% 18%, rgba(18, 12, 6, .78), rgba(18, 12, 6, .35) 55%, transparent 75%),
-    radial-gradient(ellipse 40% 30% at 92% 6%, rgba(18, 12, 6, .55), transparent 80%),
-    linear-gradient(180deg, transparent 70%, rgba(22, 16, 11, .9));
+    linear-gradient(180deg, rgba(14, 9, 5, .45) 0%, transparent 18%, transparent 55%, rgba(14, 9, 5, .55) 100%),
+    #2a1d14 url("img/home-bg-portrait.webp") center top / cover no-repeat;
 }
-.home-hero > * { position: relative; }
-@media (min-width: 640px) { .home-hero { border-radius: 0 0 14px 14px; margin: 0 0 0; } }
+@media (orientation: landscape) {
+  #screen-home::before {
+    background:
+      linear-gradient(180deg, rgba(14, 9, 5, .4) 0%, transparent 20%, transparent 50%, rgba(14, 9, 5, .6) 100%),
+      #2a1d14 url("img/home-bg-landscape.webp") center center / cover no-repeat;
+  }
+}
+.home-hero {
+  position: relative; min-height: clamp(150px, 26vh, 280px);
+  padding: calc(8px + env(safe-area-inset-top, 0px)) 0 10px;
+  display: flex; flex-direction: column; justify-content: flex-start; gap: 8px;
+}
 .hero-top { display: flex; justify-content: space-between; align-items: flex-start; gap: 8px; }
 .hero-title { margin: 0; line-height: 1; flex: 1 1 auto; min-width: 0; white-space: nowrap; }
 .hero-title span {
@@ -571,8 +575,7 @@ body[data-screen="home"] .topbar { display: none; }
 }
 .icon-btn svg { width: 26px; height: 26px; }
 .name-plate {
-  /* 元の絵の名札の位置（絵の幅・高さに対する%）に重ねる */
-  position: absolute !important; left: 2.7%; top: 34.5%; height: 15.5%; min-height: 34px; min-width: 28%; max-width: 70%;
+  align-self: flex-start; min-height: 38px; min-width: 150px; max-width: 75%;
   display: inline-flex; align-items: center; gap: 8px;
   padding: 4px 18px 4px 5px; border-radius: 4px;
   background: linear-gradient(180deg, var(--parch), var(--parch2)); color: var(--ink);
@@ -584,7 +587,7 @@ body[data-screen="home"] .topbar { display: none; }
 .name-plate .badge { flex: none; }
 
 /* ホーム：チーム6体 */
-.home-team { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: -18px 0 10px; position: relative; z-index: 1; }
+.home-team { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 0 0 10px; position: relative; z-index: 1; }
 .portrait-card {
   position: relative; display: block; padding: 0; aspect-ratio: 148 / 205; border-radius: 6px; overflow: hidden; cursor: pointer;
   border: 2px solid #b8955a; background: #1c140c;

@@ -73,7 +73,7 @@ rikuyou-duel/
 | 色・レイアウト | `src/style.css` の `:root` |
 | キャラの絵 | `src/img/chara/<キャラID>.webp`（例 `ryogen.webp`。縦長 約148:205、.png / .jpg / .svg も可） |
 | 属性マーク | `src/img/element/<属性ID>.webp`（`fire` / `water` / `nature` / `holy` / `dark`。正方形） |
-| ホームの背景・バナーの絵 | `src/img/home-town.webp`・`banner-dungeon.webp`・`banner-match.webp`・`banner-gacha.webp` |
+| ホームの背景・バナーの絵 | `src/img/home-bg-portrait.webp`（縦画面）・`home-bg-landscape.webp`（横画面）・`banner-dungeon.webp`・`banner-match.webp`・`banner-gacha.webp` |
 
 編集したら **`npm run build`**（`docs/firebase-config.js` は上書きしません）。
 
