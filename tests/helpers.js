@@ -94,7 +94,7 @@ async function step(page) {
   if (st.side === st.me && st.phase === 'roll') { await page.click('#btn-roll'); return 'acted'; }
   if (st.side === st.me && st.phase === 'action' && st.front.length) {
     await page.waitForTimeout(TAP_GUARD);
-    const btn = await page.$(`#move-options [data-move="${st.front[0]}"]`);
+    const btn = await page.$(`#ally-front [data-move="${st.front[0]}"]`);
     if (!btn) return 'wait';
     await btn.click();
     await page.waitForSelector('#btn-confirm-move', { timeout: 5000 }).catch(() => null);

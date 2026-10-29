@@ -157,3 +157,21 @@ test('出撃準備の初期配置：前回の配置を優先し、無効な分�
   assert.equal(f.leader, 0, 'チームにいないリーダーは先頭に');
   assert.ok(E.chooseFormation(s, 'player', f.front, f.leader).ok, '初期配置はそのまま出撃できる');
 });
+
+test('ランク（★）：基礎HP＋初期構成の攻撃の平均＋回復の平均で決まり、レベル・技の付け替えでは変わらない', () => {
+  // 燎原：HP120・初期6技の攻撃 8+14+32+0+22+38=114 → 平均19、回復 20 → 平均3.33
+  const r = E.rankParts('ryogen');
+  assert.equal(r.hp, 120);
+  assert.equal(r.atk, 19);
+  assert.ok(Math.abs(r.heal - 20 / 6) < 1e-9);
+  const stars = Object.fromEntries(E.CHARACTERS.map(c => [c.id, E.starsOf(c.id)]));
+  assert.deepEqual(stars, { ryogen: 3, gessen: 2, gyakufu: 2, kohaku: 3, yoiyami: 2, suiju: 3, raimei: 2, mukai: 3 });
+  // 合計値の上位側ほど星が多い（逆転しない）
+  const sorted = E.CHARACTERS.slice().sort((a, b) => E.rankParts(b.id).score - E.rankParts(a.id).score);
+  sorted.forEach((c, k) => { if (k) assert.ok(E.starsOf(c.id) <= E.starsOf(sorted[k - 1].id)); });
+  // 戦闘中の状態（レベル・付け替え・残りHP）に関係なく同じ
+  const s = E.createBattle(P, C, { levels: { player: { ryogen: 30 } }, loadouts: { player: { ryogen: [7, 1, 2, 3, 4, 5] } } });
+  s.teams.player[0].hp = 1;
+  assert.equal(E.starsOf(s.teams.player[0].charId), 3);
+  assert.equal(E.starsOf('b-boar'), null, 'ボスには星を付けない');
+});

@@ -11,7 +11,7 @@
   const BK = window.RikuyouBackend;
   const CPU = window.RikuyouCPU;
   const D = window.RikuyouData;
-  const { E, CONFIG, rng, $, esc, emblem, elMark, portrait, gemIcon, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, openModal, closeModal, toast, showScreen } = U;
+  const { E, CONFIG, rng, $, esc, emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, openModal, closeModal, toast, showScreen } = U;
 
   const app = {
     backend: null,
@@ -158,7 +158,7 @@
       ? `<button type="button" class="team-missing" data-go="team"><b>チームが未完成です</b><span>「編成」で6体を選んで保存してください</span></button>`
       : p.team.map(id => {
         const ch = E.getChar(id);
-        return `<button type="button" class="portrait-card" data-go="team" aria-label="${esc(ch.name)} Lv${P.levelOf(p, id)}（編成へ）">${portrait(ch, { zoom: true })}${levelTag(P.levelOf(p, id))}${elMark(ch)}</button>`;
+        return `<button type="button" class="portrait-card el-frame" ${frameAttrs(ch)} data-go="team" aria-label="${esc(ch.name)} ★${E.starsOf(ch.id)} Lv${P.levelOf(p, id)}（編成へ）">${portrait(ch, { zoom: true })}${levelTag(P.levelOf(p, id))}${elMark(ch)}${starsHtml(ch)}</button>`;
       }).join('');
     renderBonus();
     if (!app.bonusOffered && !P.loginStatus(p).claimed) { app.bonusOffered = true; showBonusModal(); }
@@ -212,7 +212,7 @@
       const sel = app.picked.indexOf(ch.id) >= 0;
       if (!owned) {
         return `<div class="pick-card locked"><span class="pick-mark">未所持</span>
-          <div class="uc-head">${emblem(ch, { hp: 0 }, 'big')}<div><div class="uc-name">${esc(ch.name)}</div><div>${elementTag(ch)}${subTags(ch)}</div></div></div>
+          <div class="uc-head">${emblem(ch, { hp: 0 }, 'big')}<div><div class="uc-name">${esc(ch.name)}${starsHtml(ch)}</div><div>${elementTag(ch)}${subTags(ch)}</div></div></div>
           <p class="muted">ガチャで仲間にできます。</p>${leaderBox(ch)}</div>`;
       }
       const c = p.chars[ch.id];
@@ -223,7 +223,7 @@
       const maxed = c.level >= CONFIG.LEVEL.max;
       return `<div class="pick-card${sel ? ' selected' : ''}" data-pick="${ch.id}" role="button" tabindex="0" aria-pressed="${sel}">
         <span class="pick-mark">${sel ? '選択中 ' + (app.picked.indexOf(ch.id) + 1) : '未選択'}</span>
-        <div class="uc-head">${emblem(ch, null, 'big')}<div><div class="uc-name">${esc(ch.name)} ${levelTag(c.level)}</div>
+        <div class="uc-head">${emblem(ch, null, 'big')}<div><div class="uc-name">${esc(ch.name)}${starsHtml(ch)} ${levelTag(c.level)}</div>
         <div>${elementTag(ch)}${subTags(ch)}</div>
         <div class="hptext">最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</div></div></div>
         <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
@@ -329,7 +329,7 @@
     };
     B.start({
       mode: 'cpu', state, cpuPlan, title: ctx.title, foeName: ctx.foeName, ...formationOpts(),
-      bg: ctx.kind === 'dungeon' ? ctx.dungeonId : 'arena',
+      bg: ctx.kind === 'dungeon' ? ctx.dungeonId : 'arena', onHelp: showHelp,
       onFinish: res => (ctx.kind === 'dungeon' ? onDungeonFloorFinish(ctx, res) : onMatchFinish(ctx, res)),
       onExit: () => (ctx.kind === 'dungeon' ? showDungeon() : showMatch()),
       onShowResult: () => app.lastResult && app.lastResult()
@@ -513,7 +513,7 @@
     b10.textContent = `10回引く（石${P.gachaCost(10)}）`;
     b1.disabled = p.stones < P.gachaCost(1);
     b10.disabled = p.stones < P.gachaCost(10);
-    $('#gacha-pool').innerHTML = E.CHARACTERS.map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
+    $('#gacha-pool').innerHTML = E.CHARACTERS.map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}${starsHtml(ch)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
   }
   let gachaBusy = false;
   function pullGacha(count) {
@@ -526,7 +526,7 @@
     openModal(`<h3>ガチャの結果（${count}回）</h3>
       <div class="gacha-results">${r.results.map((x, i) => {
         const ch = E.getChar(x.id);
-        return `<div class="gacha-card${x.isNew ? ' new' : ''}" style="animation-delay:${U.FAST ? 0 : i * 90}ms">${emblem(ch, null, 'big')}<b>${esc(ch.name)}</b>
+        return `<div class="gacha-card${x.isNew ? ' new' : ''}" style="animation-delay:${U.FAST ? 0 : i * 90}ms">${emblem(ch, null, 'big')}<b>${esc(ch.name)}</b>${starsHtml(ch)}
           ${x.isNew ? '<span class="badge leader">NEW 仲間になった</span>' : `<span class="muted">経験値+${x.exp}${x.to > x.from ? `<br>Lv${x.from}→${x.to}` : ''}</span>`}</div>`;
       }).join('')}</div>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`,
@@ -633,7 +633,7 @@
     app.lobby.unwatch = null;
     if (unwatchLobby) { try { unwatchLobby(); } catch (e) { /* noop */ } }
     B.start({
-      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`, ...formationOpts(), bg: 'arena',
+      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`, ...formationOpts(), bg: 'arena', onHelp: showHelp,
       onFinish: res => onPvpFinish(foeName, res),
       onExit: showLobby,
       onShowResult: () => app.lastResult && app.lastResult()
@@ -687,9 +687,9 @@
     $('#zukan-total').textContent = E.CHARACTERS.length;
     $('#zukan-grid').innerHTML = E.CHARACTERS.map(ch => {
       const owned = P.owns(p, ch.id);
-      return `<button type="button" class="zukan-card${owned ? '' : ' missing'}" data-zukan="${ch.id}">
+      return `<button type="button" class="zukan-card el-frame${owned ? '' : ' missing'}" ${frameAttrs(ch)} data-zukan="${ch.id}">
         <span class="zk-art">${portrait(ch, { dim: !owned })}${elMark(ch)}${owned ? levelTag(P.levelOf(p, ch.id)) : '<span class="lv-tag">未所持</span>'}</span>
-        <b class="zk-name">${esc(ch.name)}</b><span class="zk-tags">${elementTag(ch)}${subTags(ch)}</span></button>`;
+        <b class="zk-name">${esc(ch.name)}${starsHtml(ch)}</b><span class="zk-tags">${elementTag(ch)}${subTags(ch)}</span></button>`;
     }).join('');
   }
   function showZukanEntry(id) {
@@ -705,7 +705,7 @@
       return `<li class="${slot >= 0 ? 'hit' : ''}"><span class="num">${slot >= 0 ? slot + 1 : '・'}</span><span>${esc(m.name)}${lockNote}</span><span class="eff">${moveEffText(m)}</span></li>`;
     }).join('');
     openModal(`<div class="zk-detail">${portrait(ch, { dim: !owned })}<div>
-        <h3>${esc(ch.name)}</h3>
+        <h3>${esc(ch.name)}${starsHtml(ch)}</h3>
         <div>${elementTag(ch)}${subTags(ch)}</div>
         <p class="hptext">${owned ? `Lv${lv}・最大HP <b>${E.levelMaxHp(ch.maxHp, lv)}</b>（基礎${ch.maxHp}）` : `最大HP <b>${ch.maxHp}</b>（Lv1）・<span class="reason">未所持</span>`}</p>
       </div></div>
@@ -749,7 +749,7 @@
         <li>ガチャ：1回${E2.gachaCost}・10回${E2.gacha10Cost}。</li>
       </ul>
       <h4>属性相性（通常技の攻撃のみ ×${CONFIG.ADVANTAGE_MULTIPLIER}）</h4>
-      <p>水 → 火 → 自然 → 水、聖光 ⇄ 呪闇。それ以外は等倍です。</p>
+      <p>${['water', 'fire', 'nature', 'water'].map(k => D.ELEMENTS[k].name).join(' → ')}、${D.ELEMENTS.holy.name} ⇄ ${D.ELEMENTS.dark.name}。それ以外は等倍です。</p>
       <h4>計算の順番</h4>
       <p class="muted">基礎ダメージ ×スキル倍率 ＋（スキル・リーダー・レベルの加算）→ 属性倍率 → 結界（半減）→ 最後に四捨五入。</p>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'help' });

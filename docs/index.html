@@ -809,10 +809,10 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
 .fm-card .hpbar > i { background: #4f8a5b; }
 .fm-card .hpbar.mid > i { background: #c99a2e; }
 .fm-card .hpbar.low > i { background: #b8432f; }
-.fm-card.leader { border: 2px solid #c9a24a; box-shadow: 0 0 0 1px #f2d98d, 0 0 12px rgba(214, 170, 70, .75); }
+.fm-card.leader { outline: 3px solid #2e2010; outline-offset: 2px; }
 .fm-card.picked { outline: 3px dashed #3d5a80; outline-offset: 2px; }
 .fm-card.dragging { opacity: .35; transform: scale(.97); }
-.fm-card.drop-target { transform: scale(1.04); box-shadow: 0 0 0 3px #c9932c, 0 0 18px rgba(255, 190, 80, .95); }
+.fm-card.drop-target { transform: scale(1.04); outline: 3px dashed #2e2010; outline-offset: 3px; }
 .drag-ghost, .fm-ghost {
   position: fixed !important; left: 0; top: 0; z-index: 100; margin: 0; pointer-events: none; cursor: grabbing;
   box-shadow: 0 16px 30px rgba(0, 0, 0, .5) !important; transition: none !important; will-change: transform;
@@ -858,7 +858,8 @@ body[data-screen="battle"] .topbar { display: none; }
 
 .bt-layout {
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px;
-  grid-template-areas: "head" "conn" "enemy" "center" "flags" "ally" "last" "actions";
+  grid-template-areas: "head" "conn" "enemy" "center" "flags" "ally" "last";
+  padding-bottom: calc(10px + env(safe-area-inset-bottom, 0px));
 }
 .bt-head { grid-area: head; display: flex; align-items: center; gap: 8px; padding: calc(4px + env(safe-area-inset-top, 0px)) 2px 2px; }
 .bt-title { flex: 1; min-width: 0; font-family: var(--mincho); font-weight: 700; font-size: 16px; color: var(--gold2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; }
@@ -940,9 +941,8 @@ body[data-screen="battle"] .topbar { display: none; }
 .bt-enemy .bt-card .hpbar > i { background: #c74a3a; }
 .bt-card .hpbar.mid > i { background: #d19a2a; }
 .bt-card .hpbar.low > i { background: #c0392b; }
-.bt-card.hp-low { border-color: #c0392b; box-shadow: 0 0 0 1px #c0392b, 0 3px 8px rgba(0, 0, 0, .55); }
 .bt-card.dragging { opacity: .35; transform: scale(.97); }
-.bt-card.drop-target { transform: scale(1.05); box-shadow: 0 0 0 3px #e0a93a, 0 0 18px rgba(255, 190, 80, .95); }
+.bt-card.drop-target { transform: scale(1.05); outline: 3px dashed #fff; outline-offset: 3px; }
 .bt-leader { margin: 4px auto 0; max-width: 100%; text-align: center; font-size: 11.5px; color: #e9e2cf; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bt-leader b { color: #f6dc8c; margin-right: 4px; }
 .bt-leader span { display: none; }
@@ -950,7 +950,7 @@ body[data-screen="battle"] .topbar { display: none; }
 
 /* 中央：出目と今すること */
 .bt-center {
-  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 4px 10px; margin: 2px -2px;
+  display: grid; grid-template-columns: auto minmax(0, 1fr); align-items: center; gap: 10px; padding: 4px 10px; margin: 2px -2px;
   background: linear-gradient(90deg, rgba(14, 20, 32, .25), rgba(14, 20, 32, .9) 10%, rgba(14, 20, 32, .9) 90%, rgba(14, 20, 32, .25));
   border-top: 1px solid rgba(214, 178, 94, .65); border-bottom: 1px solid rgba(214, 178, 94, .65);
 }
@@ -1012,7 +1012,6 @@ body[data-screen="battle"] .topbar { display: none; }
   .bt-layout { grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "head head" "conn conn" "enemy side" "ally side"; column-gap: 18px; row-gap: 6px; align-items: start; }
   .bt-side { display: flex; flex-direction: column; gap: 8px; grid-area: side; position: sticky; top: 8px; max-height: calc(100vh - 16px); }
   .bt-center { grid-template-columns: auto minmax(0, 1fr); margin: 0; border: 1px solid rgba(214, 178, 94, .65); border-radius: 6px; background: rgba(14, 20, 32, .9); }
-  .bt-center .btn-roll { grid-column: 1 / -1; }
   .bt-actions { position: static; grid-template-columns: 1fr 1fr; background: none; padding: 0; }
   .bt-act-log { display: none; }
   .bt-log-panel { display: flex; flex-direction: column; min-height: 160px; flex: 1; padding: 8px 10px; border-radius: 6px; background: rgba(12, 10, 8, .82); border: 1px solid rgba(214, 178, 94, .35); }
@@ -1121,6 +1120,74 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 #screen-battle.mode-swap .bt-enemy, #screen-battle.mode-skill .bt-enemy { opacity: .6; }
 .bt-card.picked { transform: translateY(-4px); box-shadow: 0 0 0 3px #e0a93a, 0 0 16px rgba(255, 190, 80, .9) !important; }
 #screen-battle.mode-swap .bt-drag-hint, #screen-battle.mode-skill .bt-drag-hint { color: #ffe08a; font-weight: 700; }
+
+/* ======================================================================
+ * 属性ごとのカード枠：基本色（属性）× 濃さ（ランク）を別々に管理する
+ * 色を付けるのは縁と内側の薄いにじみだけ（絵は染めない）。選択中・交換候補・戦闘不能は別の表現
+ * ==================================================================== */
+/* 属性の基本色（RGB）：猛火＝淡い朱色、水脈＝淡い水色、自然＝淡い若草色、呪闇＝淡い藤色、聖光＝淡いクリームゴールド */
+.el-frame[data-el="fire"]   { --el-rgb: 228, 118, 84; }
+.el-frame[data-el="water"]  { --el-rgb: 104, 168, 222; }
+.el-frame[data-el="nature"] { --el-rgb: 128, 184, 98; }
+.el-frame[data-el="dark"]   { --el-rgb: 164, 128, 208; }
+.el-frame[data-el="holy"]   { --el-rgb: 218, 190, 112; }
+/* ランクごとの濃さ（縁の不透明度・にじみの不透明度・縁の太さ）。★2はほんのり、★3は少し深く。★4以上は将来用 */
+.el-frame { --rk-border: .4; --rk-glow: .1; --rk-width: 2px; }
+.el-frame[data-stars="2"] { --rk-border: .42; --rk-glow: .1; --rk-width: 2px; }
+.el-frame[data-stars="3"] { --rk-border: .66; --rk-glow: .18; --rk-width: 2px; }
+.el-frame[data-stars="4"] { --rk-border: .82; --rk-glow: .26; --rk-width: 2.5px; }
+.el-frame[data-stars="5"] { --rk-border: .95; --rk-glow: .34; --rk-width: 3px; }
+.el-frame[data-stars="0"] { --rk-border: .5; --rk-glow: .12; } /* ボス */
+.el-frame[data-el] { border-style: solid; border-width: var(--rk-width); border-color: rgba(var(--el-rgb), var(--rk-border)); }
+.el-frame[data-el]::after {
+  content: ""; position: absolute; inset: 0; border-radius: inherit; pointer-events: none; z-index: 2;
+  box-shadow: inset 0 0 0 1px rgba(var(--el-rgb), calc(var(--rk-glow) * 1.6)), inset 0 0 12px 2px rgba(var(--el-rgb), var(--rk-glow));
+}
+
+/* ★（ランク）。色の濃さだけでなく星の数で示す */
+.stars { display: inline-block; margin-left: 4px; font-size: .82em; letter-spacing: -.05em; color: #d7a21c; text-shadow: 0 1px 0 rgba(60, 40, 10, .35); white-space: nowrap; vertical-align: .05em; font-family: var(--gothic); }
+.portrait-card .stars { position: absolute; right: 3px; bottom: 4px; margin: 0; padding: 0 4px; border-radius: 3px; font-size: 10px; line-height: 16px; background: rgba(0, 0, 0, .55); color: #f6d36a; z-index: 3; }
+.zk-art .lv-tag, .portrait-card .lv-tag, .portrait-card .el-mark, .zk-art .el-mark { z-index: 3; }
+.bt-backline { display: flex; justify-content: center; align-items: baseline; gap: 4px; line-height: 1.2; }
+.bt-backline .stars { margin: 0; font-size: 10px; }
+.bt-card .bt-art { cursor: pointer; }
+.bt-art:focus-visible { outline: 3px solid #8fb4ff; outline-offset: 1px; }
+.bt-card.drop-target::before, .fm-card.drop-target::before {
+  content: "⇄ 交換"; position: absolute; left: 50%; top: 38%; transform: translate(-50%, -50%); z-index: 4; pointer-events: none;
+  padding: 2px 8px; border-radius: 999px; background: rgba(20, 14, 8, .85); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap;
+}
+.bt-card.foe .bt-name { color: #3a1c14; }
+.bt-card.mine .bt-info { background: linear-gradient(180deg, transparent, rgba(80, 120, 200, .07)); }
+
+/* 中央のサイコロ＝数字を出すボタン */
+.bt-dice-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px; border: 0; background: none; color: #ffe9a8; font-family: inherit; cursor: pointer; border-radius: 12px; }
+.bt-dice-btn:disabled { cursor: default; }
+.bt-dice-btn:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+.bt-dice-btn.ready .dice { animation: dicePulse 1.4s ease-in-out infinite; }
+.bt-dice-btn.ready:active .dice { transform: scale(.94); }
+.bt-dice-cap { font-size: 11px; font-weight: 700; white-space: nowrap; line-height: 1.2; text-shadow: 0 1px 2px #000; }
+.bt-dice-cap:empty { display: none; }
+@keyframes dicePulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(255, 230, 160, .5), 0 0 8px rgba(255, 200, 90, .5); } 50% { box-shadow: 0 0 0 4px rgba(255, 230, 160, .9), 0 0 20px rgba(255, 200, 90, 1); } }
+
+/* 味方前衛カードの下部＝通常技の欄 */
+.bt-move { display: block; margin-top: 3px; }
+.bt-move .mo-btn { min-height: 54px; }
+
+/* キャラの詳細（固有スキルの確認・交代の代わり） */
+.dt-head { position: relative; display: grid; grid-template-columns: 92px minmax(0, 1fr); gap: 12px; align-items: start; padding: 8px; margin: 0 40px 6px 0; border-radius: 8px; background: rgba(0, 0, 0, .18); }
+.dt-head > .portrait { position: relative; aspect-ratio: 1 / 1.1; height: auto; border-radius: 4px; }
+.modal .dt-head h3 { margin: 0 0 2px; }
+.dt-meta { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; font-size: 13px; margin: 0 0 6px; }
+.dt-meta .el-mark { width: 22px; height: 22px; }
+.dt-meta .stars { margin: 0; font-size: 15px; }
+.dt-hp .hpbar { margin-bottom: 2px; }
+.dt-skill-meta { display: flex; flex-wrap: wrap; gap: 4px 14px; margin-top: 6px; font-size: 12.5px; color: var(--muted); }
+.dt-skill-meta b { color: var(--gold2); }
+.dt-preview { margin-top: 6px; }
+.dt-more summary { display: flex; align-items: center; min-height: 40px; margin-top: 8px; cursor: pointer; color: var(--gold2); font-weight: 700; }
+.pv-range { margin-right: 6px; }
+.fm-name { display: flex; flex-direction: column; }
+.fm-name .stars { margin: 1px 0 0; font-size: 12px; line-height: 1; }
 
 /* ---- src/img/chara・element・battle から自動生成 ---- */
 [data-char="gessen"] { --img: url("data:image/webp;base64,UklGRgRTAABXRUJQVlA4IPhSAACQTgGdASpAAbsBPnk0lUakoyIkrZM8gJAPCWNuBwNQBjCzC+BfJG31r+RkkvJfnsE+7pe99TW4jpGWsDOU37nwn/IPp/9h/cvX+/J83fnf9V+2XqV/Mvxv/T/w/pr4F/QnUI/P/7PvR/V/8P0CPCfgN6u/wD+d9gP+h/4P1K8GugZ5Mv+35rv0f/lew2htBY3uMTIN83O8rk0XuW2Zb9/85Z3TmbEjyd5T18ojnla9B41Y/kmmPysHROzaOO5sWH9cMN/BGXWhJGJhoGbtOTEh7lsqVchRRDO+qGmuXT3QrrQSOjmI9qNIeVNd9RVIKxl2M9WftASEsxQPZHDqyLv1+mngKlBH8+gXJ5FGZ8pcAbXR0ZNyH0XBwZXOGY3ooLopzljMTC5S5BmzlMl4/m75hU+QRsHD4vARgCRM/iJhcYT/brTFGkCAtMYV376MviSOPKqDqDiHsDudi+IAKJYIWbT6XPK/rBMJilWAp4RO5z9EgrBD2fX028UtIsORPzBUbV89DJAPb0VzSerBH9xp83uGMyHP8tO9gem+rzSXG1DDZ3akNraZhUkAeC0ZP/WV48H8BvJMevxydPL2oaPFJSuNLa7oS8yKxntC6gssCYWlILBzE7F37mB3+56Kh/s33tWsnt3CMbWDymvAgyIdQ1BrDfOx3K7fK58O2azsYkK0XMYOD9qUTCgJ2Migz09DvZVPQ4YR9WK5dSKg0uVtb8ZW83Xcq4RRxhtLgZeEZ0gppohpyxzdeWPY8XMpUDtRr7E5+JnWHGf+9zFDp+18yMgacwUppUcOtxo927frMxbvF9DzFRoZbtgcD7DIFpWDsxTb/Cd64QM80eanoe8xuOd1U2a+RmskJjU+uf6Mhu6desPV6AWwLVoNdTAPKscTSQ3m6wQlkaXYZ4s9y9RwAYrqonxZGkPf1WVqY3VRcKOCSXuob4D1yAcn7pkpwJh8h8ZPKEY74LbMj4uqMVHCBUTQIdTKm9js2lOH+73MaBIEzh/sdwlt9cKhSMzlXRiwMRt8iXHdDwsHr/K4tvXyxMZBjunEP7qyKnf3iQTuSIdbTWCug8NjuKJx4TrZN8dEGgu6BsOwtY59GCVX8nX1pOjBFFcQO7w/cli5G454mZCk0BM09gVRjyMbr33z+74Xubi/cwd8xs/hH+8iib5HMjBzZglerd3SJeXEQ5g95I2ZLUEnjNjIwkpPUf7UXjQhNgcO/7Jmk8jvTgHkEBo74nu/4t/a4TC4ZmdU7D10NDuwPqoKnCtWa4gDM6epH7K9UI9gpmvaAKycG9FXgPAl9IG5KqDDploIr0qIpsAr8duJl29+HNefJaUj/8+hS85Vemxy/w1bOf7bzTbmnImuPCtFNNfFqHgyoqI9ocun7hRM6tthUoSwBi4aI3t3Lki1/H0nhgR4jW0sOuJVNNxANyn9rI/ngQGvBRNNFVl1+P1BpIVBLEyq03kOJOkZIXrtYNkvqc5dxSR8GFeE4jdueLj9H2yihVzg7fKtF3b0heLeot/hoS01uGH7OX9zfiBy+YQ2dmDu/25M+gq6jA4P8uMl4x35CXOD87nyGWBVfmfm75qpkd5T32+3+9TYOaoqapCpTjQ2fLruLdpIZ1jbq0Klqlq+j382LszNytZTPnkNTWn26zFzFUijzobJHzLK9s1LOmrMWL5U84IFoiYNi8DQWL/7mTZ1yT+17MJ03Rbtfqmee/jMRSqGVS/cRTUN3T62c3Ltq8H0T8Tf38FkHh7UfAMvdduWi5f+gcMlHnaxT1iCnn+yTp+pRe7ajvbcT4wSMfvCYsFmj6ohYmb2PtVJJDRgXrTOsodv6U8Of/a+mFp5EjnRInBQnEqJIcv/Z3Ol1gxcjWJUXrlXsxRLWAOJGLVu61vs60xYSKF7UBtuMrD7t+6Qx6t4qMvsMTLp1CwrCqYq9RIWiKR8+TPejwJ6wYsWzmZRWLxw+UHjZBDKmdRKwGWyJCgfDG/CDm0LNR2BV7dpoWgZyBFsThFCIm0Y6bPzoQkLEYrPUtFSl7H3OERiuwVX93ZcaKvdCRNXshzw5elWrwyV4WS4mRNhye9D7dQQ5cyeY9jAKLjg/+ECQ+oHD8nFehvvRDKsrC9qigslE3mGdRfzTw5aMLb8fudtqoz5jO2bC3Gk/pghiFq678Yra1OP+OH+eeqf2jNlH1OonMwGMGfvnzD3CNRY2szP2ertCG7XXhOGAgfpOOzZky+6Or2/pIyBax54NF1kcPk+O8NrDH4RspOYgmHsoYklYpuzfYjtIkJsE1ukOMRBvOZpT9GcwyErPYijlZFyjvSs6rA6MhbGH1sMLH8Ivewce7e8zgGI1nBWyty/oaT7ypwLZX4AYTaHwuGGTtqLYltC3kIAjtge84eW8E6h8F044kqWEuR5kMiEqJZjz3iC0Wh+yRKPQ2sB+aMAbW031jrF+wmd6hItNtqhywU+wPpCdC5xcSai+80qAeznIyDMqyI2kkfGXYe2bTq3sp/4Ick1YnY35MDHc+7UGplGDxv3/trEc7YNJTh9ynaxgKqVVd/AQ1bMviUH3JKUFFup0Gmy1VrwhcLd35DCiJJFKwQUvaTA7SE0mkW1qPIMZmpts8IyZ1spbhELrS7BxTS8J6/6ZOijUb3hpKcgnyJCKAHZKfZxgcif5tb8MpdfCKpbq/v3uKb+3+Wv0Xr4YxeYd6THZEFXLe9+3C0y084OJt9DdhNN/NnxQQeUPOu4wSmqXYD39FhVKumcnecY64Embl2OdpHF701C8BW4Vi0U6/63ww7bbCa5XvLjR+D/VgXPv32kdI6knfPEuRVbQqYNSsx19zRgqj4OZk+IWypMOa3Worh3a+pLAitrAf4h0ZTIgY8BPcL2C3ixa7rle0EziRUKFg9FpSBqhTjJ6/G8mcyFpzX2iHcrKs+sVYUmiMcNL81CmWCqM5AGkWuVWZhx4+5ip8pYPFwtrk+NNEWl0x0+1NPlkvXC5Wd/u/qRtIrn52Ly2pLw7Etx0J65me+yZiClC7sUv39A/Vyx0/8FBEsWk7Y5ic9Up79bToWzbXXChoQsXh4L/Ptc6wS6MAOkjU3f3DhbNbp2bxZ+29bQtojOfLwWEs1rVn8hCBmC9dzudYBJT7FPUgQ6UjKXEcLUJcE8yDFxmSYqKhphvc93U09j+ExsZ5emdafXgRsz/7XeYg4NKo/MHDjvyv4I6zJeSsBwfpvoaGgjsPUQbOIOqIrhm1H1+PEZ+p2toZ+5M+lj3eiOEu7yU0rfLMEJTyW5qGbJh9Ci8mk24Wdm0Qy5LfEROva1sepVFYfCzsYjSU6jd2AHmsrvoId0ZJGvYgwIfUOL2NCBY51xO3m2Y7uAMAcAyLc7n8oKMXVI9od7B6+4MzoYiBa1K1TzdqEznAolwxMJjY8jFczYhmx1Ga/AXHhPYUF7Qle+vMVNATFnXGw9dTDJpjLH12IpdHVn2aM3AwqEUdMMjt0NK2Npj/3VgJ7ExuS2ukoLEH7+XSR0B3X6T8gP7seF6i5VGXmzud7s8/0l4ptb3zmyOiErduzdWhBCsbOzzdWEb2+mSWt1trdzh75/zFV3jlljJAAA/vrOg9zTzI62tWcdIL8T3u55CpXIIvYA3Ufi+mMBYPn4jV6VB34YdwcZMt0q3pDxHOI0TPhxcFOEA3h8UVOwqp3Rgb13yXOdwOWCD7DnV5T9GD0lSoPvpkQzQva7dzuG4b1vVPBKXOmY6CqJtiyodw0vsdDOpo/AjD9IFFokqVoPyE7u1jStnjjUArRp26xBWoLIzw66l6+1fcntc3q85V7+M9VDuqDC/sDK6+SV68wmQD22B1xG6O8xU3H5aaExBHhUWIX3Z+oaD6HkPGNvtTxbplUp0xvgZw/dxo7X40FXU1rsImtooa/Utu9eyKKv28LbiehO9QVOtuT+a6Kf9nS1QR5F0bSsa8XHebKGmv1UF2wLupgT+i5YN7dR/WJD04ZxWGZrRIjU2Of6x9/Tx3MyhKnk5C/xVVUDeUGqLDCmv+lk+2FfjAElShLB4ZaE0YsFnQqp8dyPejueFB4i5srJHqN/Sc76s04tDAisOJQiZFqcGGCA4HJLGGME/VGyMnY/dCN+UwpLMFrjeocXQu+8ccAEjY+dg2SFEjcZAqCHdNidVwrOngRIKE/VXGlbuPwaJxK5v1d79GZJluNy3zcQnmABmKke+OffL0+bUwbc9Cfj8/Vw8jQJWvk+kEeI+W7U3uyq49Z6lLYKIF1PlbAGw9QPPr//gPhpQd6EncoYbwwCvXlmCMbskOaCcnQuTL3E++mKHk16V+kSDvIuBIHps2pKR69Et7MMKCfaju+S50JE/vxulLk6Ddx99576AvAXSBytRJnSuNHdZRJy8bFxvMdIRng3B3131z9+1H87J3cXAWRnKj5HDe14IT1u8MX9YGT2qOsYoVKqY3zBblhpej5y7YrzeJKOQbdmDsg1i75PySVI6Ov0KQtJo8GLVnoRhBLeFpcMWtnPKfFqH7GErFjetAnCqF31O2WzWlkpM4uW9jWaWxNKKjVGV601kOxdqTdAXUFXQui0vGMR257zTHbwG6hlcv7O6xaFLzn56FJWbEeXLrVNJk7SfrCPwWkch3NklYlDrcdIxr+5eZMWEaBSCfMi6WTvhJXWGNd1QWjIJ6UE4glUI5gTxpcejdaFxlcthT39ArbLEErasZF04n6+fVuOpwx4lAl/vNcbkTCXFUAessR7G3+/Hjjfv9wOHNYJvXG4nsFMcy20dcD4vmHyJJ/xoJiCKQ4b1wtsY1Jz3JkBAS977uEjuB/MuKlg0N/V1kifLYyYJjlvMKDFTudO7ZxIWDarZtA2xNQVVErX6SyiRH8B0VW1/wjwcN5x7HwxFcRlc7QNOMVpfZeRv28kpbvF4kOemn5UfAYVbg2TgjZrufFx6f5GIL2nSRfigdqFJT9SEAjqgbIAQ7nUxSUuMdG6rOG0EjxeJ1Nvlelp9QlnMc6fnb9R2gW1flEOEl987hrDJV/YRCnn2b4Aq9KCuhqiuljR228TuQVXW5kz7J+eUj6oWpL4Y8jCgkUH+wdX0W2B9+6bUF/EGQZ1jezaizLTtcDjaNYB9whOnfu8EMqSIam67s9k6Z8uikV3gim+c14SID/z8L+QbwpZwwSRzWLalTQI1QuetG5zrS5/zrXRcpEW/H+XJNLuuqZka0/6ku+7HtXxf21ioebC5iVl0+IvgdzERoGFq9SDKqDFeDjd86q9U6JA7FIeApk07SbZiBQLllCA/89c9nE1tTidICayXBvA7d9BryjNkP7+niMSQx12XpPoGQO8eJMf1p19O+ppNrnLM7kdDV5XTV7R+4Xe6iU0aFMWns92Fy7LEpguk5OFzxGluZSeUoMs8cNdVKfm/6Dj8q/+HAbG3832nzryEEs3ByFVXE7rCxTwY7RAcRwAHDsqhLx1DUC3l66pGJiwcYPjHF/P+D1UdCt+ZlXQ0YEZuHu/X61j4Gaf832MiP1fKA5gbaHsoAR812lLyhNGq5LxWtknEgVFTHJJHfsK37Uvwz8UZU3uhIPtXVV6giGGiupJ36cuguRE6GZSNGxtHOlzo2GebE2udwxUeCbe1EiomOmwQ+dlJJB58d/Avaw4VwR47krupJxQqbCAA2DMbjv/ttLbnlyA1qxjKo4KqMSyg9YiOsLiSHewQiiyWvcqIdns0f6LeSXU78sJ6+I2HJYm98VW6//dwbxMX065RjdKynghOmXtTF20LiIZKqqrZr9WsKdi5Nr5/gVmLCilkF4bRMQrxUIaNM71AVl/VR7p58jDKppwi9N/m/0dtm1Yh1uBAglpPjxWNN1ofm4/GR3fchTtnLd22MFlr9Gq55px+jKJzuB/3pab3lbEy5QhyPdM5UfxUKfUMQndYMvfgPQv9UTDRdMa7t0Guz1gx6UVl8rsCMMjfbCNd0hMF4Kb2PCsM7U1e3jOD/rpUSBbPgieCWEESoTnRpcTtM9eNYiplAFIvOgJ42lDHZayJQciJiV7UuBXyUHlfAIHW+arXRDzf7mR0xhoaPuUVWp6cupj2k/CHlIR/y/ushyynpRwaNpBS6o2Q3ossxe7CXNCKltYbK29+WQL8iq2QRo0XglJgQYVUdwNsM0mARZAygIf+/hih3gpc5lki7ZkvSn1fviTT0eDYmkboyTO9jzgaUKcrxBIm2HydM5xPtwBwzZQStIUj0UktFlab1XOZj1f4CXf+4z6+fN9IMXbuv+FJmjsnlwRSW0FbA4y4SAwljFwqsZwEpN/gJGvgIw9xJDma1hxWP02f0uiA77z1BX6yJl29+GmIyQAABYbVUofvtlEF6dLOpGWIJqVe/jOOV87PMSEsgyxewbRY5h3mVkFL11xMWusEGaay+WdoS3AIfCXr17/mY1wHW7RFlo1Db90ZROzoduiw76MPwPq1a+7fmdkzX6CwXq2pLSGLkLjnxIigzXuwbyhtjdsE/As68bmN8EqOKRSTDWAhgbYOcQ9oTgjabkIn01a0MPKKEYxDYBPjld7h/f+G/vRKfClYR5wazf8oCSUUS1xKsSr3RW0zbNLCKazd4ILO9MUajL4n4h+EBdSOiDbT9fq2ukJsfFK17+mF4kH4lEGn85Ek5RFqTAVJ3zItSedOMA7jwBSkDJO5abVePyceUbyE5/uPJqELI3taZidgT5JHkLiXl43p2RmfdFIlbx3wLAVXSw3nldmhuHwHsUKxC/ScIZoztrEdLA1LUdJklKyt/6A6KGmEtATKCe3bMv949myLuhALgcwsVDkUaWUpfMicHvo6BicBzgolprfYvUqFiTlcVl3bHXQ13tzg9aTO0LYfu+T4IfkiMHn//kaE29mHK2hi3cFK5Jz3nrutgx9ubzWuaIlvUG18umn5N+memmS2Fib8dNV73CfTArrvoe45RmGCsqhn2VFOsz4bqTcAer17zOZUQbd+RLmLGwC3lygylF/0VSlpGGBcyBGy0yrbGMsbwcfUBfbPrzV2S2fKbN85MYe7pQw/1F3NScSX5bLdcSaDwWYSsosH4WovDazkiOlKNt8ouLXfJARPFAqqzb4xHI6z0lpMJyVJxuKXr1lH1cvcwbOpzJZJnDwnJlyBA0hQ5Y9So5/CP49OjmprjkZ1UcGWsnkFJtaqu73R+gB/PC3vu+9oqTtK3E2ZF7+/SJo4qvoihqz2mxnGMlKrF0RlOtgD6kiAf8eD6vFR4MVf/2oVF4fLsAfeDx+DuALeYl2sMavc+rQy/tTe+7UxcOCELnror+cPQcs3UdEebyar4ENNIC0kkhEnHmJFrb6TigLx4b82tmD1umClIfw5ZNCDtTdrQkkAl1V4sQYkqJ1qT4w3tHNpRi5+E/qpU2BfLdsCsBQvtj+N60ULorbUOmdDD4n69RHvaYlcu+4/mPiQdjW9MFlkqx3sajdrmwRQnch8WvGghddxeN5FF4ZgErOel+fSh0o7qOGvU2BL2WyzhO2TySw1ZpXpxHBVvf9n8HuUfbrXYRWjPr7qiPzBCpIsTIeoK3ThwJ7mlu8KHEkxghleCEp5XH0RIyjB3v9finYmzdomlWPLOCR8HGxptZ5eOcs4c6+qbqDTyLCbW8D8hUguAYRm8Wbq39V4O+/ebEKRV15ndyF05jyfsBFx5FblwnY9oUR+ErN88L6zO5kpghTp+B87zS9ZaVapeApExZgg5JlFv8v5Drz3L0PfVqEqTC56hKFbIGxFdX6D5LmVmVmNx166Hh9sEgVnRuVGo6WvwX+Jj3pIjJculmz5bxktsWBbMEcD6ZMMFUNjHnWbzc+b8VdT8ZEaxKu0zhLlQuoEw9E0u5yGOzqcY6qQGk7yffvnPfPXO7IoPOUBLtV9tXb45CW53uAS3Gmib+mD1kunBxcNVMCe7OFgBAt1ch/acWhQ9L0uuCOq7gS6VYbSWdveV1QeBUqVRnV3U/euUUWIAVrONUU+QF2tJSh8YL5cEJS7D7Nmuhph/+Mmks1Ez7jMQ+HIlACYwimnPnoFJ9MirnvDmfpTj1vC/csaqANcF/TLa6/dVnaRXVGQfhGWbZANzNNu1fGhnsIgWTI7lzqzSE7WX7RSFhzFFESnnbcoodV394VIi2YQ/ME9e526arfHXnALL9aH8gEEsSg579knlMBb4I21Jui6nytX4Hy5K3ukhwny03im6lI+ve00zaBUkyZWmXkeb/pLUxexwX5S+QzgY6pqjkg7rPAeOozVRB560Hs00vVOLGsf3U9I6VsvLZQ1ToXQiC7putZYwXvgBSZmSKI4bzK9BSzUOGtCGZpIN3tNcra8ayCtDnI/wmI+hpduUiNFiY+gwPcnWNEBHNLPBmgPUVu6aylhl/tFXVDeZumohi5paHYkZgPqixK/ptkse5KmKZh8MwMBWrbxCi3UMJ5OOhKp8gs9DwR/CTPgo5jW+rOPT5m72BXF/udx02G7nyTnC5lH2AC6J0CaWmEOG8+V3mTzVv3I5ZlJKpEznZCS7FVQRDKwmscup0qTik2FMEEYRZTvY8fRAY5di1sxt5jO1ZWmADAKWTDXNZDioh8xA9UNK9J+FBjdG7iCK+7BIzSZB+rak+p20lvlfKvq1L6pqzBpZ7HNV8Fum6BbOX3WYwEl05K1uXbNPNEunsjdWfHgW6Cwv2utFqXGX++FFjgIFiyRaMHv+QgsRN+qE9iZyqSTAPKTGUtBr+JknL84XXBu9AmVr9pcIlI3cfLSVYXOIC52DsXZ4eSnc7OZJhZYUcGY2hbxqsLiCWCHina+CSAu6GZ7rMHZEhbORyARjDuWrlUurIIDV4aiqQsmhtJdTGD55h9YEWVSoVsFCFZsEVPVkl0WUu1L4LetAzTgY/ipqcdbesRgWyuxfFT+hRcQjJ+34nM6EszFxZqlLztHAO2yjvvf+ZId3nsFU6x5SIbCI3fMXVKStLWborcX6WkAanRnXfhekvFohvNim7vjBW1YxyNwPtiHWzdNLCm4sXACbWd1GuDB21g9VMN/A/nCHcw5ibNfcKgpqyoEdaNYozjYIzF8eSgjwEH9iu1KewDv4v0ElCvj/rqMoXPP5ze0mAMOen3M6wqTuXdFDI8lyNTk+5rKvkAvYr7khEvOoKsJNcfV5pNJEiNGni2nx8bROf62G3K+W+gYU9B1V5cYV4ZWd+pQTA5vl6cQQprvdMebr6zG47ts8SHtOxIBfC9GbRGMMUq6mrV5WbRrbpC9ydmlcwUS2IS36iqLpK/FWdLnAzG8HodcXo6avB8htt4jnnCkESD9KqN8xpk+e6pcDy1cLLz34ehWMjbAcANBpe/0NEN2jZSXr2XzQuq+ZAuSP2NckSpeTXj1AuQmUaU1N9/W0uoEnDKx62jikxTKZxFDxIMA2EAM9JaquMj1+byAKxeLO2GH0CBeLMgPVhq16SGS5IuziNiynvpUfdG+tuInP/alvaoiS7tIhKnAECZgRk7egw8wyQ2jzCEroda9l7AefS4eksskQ1CZnYZ1pzRyJhHHEJHLEZQlQSnCCCz+x8cl7kaxd53IWwiwSAhv3Mo/QMNwBBBDsMJYkoVoeXG9pUMaucU/6jt3xrozHIhULwDeTkIkIDoNWmzl4jKv2w/dOg06lO2rqVX/tbZtEpLJG8EDK4x8EZoobr5BvaRxbtV870jkGDM2PUgaU23pfuu54zkG0J9RVjv/foxLliRlA+ulkxTSR4ZhwXSmHWD9XRKjo2u9UH7VuKOvqGed7wwQX53qCfWDFar3AUcR1+6Bb90ntiKMlSl9ufNz0lQrwqDamqRaHyJlO0VBYrmUAyALN/DRBaOpq9kt8iGhxcuHV1QXRaEKGCKEXUdm63Yx9efoiy4hyaQ0wNW4bckQjVqq6xc/h8FMiVm7uLBWaBYPx/M/HZ/d7FArANux/ednJryj/qOiClWmlkp9dTDHmg4mCrCMdcLle1Liw4qV8vpMA1BVcc996+YzxNuYywun7Y+Bb5WGoa7Iq5Zo5Ml4lpDHtyiI14xEaytFzGq6J4WRNT5zshY+VfqbBzNIEpMTCV3BVVA9EDTVnN5Cpgl7lc9EHnCx1yI5unFSATPYiamDuWZnkhkBVJv5iZl7GDJqhsPYyONLfTNusTScLyi84oKe0NKUn7oAf4SdEvxT1VOsPIzVvW54MVIWMlPavLV5iFdvxosdR42sXIWk79eE5BKpx4qOObyBoGcbn1mxrPyy9PmDdcNL4/28tYXxfS9Umc0udgLbtxBY7QrlC/1J/Nn5adActpRkSeszO1kUvglhCVffrG50cyzRKSpbrls7d6QaWTVLSU3FLrRbzcHKF6Cgx/jPxB3lNt+vzqnBraYYP4jj6vc5mYmco5KytrvcMy761Uuy5WupQX25FhhR25FGQ8S5NTIs5g97TojXiPj8uaDarw3TblcszS33QTlKntdkfkp2xKH98ocb5GFyX8tlU7e9MBn1S1sbuYr6p6jB53lmjKLO3pMltjtSi3577wvAa+dxOrFYDSY5ZB842aRTUvN4oBPCPZQuM9Qq23vSAGL46ROHzkJbSnr/hxnizTKivtvh5VJC4l9QgEF6EUGEX3/oCbgyh3LKzoZQAHa2tagCEPuTaHWqSnXmfv82tulL+Y8t3IvRS3fm8aPJIU/woiqdSu1XKrMk/ze8UUoaqr2ix/guuSp3Yv2KK84hG4cUNcSC1RdO/Ntug4Kawl3wtmrkzCgB3fkcg+FPddQPWrS7TQOCXONWI1ObHwhRJUUqQdPPCqoSEmFOmqmpWFCBTNDWQb2iWwA261YUIgqhOMKxyHCtdilSb2jyWHUqM2b4IZnyvwktHBNadU2jlcZNUQzrMAZHYOccRfv15g93xU87F+RqyzRMdpc2lbj8hff7WtgCvxOfomlFdpM1OJoaHLG4FXpJoS5WZ6rUamRYJxFUXp4i4kN64Klh7zLQd1ko0O6SMepk0cMS2o+oZHzNl1PR7FuMF3fQ/3dgZ4O7l7AikR0DqCmREUmEeJ0Dl4bd22CFW5+wX0r8w9iIEZPkDtowHdPSBp/jcNl/22Uyx6ZGrhFvromyNLbCT1uqeOpky55MwupsasBJg5iF1yUTnDJoLiceoKbP7iW/uSgTaDudMu8PcIvAUoFJkox+9loIflrS8vS36r07Ca8nTbq1L0aSrlcFSnBxYX/eZIusjFrhGtbg8rx6cPMUquhGt0q4/7ypn0AuGILbSO8PYGnI6ipsh4ILhcSeObl6sNndsghPeyVZBMfeMlaCe6EBSmT+pXGHyw5d+FtBwI6OUeFvF17xx5g8MmVxTbve929gMTv7Y0brfjhMwUxDveJwUuvQ+orKzaAlQJ4EsTBK6TcMyJSI+imrOOMWDBs/ZGvYgJ0zy7l8IpEcHCol0QUuKgh7Q++FanApyKI6q+ChRq1y8XnZrr6nq/mSA0bYv0t75Pirib8Rhz5qtGEv6uNHEMAULOgSqIRmZgKiDCeDVNsDxQOz/ejU2KEL3I9xuxHzM08yfNvcValOPGfsZZdbjojsJto8BpjQNuWrqFZHrDhwTeUAFGVA9PGI9lJB/4BuhxW8Q/XGLZgWHJ9CNlyHOpw2zNlibCEa8zNXN2D6z553MNVr18+jFSgIeflDF1i5zppnjd37IqYWr0KxxGbFnKqSzctesw9UH3FJD9C9ISH3buTbkKg+tLxDQEbc867ikTjl0b+G3JNSCEXEa7pAZsq9vZjKbH7vxrdT5DgNmfolj5Xf/YjzZXv7eD4sEqMo7VUKXd0Ux6wutG+KDeRVT6Gc+irFZ5kjPZ/NIN3HXmcRcyWf6SgDDg5Xpv45APW5UEOjh6fO551OyCBwwNJLsUH534dvg3D1lMGdpBtUtIDX0RJGpra4XtLQrRN+4rUUoa/o3OAnARgJkzzyCUDZZxVYoBkewtwqYtf+4By7RNd3Nb+d6K9yqGpbw1XI9b7xHi7MN/4Qfbji/EscGzr7meGpIyIhHXoep35ywM+zal/UGWIP1NAXJ9inSnVVibQYn8hqihCgTDw3aKR6NVay/SJXHM11MgqptTBP00iH4Tc6WYKr4s5GNkpfGrVxa7xqBy+30cegSX1lq446CoRLsgxB82Zuoeoetf4dTmmYXtruC9PfmzFj3Mh7DAP/0BJWF5X+v51sYhNv4krRolblFtFocZtQvtXEJ0yGObKRFW1uVx6L21DObHZY/Zkw2zz1JIPbVRlqJP+EYUrrbs2WsAzA31DDAI+vaEhYmivi1U3wBOhPSfrVfJPD6O4yjIK8bHp6GmZhEpOp88dgR+w6tzc8dMSwttjs6BRNLHnq3ZEYwn9CGYf7xaniSl86DI/TJbFAlWpNWjwzE5rLRSqG1kYHZxt28lu6RozMCj+VvL/49vZvjvacNuiVi4w4zCMUTp6JKIRQFYuI8A2QxcyNoUy12HDPzDqyJhFHrB9KAplrXjtuNujAI08/WJssugDcltrRurvGtQ1ImmkiE5dhQrNullYgZMjUz2fhpmnFHw9e4bNx9UCQnZfmuuh7ED/C3DJgv9jIuiAtqErPvWYgF+uyT3wQW/1tzvZ7GAqOJQLGqzVWjoP39zA0AidXZQK1R2ejLo5AgocULDSu/zyrVzsCT3afxku005MKaTIpEdgIEqyTy6ZbJSYi8upnQLmqWJtSQHYnFtaKcII1REuKGDk4LylVvj7cPbr0cfizPO7F95B13/F7CkAEPDaL0mnLE8BwIV6my19AZprph4nQ7fZN205Ws20pwJhxlDMCCdPQjRb8gfkYeggfWL1RIuyg+0ZdxeWaB5rGp22Qo6Lf3bkJyrirzHLBbH5mXufgkyemvUcVX33z3tb3yq5gk9LDPSCUAllZBzp2Hxwr5qTdh/CuliFZxRUBsHlx/FZqYyKiWTM0POZbO21wvKu5IEqlWNopiNaahw4oA2YWOny+CFmLBWIL1S3P4dGQ2XS+VNpEcevHbNpqTR4ifqbinM+OduRQCBqcBG/9gawnzdmnxAqHx2RCTjc60ki4QGn2iBjz99ooeDAOQEL50kdVgA7SUocfUSHaurYDjKmTuNg6sSa65Zksgn1OaA1UXcfeU3NykIJLtHFJ53dlgHdbewd6xd0/L9k2alNKUgOZoTWFDiaYf0EXrVbM7H2ZNaGEWTuULhm+FgRNs96T6XRnjpJFVjARYEvQzg/8u3mv3AdPjrbhz8vu+L5qTo1IBVkmVoUBT22sXXBlVuy547ylR63WrO54N3nX2LQI9QxJ1bT2bH+HB2K7CVVgEMZiyyaoJ15Grm6LzTw9cVl48kTBTEGqE8B7Xt2ti3FvGjTewgpSrhsQqCZic2SxwC2cD32kGjifdJ3MTn2oD9SyMljdliPfl33BugWqUkm2EtjHDjlUfiycz5vlfYIhj13jH99nq8OXOCG6YJ4ZlvIQ3CKbGVkjoT1kObdhD4MbWoqqnXQDXxncEQUg4Hu3GmmyBPnNu0qt/1Zw+MmkATUvoqe5N0Df9hkK2AgxeSwLtewaXvVAs77vNyJ5So7uEPEYJ2zTeUkE+vZNux1iDC4DgnZZTKA/eJ0DYcahIhqJFggF58eGDWxdWlijwYex3SujMDc5FdyChRYhRZFBSzQiNlXahtFJtqdb2gfEw8X6Ews8DKsu6wlc/giIDuW8EfAJNTVyIBnmnDhBScWM+hN5FcEBKgCc3zhKFQFHARtrD+lA0tvrrI8J5jMMDDTpKQ6FwcdKh6ytc00To2zYcfh/lYESQ3zqaS4pLOueW8PTXFqsO2oXF0h6YiUlar2+8aPhHT0wsvCYTtfpIKtKHNffFs0aafQKL+/KbYSdZERy7+oUSpuS8gY5wZoNYrvWYwEVtY09cs9MY/1PH7msAvkjaAj0V+bRSxtyvGRO4MAYWlA6fVieRRezWAOdGrz1kOrlLxTVJs/uPHFWPrETSJ2Yiv9kvtXAxDYfei5vQ9AVARlsonwkIzHQgwjYBlRirIIorMDKY68B7m0jo6r+ggxOjYCCzOewuFBYZQbFRDuWLYRJj90fzfWhJ4D7cba8k/LghnsKJsLx7631zZuAk6LLZ0k/afjEyHC9uGOUZRwFjB32i6gBcabkEtXnNUS9g+1KXOUn/RLGInI5pjmGZ/dJfX8unsVUsK/oPyd9KpsoXS8OeZFmAKK46PHW8JCLa/taHOvIqjwJHmKJMTKDdkQw1XR+Yp8WrwV5HS3SfiXELui7NWWVx2l2mG/ZVLyASraukDHAOhEMxK9/JnK5FMZAHollgExWKvoZAuJR61jroZ6bD/uasASaMRPFy+NTrEefyBfEu/3XxVIN5XewJdwO7D/FT33z89N29udwYHfgahWBkaZAnfu4XzwJiQwXn4dmaCajCsYpU/YVeEPUj9EEItyEbEQjkkmCYrYgGfm+RCq+OrH8TGDV21VI+IconLmLbg23zR23f4ZN+XFx4u7h5MxlnV7jP5XakZOLcyX5mN+bT7X5x2WpfSQc77IdP39OQgIeuhyV3WgpTgsFSGZoUsQipN9AclJ4Fik20ooil2kF7irsVWUrGYPTI19mC1lXDlnGjFbowUfkalQf/QfZgkkMZQYmHHGLcOMEzdUTx4gVNgVOFseEWrtl5aZcC+RFoNB5dbU/sKs/MAvKojN70jgGQz3KukcBVSxgU3CY/zNKWaCOfGzAhVN1LlCwfqtUP7cWfhQhJOfJdQk7SiG/z8j+2zDNgV8BZxIekBcc2TOYXqx8KtJs4QSl6/iDdNPGo510n9RNEqtK20iM/FhKN3rllMFICVjN+2w/ehlGgUfcD7ortClDl/BSlZ+gtpO9nQ3JzEZYKGjkOpgCP4QABMXCEs/0QWrB6lIyMiX1dbBg42PU8H/w867G/zov4NVOVnJWlJivTliCA3ns+zXECPCDR+iIxpPxX/KLfThZ8D91uwxZZ4FF2L5gu93NTIIA9+Lwl6qQPHBrWrjb1fRy/dC9ScyOLnq6SgzuirOI7gIwuleY4PXvZWGW7L3UXdi7AqHauojE61gqu9kUUrRmZxQUDQtkonMgA1b74WQh2mvPpbC+Ul/+0m3tvKJ60ZdSHHvWva6BzVpUJgsMhzZ5BGhE578ONRXNgS9YrzmeA5TUcqz7bS2QVymE9VQ5Uxjil43YZB9tI+KYG0C6e/mM8vEOI2PR4qyl687Do8DPouWs2uO6uWl1kc4DCtrtW4e4EsD/Pkc3AYvgkyZXIl0mKmMqL/PQH037BMYsHrHBsW2JJwctXovT0mdGohim0Jgfm0f6gjq7l/ZA5sBBSJqHu9ts0XCG82Xv9nrrLFztfzuuTsQKjQBsEU63f9EIxP8ovXgb2rGuQ5z087/9vY5LJ113+pq2ujp7mnklGwGTjz5kGAMubCNFOgviwIjWBSY4hJSIiaRaHYotuihBK/DHkqd1DDEbP5sFiR7jEP2l7kyyxWX1cBulaXWy8jwiXNuiZkm2TI8AeL5S3yHRx2yEqH2e1AGnyl71AdjP8tIa9sNqfmyuRbypC8COCV0XP2wPp6nsHqAfDdbc963NKi6DTboY7GgOgS92HHinhmNhjOvtu9aUpUgAVxuxBwHfVD158EGOWSwj22lk+FnH1bnvyINXzVTvrxCIXoZiyafkElZMaN+gjwZp5b0u9LXRN0g2Zdm0pcIL8y8SeOiWEnhoRCBuZe77mo3jafbrSoELXPMvD5P+CJKEy4AiLvxSXUoAbQUqESYewWIHbBey4JPGWkhs+h/xiQ6iiRDszgE8jPYQ+qC91OAfNI+1/WcVHqDoABHS0jAUaUVuN7zd/KvLfocbsH82U4f9SSNaNUrfMmnjWgo/1ABmM0v+eHsHWX8b1770xFlT0nrb8+9lW+63Brz4PcCiLvMo72FmX3QBgYrMsW2j79fFKBrBocni3g202m/nrdtfA5gwbiQPIfoCC7yQb5203SYyF6dV0vxI1NapUKiNzVnI924Aa+KPXJmIfnAkUOBlZvyeKWz2/5WsVvUcwQRIJewOIv64jqe4kmdRWey8fA/Ejk4/02l+CUvl+PlFldqPo+frnFdgIGtoomOfenI/eSHb7tS2YSAXx6NEa38eezyXB8TUvCpUE2nPhIONLU6kgGYK7mgKiDq3P3VOzyiZMjQlTee+v5AF3pqBO7poIq5U+W5At0HUPO0hzrS7VpKi+PxzZPHxmMXLudBnhJDdjVToIkePQzGkcV8rwYNF6+uMUZ/3vQrMhEwWJ5ATa8D0jzGuVEqMgO8Ll09EDw/+wFesc5E35Ib9401zQ1zIneRDgP3qLE9VqDsF+tRJ6tJKqqoMntEIaJrETnPKJrsSeZcTVKLlidaDxJRWROLQDHXV5hkG8XL8rAcAbotWM2AOOXoM/4EZ4kuLb5KjW+LYjLSP9D/mhu21YvhjU6jTqH/fYDBrW0UuGsCxWjuTC7h0yTLwtUxDl8V/eJNcoAvZquPPKmVgag37Uf9WSGm4xpQcTTHaJkgErdClR7zOEylNbTZGrbDKdMYxuOCJwJhQ8UD5UQr8w0Pkpk/BxGNTAvzCKdLsXY7z27NLcItg5mrGjrTg8qLkmx7aOc5o1QOiEgBxfy14fvGK4FC4ntSzf8X/fBviroMeMEjfqYOpUNlRuQOqhbA1QpPZpjxgfHCAHJz0CnSRhvywM+/GwtjqUVwgtnPIW37zo+OCnhQKpJA59unKhlLc2aA+W79Z8a0SosjYb7LcldpUOjb0XPO5LYCfRblYxCnk3Rmc/kSaIl8UCFZDxDhQLndiv9NExg72+idjYb94kIvb9tKwVxMC+4zmblTaXKppmoIRASnJwumHGCE9EazEHU2lP2W+LF1D9gMPWgqhixiGVGVC5XLJztgNHhZzb0o3h6rSSbDivHtrq04mss5PkCzF3qmTEjlg0kY+2ZkrBwmnkxH6x7sAb3dh82t5N0hVKu/g2WLGqi2BVMmOdA+ZTYDSnxgqi2XOrx9mYUH0wECwJWpPMVhVqu6rHRgU34Ad8Ys4c/GXYDP7EsY/Rsf5H3JyUIa+/x6DNF94bN6YVt+P4aOaDdy2+kZZjM0SVTkAucyHkxsmzRvITfa6VKp40QcOLQ41jLu8g/hNmC+4mpa9ibmXnbvyiXJkFzy3r2KX60qNfAWYVFfofAp/t2buFupGoJoevO3LJS1VFXWbn1HAVSbEM99dqF61+Qzi672nK6jH+fd1XiW90vqUFAkGK6oYLRAoAdxn/7LYWDHJJmXS03VXywnjPC0XTDm0NFGODFxFF8jgeFLvnI4dUpld3nsAN+IjU7+4bmPlbQvW3F5Z/zat0rNWH7371+pPHGPNmkJcq9nXdWQIX8VxnUtCMabqSzZKA0avrA0dpEzZD10q8MtPLb/fqPLb7C+eA+hH7Jx4jx6q9nmQQxOa3TdnUvNxGAX7zYO1qFVojDLwgzwG8sjgFNgwQoEWtxc/0Sw+Csr6/Wq5Ppj2euKbyISe1BIk+ry4hD2D4Falf8my3ly8W9WWy1x72sfqpAar6CS2tJOn/f93G3yAsgW0NWhyW9tz55TVzZnL/+PyLCKL5AKaomVN4OSczL+Et8mfMZ2LPer5Qw+RDRkSLjRgQtgG3yeqlGkLMaha5snTiK/F8Tq9fB26B9OeXhNcvLgOeVWyDosUViW6J2GQn6Ic7WWdVYCfEbjGmkID6g8ni4drtnSoL1gZai9wijS4iMlv2axknrOVTW2B0F1OZ/3TkCqJkx8t2DImP+UZGTw/E2gzpk80jnmdW/naalvUu5FCC7CVDw+kd4b49YmAk2q8ag4onHlOywPi94VpXAKEQ/dRQzbJxVPVtcpbUpT+9SalhK8xSIQIISsSnLfjqbbOPWYAzfdhVabOWhswDTvAQRs//39OWKQnGga4N3JZ+CHJIn2G9qb/cFFSdD2HicSPm/M2czF4E9yJ8jNOG2Fqc7KCueWAZ2dP0v7y6x2/AlrV7lG6jWRo83uYNvnkIkoAvcnb9C1IEEWLIhEjHv3mvhacXyTWGLdMFkIV+1kUqnaO7cNo+WOTUixZofiUujWnvYR90vrDG0a8bC4QADmMqKDzVcckbDHG+QGY+twM+dNDdK+wvk2KYzgDiOEm4APgnt7Te9c1/nhYHkbm7YuhXYPwcJCBEARnWM2NIHt/jJMHx3hQ0/esyYiYTrvc4Hj6n/mjdJ+h7RVz8KuQvTYvchrA2y6HB5fYPmBHYCYBRrW3fZsPLnPVZN1SGqjKDk5unwzwrhOb6nXcPSKtF6gzf5abbM70ocCRQqgk1ljRn0ThNnxU8YdYG01V3sUn28VEoN9Nt00E3Anqs+XQjyCXyet+2m7QI5reVq+hcJCgaCANlEHSzaBR/dOQ7uJIIXirBTpfEeri0IlHXcOUkvMHL767YmCA7aIn/gQtsjQ67tRHjvxSOxhv2d++NfE9B1qTKKl9r2pKcIg8/qD1f36KSbduVmC5FCx2It7gCVLFq1Pyln2CfpTBMOFEH8SsMwAJWXIIfpdwlaQYlN9Lngw+/63Y4YXspF9WH/xnUkKL3oolZ1J+RySb2gGX30mCHN/jX9iqzM9sks916H+1cB0PIrnVEdMQVs44fSMfAynMNb1GUpsdniiZ/+fL3QwMK64hL56c1aPOPpTSPzRMR+z3Zew1A4mI8jC3ULBxD7GklpbxGKd4Xt2f9yNBjRNDnt9dCTUMweuK4WxvCmPNa1d8InAMxOWmZP7Cpc2YFD1AZbGA44n3TfQOsW+ytl5JJYg2D6Qs0STPXKEp+eY2N1z9kEURsEC2X4/hMQSzcU6OowVPvzAKtRmhOTjjCf8ovKF2lHZVxqIQZBIjzzZgzbICnY+Ejke9Tfh3ugo0QKMDg0NoMgpmlunEW/NOJoSLQbRByLQ6yszYK16CdwsHa5ql3G7Os21Ola604xS/wxRHiN7IUEvWiF9eWmtxZz1uWYHldoBvMDR7p/zNhZHlAlFzccabwP789ay5v7z97E4VKxfI4kxpwGwi1A+DZTjkCDxo9rrdcQcXEwNuWuq+UZy+R3wveslyFMbEG2TcehyKYZdXg6dSnLDZ/qQYBgb7eBY5DOjmzsr09tNElMdMmAW+xNOucETTbcNLtjR9UbHbVfbJ01rNBFDSJULSEplGwXm8MBGbpLfl61GQObyhuFClYQm5wTnXAGkcfCbYOXJCde9SJG7Ho6MM4I1a0wY9cXK/TherNjGctEY9BCJSiWUTk2UAlZRO3Y7nUooJ8QCd0WpOc8I1KwmsPovKgfDCqZNsMvsRonU1hA05MbkpEUDVJlOVIzMat1zpUSfKDF75b9tqbyTglo72ZBy3Qt50oMEk9S8HJjtwsFKszeo/LRWbRssYzQR/aLjnxuAfh3kny/79+Pg0reN983rBDct6PqOIOdkrJcfXLdnN/mgCT9gm6gvtP+Mfl0t6G/wts5PkN+DxMnRKxtlrD+f15hU+7/mPvMk+VrRwueNfTY7WFczj4ruLbHicjb0WBvcOp0CpbeENpuL/ICI8w/HTPM/CP6rDcmBwEGA6a4vvoxfYpdrIxeaDGXloY4K3rqV5etMCHMgEcVPgR35NwhuxgXWTIS/AQHB0bV3vblBFfIzvuPeASLbJifspa0xMPZ8X1XS9+rUiEDV+Tl+dat5kku1V+sbjH9a9VapozTl9J6IYiJ5qBIQFvhYT41m2N0q/4Ghrb5CD0canj9yp+ld1dcXAFfMZWgSMLtDLBegCB+dWwY4bOEHJUvyibeLCh01Dl9ZGA+7khaA/5KLH/H3vxj4NIlZiWZKWVqVvoP8BjnLJgIVvf5XMtVbmRuouN0q0EQqQjsgDgKtfjkULjXq8ZCV4b6PK3qRtdL9ClT+pnK7ZCF5lmo+ejpZmCX4OTKKhYbaOG4xUrLfV7zFmY5ITewcJzXhsB5jWN/1AjkEtwWcxqkt0qAxjIhVsIGOpZYFhkpvGC0yQxc/RyKykIp96Vn606vu2MjVergFZFdutpdZvgcPuXEsKUVs2gILVdY3h92V1nVumath9DcftyTen19j3pkKav/5DLOsc8h6G88br8mmuvbDFFmiiY422Bmqqx5VAp5z0SXamMDf7YQ6pWyfDfWGnUO5IX7NCWAPTgTu2/YzgspEJEO8KfpmUQM8zyBC5Z9WnWXBbA/TthlUw5A/hflVPIUPhYb5cnPVrwvcv6NnDa1xZe28n/qKvr5520UAbW+VOl2dW0VRKh39B5HR6dlsk3lGI2HgKPTPaLnfPTxxtJWp+ElBbO4QB52i2r91gygM5hCLJJQDD+0bRzr2vTSAA68dmn/DctZ1gj//kiio1UuygOtUljaM7Ql09JF36EHnFEUzoKA9zz5judtaIj+ms1EHbBLdsvW/Qeo4aecRI/7EBk9gflOw4qtlzcOY8HtgdjYRm+wkRQZZ6u3YwpkT3Ayl8cSJkNxb/1QysUMM98DP47Iy9tsRjp5IJTlIogiSI6pTG55sci6yhyGMIp6k+VThSTd+bJpuoUM91pj7HYhV21P1dmPAbI/PQpRVfrzgWOpgwDHRYsWEPX9Zq5SaPSf7C1Z7odTc1c4kgmWRxSYXCP4IoXjNGIFsE9uiyg2g0h4+EY0cjpdjAaPNDRMy+J4tYhnH4FVfHH7IkuwPJ0Ktg5J++uVrdkQmVlE5n1fH/uyBogCRJpiFcQ97vJoGa1WFhgDIzMHAXgyL6U4E/WypSyIyRmWy7cXUJ4ktYZkurOaLQTAb2y28JXCsDm162LA0U7KbBr006xb6nUIVL9zBnU7SE1O2uOuVER7ggUnlav3KzWc/D6Yy58A9JcpTW73iP55lU6hCLz5PZ6+TTVVYBnURBdXZu+HM1GbMKdNZdsGzXNMxreksDZzFuogMAwArp1gDke8FzXX6N41AxxIbq9kKVCTfsfHQHHILlPf0okSN9r7Vrw5hiJwM/aeJZjTwlfeB3E9SUjp8y6a2OD69Ch6FKoACOtpQc27HHeWhL9ch2HEFd2D45c6hRWrKPUozmZxM1b6YkWlOwol0p0Um+ih/5ZA6rUkaJEfNnT7+LRzNNK+pBsU0byUX4kmQeO3Ccj8m4k1KxYMhOWSsLsuCxH/4/D4rLANM3b7ad/JdKx2F4rzI8D6pX2h3rVIannVRlkEQR9Hk3HlnoCOJVSkq0EDjI70uhzqtlOV2ppcazVxqwWfo5WmE9coG896ySwpS4wlmyDuYL+DL/c40tLObmS6NrTNluFhDjK2T/8IHB4j3BSTocW2EXA/EmPF4u/Q5zfCzOQm7jPafr2uVptByildxeo+uasonJep7Gp4Oknf+yRUG0CD4K0h0QljpzjslwtX4mE3F94dBx5n5rVZi+w4hdjvgzfCEVhOkuvTvnKho36GM/1C6P07u33l3XftIQvukCOrykMwS9WCfYx+o4zU3VNTZTrhhOQP/ogH49GFb5R4Ldq2+XUMc5+AEdEOXrYOSP7pVPWXlfb9NWUE+LKR7ZxGnMH6Ckc+w0SgsbSBv8iPswR/KSR3Jibdyrnhw7q72/N1Urqx8+SYlmzQu/6bHwUxJtK07Zpcd451JtpWb9k7YpZZwAaOvn11RKWpe74owL6xyFGsM2Fu9HVZ81m8q05WvAHEc6eXtoviFHWEbD7OfjOptx7iTSKGXp+1ER5nFYQB3TQJzHvj8BHpa3WXMSFi9akT6/ss1M9cxRidVHeDSrIioqAQQnUGFwTOiE91VjmSBtbGC1yGwiO+14t4jCYFEIUmOQPs21UWrZTEUbGogX907TQM5++i+vGQaFHZxEj/ccXEjbWW3iWUdso1XRNUZlcpMF196//9bYbDjL9X3rGL4bZMUCC4WAVw4KpPGIW4i5H/yoR8BRomLA8fPYZH4zo6H8A3eL0tW89599n1hqmJiuM+f2hySo/3y2BCxejUYjmi4SDcxSD3MsarrFG2tZEx0L8NQX7/zH1Kva4aErBPdazhHvrIbf8NCLan0anOOvc9k3OMN0HPbCjJX3ZD1a5klHklCIUVVc3qrBrOaI75GNIEUChnYDcrCrhwWSfDntrgByB8qRlxeSErUPw5j5El5VxLxKnKBzYszlKEw9P/yvCww1mUWRsKLcz3XLTAm82w1YbvGxgH+DOEfTuvwbbYUMfmsNQDERY+2X3bT2RcI+Ic8aXMdUAT0Hk9M5pqeRLeuCyA+7gd0qc9Hjp1PEpVr33B2ueR31cA1REt0KIYDJm3WJhsjitmOvRHsW0h5CNya8BJ0tU5oyw5wjpyDzflw+saVfppKnjsRIALs173FeA8jSoqOfvH6JgKQgf+2GM6uNvxAbvyVhn7EzqwaDGgOKgmxFrJwnuMfHt6ZanivkXukwBpU313yIKJqIg+i9SHVHQuqmkNGDDn5fBFHjtlWX86kdLXT7BcpQOu2x4RNE6mqLpicmKpRp3GxST9ns39XUObP72AUoDu33z3tF+6dknOg+rXj3Lh/0oXnd5hbAaQaz9FZ30hO7TQsk6+RaI0R9i1Bc4pepcg3+igKNpQIzTDi/npwPBCW2f4yiCGlqtD78wO6BXp1SJxVclEf1y3WoZrBsZXITd2/T7NthyC3VQsFr+whz08W+z685sL6oetK0hd2cSlRf2NVj7hss6sJnrEUZNPH93zyDo0M/EAx8qKjlGjzgDrF88MynYvFRQhLwTBXTUa4mP3trwvVTKCw89tyCm6X1u66MPy6VEmpq7YjIA8O2E56htZmI5P88KZ5M1nLoc+Kr+E7lVnkNsU16RHV0XkXp+iJ9Tha9UsA8Ro4JD6o0OC3AebBkXklcCrzV0uXnmdxO05EGoMtDzbENv7y1wAqadjaDgD/Jv0/DojS5Hz/wo11NBb8S/+H14odiXs4TPkzAK1UxO9QurbDcYeuw2+TLGgntf4kl0UMj33tR4Q2RYX0LekDoKJGdyuNTCMJ1thGvpINmIGFQYgtJFrZKHONeas+OGtHf/rOwuEmpThCbeFeYfDxVhcl4zzjbRghJOhf0Mxyb9i4rKqWvp+30WHePuQMVSkdZHpX5P+CjF3Zet/X6ox5w3eruEm2h3b7WG738dIcF1ZbkKTYpkwcc0jFT5gLFQCqXYrxn9vNtLNjCxCCNWlsEryw3ZVFUUiqmOozz8SUSXFcgGRtp50NMHKBDuxDIp7nMnm8LKeCPQOtT/o5xG9YCtnRBq7d49z5Ja/eP7Ju8IqBFBwpkaQlSqik2Yr7zXeyPQdAXkZ6Qgh5aySE1CTjgi1IlYgt5am/8XyBJD4XhcebXUbB68iSAP4kMMLjSkHLXuwdnpUGTy9/MtM/Brp5xq9HtLP9BQwwgiTIq7e2yylWEKG/+vpsYJ0FoLIMeYgv5MY1BCX1kW7AYbvB2h760m8ogp2We4qI2c52Ri0xLwAhRQF9OiX8yBNYjkQmef1wcmHD12GYr3ZjD3rEidjHEdxvUQPf1l2fEqKbZgxEAJYOAR1RdZb0dcRqA48cCXgM/0VDmWr0o41klCc1WVs6ej3jM1CzdeouVZa09WWBr9nyAfCrmaf6P0uYTpF2KRlZPr721SCxkvRQN5XTUhd8dc+BDSaHA9x7bqCWoroz/ulu0APrxcyl0M3zTiRQCW9NXjlQ7cS1Lf91h/Bv2XlA/qNRzWqnm0fpi4fGkcw18DJwZBDlSDc0uCQrMA2RdYin26li8LO9rq9qBN2V+NH/3NfDJN8N1EJGgVgf4WtAsYNOHSLYQuPggCIFoF+Aj/VQ/1VASC2RDyRWY6zCYn93VTGcdBlDvmXAJViBAGnDfhFMlPvUjIeMQqExpZY5gManrfb27b7mQwr69gzCqwOMthZrydOUVZAFtXaYNRMAF8DDp4muQ8vyzx5VTDvb/Px/pzi40378lfVJcJBSpGEvGWYQkmjR66n//77GLIEcfzx1v1ooHJS/hsiJbaxkr5w9xyfe/tT+ebFrjycDI3C6MZleCDiWJDrxnKVJEn6ibtZuWRrpIYLSHBhwsVjhv7mx4q1DKs8EYxaCbJHj+Rs+y3chAUAe6Lp3ssus4CXrNh3jNfMc9a5UdixOv81O1ikpSxFxQzfUosR2GQetj8yRDqzYwPMK72EylnNmZSs8F8mIuFT7yJRtsxeqVDniMPk5EzvE/nKBTNv1o7Fo3JvkZMyVsBWbFGM7vokY4KVNUi97MD41XoimHAXT6Mp/O/qpznfyukayCqiX3mPnDQJjWDmm0T7EhabMzItIIIyRRj3u+mcb1nc0sXSbDlg33gw3rzHZM5NK9+0wNkRmHfok6JKpJPCVjqmt2IqcsFndcHcunilyRoHxyw/doldKxMjyGv7HcEEELIAItxuDEaYo48EqI2GUftmppkYaxk+il3H1wXQTcV7H1Yl93AR5hmcOj4UwvJvJge8kNz3BefsC2IAewGtl8XfhcrpFoKNfSY9PMhqIfq90BTND6olDA3MJKspFphw7ovgP2dRAmubMjeh4hsryeOnj7cuelJUhTx1JDiXbM69+G7pk7s3jHh4CWYCl1OTUK1maly3OBazIBwqKZ/rmgTOJzWDmFRlD0qL0KM61oVRHNlwCxutfB3Pgf0rroPfHdqIOo/F2zo5y7DR8IuSgbd/1FW/1FDyw+MqNpd6+fGJy6EA6a+j8ImexukNdHW1sYRg/wNvD5SdRa7Vf0QO9dUljqfv4hp/A5/6RZAvU9yTDXtaIajP9PVmMa5LcioPB0zDgHG3RUQzGerHZQp+12eZmf62+tca24iv/wKDk4UsNuwB3+yfI1myfMJ5IGUGnpSvxsiGdtVSwwNNUlbGtwK1RMSV4aouPw8czEjIPY6x27RU9osilsak6YMADUxvZhW2hSg4Sz8F192fmdZY5p9pTOCIQmwjwId4tLgEUMLpr2BVy/Ctnb2j2Tmz7EkFOqtVUN6dK7y8SUp+0qFka91S5GYL9eXjnHC6psepnmPsLN68U+XRQA2qYo/CvNFeJ+HavNn9BI/sv0TPQFwCktxzWTG76hQ1WwbxrUn5DEY5a7/hTBWqznqHbDTgqpSK78h81EN6J5HIieuK7GVh8F5r5IZS9Ddetk5kTiy/PzdrG2OYLPBPUZq1WG8JhZfqbTTs2yYaZV/lhkCaxCPKxCetX3pCz2udWmEM+4lc9ueWqJQ5Wh+q0EsyjUITQ9kxiQ23t2Ss5SQcyXgmfQtzyKzDviWmRmp/RiJENiqdtUeWGpkCZHaVr8GWPqmdCb/Vb1iew3nMKqEKq+3uUQOHLtyNAg5t0mkXVfDkp7GAOxXT5Xnln/p45hDFpzjMHypv5Ko9Eu/viBPXn1Aywf+YWZSQkh12Kl4olw3+FXKMg8iwf4bwXJGpUCylyzLMbVOs+Vcap4bJQPmvq+s4pbOUqquo5cwK+0cYJRJSPoWmA+bYrgUSSRvg373LfwNiV703Oxx6xSpv9/aGsqr2GnLVeNS50zICwewQ/iIatCl3IwCixjHz7WKr8T2LZX0+ViI08f0MTyhKGP/6SRNvqX/D3OYNNbaVF/6gCCudzlzVNIlPgj6Sv1qNN1UXuXUefY3VnbHVVPRrJiE3d2GrBocl5ZI6Upt7Xr1UauyE90GtJ9Rr1S1/AyWMuXXzRWdh4dOu7StnC9bI2fjyz5EyGiMoDutuZG8sRiRCnF/XnevZ+9d0VtxZfW0qD4nXgNwT4B54cmExR7TE0DASs6f9a+VraTRPwjg000V1QXwqe9SsOvIzaShoUMOgTLJfFHduTa7xL0Suvwk28gUV7t42H4GYPPRF8ThKFA33m2ADmg8nDMIGZekPEvRkoMhryuT0iujAT2IXfc+I0ZIGc59Xn3FXmlmRciSNymZq3d2upvrIBG6j3LKD72OhqvtIr1YiSDt8mvlf6jBAtexKnqWntrhnteTAcHjvuRxrQyKfgc3DdEcIAr5QmJlMF+iBHcGfuCmhxv1uaWK08gPvBizra2kIfwTEoDi8wxP3Y8IwYQ34wdgdEBW6dqPHYkWNZ6Ix2tGJYsiie6vV5iEpPAKk4xQkH05kwYCe3o15N4Tn+k6adVQoMyNH6pERloeEhdj8bWelvngGhAdVoySK6DMflZUOiV75RddHWIrXCMuFO6t97wuGD6N10VRBElWvVWl5k4hA6WPTe4DQ3oL3myKn6sWqzjTuIpBRd5CAx87Szc3ZdEfUTl4WfTEU7o7l6kQd02T0puqIqrKpxWF+vkvNiMFOXC2/dSN0yBRvI4d6fXGTs/UFpgcajt5dUbTKYFHtruevPH7PKcJdyvLmEFlI0wFZCoLOukE7Hd5rT/Rj+tIfY2x+26hwhonDTwF14ydPYNtD44QqLZqC8hNprjenAiv44MEyMJq+3R+sO/NGq9hrlypVwtS+R+/rdG3yVLK8TZ4s4snLPtgi6Ks1W7pgZc7KAEwT8aVdYawXuYr09stUNaIgyi9ehMf+VOGVIymHIEh13yeNgq7d+7khz2MMrTZVFMJb45IuwVvrJ/OUUFQLZ1oXY05xtDem8fsX4r55gUDkjRgPBOu8hRNI6Lqk8FiJJ+DrKFKtS2xluGfkbPo1+JDiYkpI8HrZ4H1fD0b8K8KYyOQrvWxtdVpSCkapJA/T92/2Yik8WksP7/oN036spbOzPt4aDQ1+GWfv1gamTS6V5+y1FFTu6J3xrV6fxZZqMtqR+0cQNSDTNOiaZis1uPAdMxAYO78TRnJtbg2RRmLDKZxAebRckys9qmvqzJEZ9tXbgZQ+cGpZpsvYWDA+r1SwSu3lSm+KZ9z18vj7YyGm1B9Tp58PvK4lChfR+U+V7qDYeYemTh6d0vJIHElf5gSZ+IBMwlyJu7TcwM/xojVXsWqSdeMZST11bY6jtFuDWVfKaCr/DoFpm6LyB/WdkPe/1AiooV+ZtRUJwfWwA6Bvj0gXVpn4pd0qK6Xp5HohVKe+4wkFi716yma/9GCkhuhn+S+CL0KgzSHQW6m9TB44/sZePQPgBxlkZIkOe+fs8JVGH2xH6tTOq2PFntMj7GLlPqPN6Qf1eRuMGpJ81A2f9XrR4iy0XPZQzePVvG8T369cN/5RX9EAmZL4xzniSjruXMQHO5ZTcytvSv1Sjq+gjvZzUSYEsl1xOVrC1z28neBHtpIVgfUe8Mt4tOb1b1TbzIcfH1KKODwo+NIXbGaQ/I0g2q0kO4vwnB1FKYkXOyjqJrAQIYPAks0wlKgrZoKksLLX9VWpsCND7fDsYdirNRSYbFKDuF8g5UOkCkgo/GEEs7TexK6MJHJ0HGPUQ/LvI4QNIYTpJzKTaMgpuyT1t8fF9ShGhU0pTEsmu2EGmoY5aX4jZCh2MxOkcPrDQfO7iAuKnUu5JYRflMP6gCfNaaOPW40Kq2r29ZuLv5QJSuIMJziWFNvF40nVAaNIZG3mBRAKFdbs0v+ECQ9XwfdcC9b7zkCUQiLN2XOl7Z9F4se7Ph5Y7x2UfZvhEhg2TRr+TScBg9Atb3Asc2qTgJmYb207NBCKOQN4gmqsOTXRRZliVxxqHSS49pRsHubEKQcIpApAK/DdgXLRAYj/tGurw6a+xjRNMiqv1Uj6PG1KJEqcwQa8JTwTc3fLUXqI8Cg3F0autuVTJsnR/FkaZoPGpALWWTdvPGGhbHi438xBlvvpAoX2QZU3fGIvT1pCns2Ti2a0ZBhYO2o6fw1j4hcs9Jaitg+KybuwUzT6cNwzJbgr9lHtN5FyftbfH25b5JHmqxCprslaW/ugXIBSytdLzw9souw1/UialiR8BdlESbi4PFlb1HNj+iCQpHnZ1vFDsQDsNcdFV6lFHXGIHvSDbw0lRDYCWKFe0QGua3RB/7ztcmB0x3SUtnlC1gEHQRPyjTVndZ3XudlTGWw8IrFLn95D2T7BwPmna1ixMF38tZJAF1D4CD5aFrpy52Zki9mJrlblR5V3eeff69vp/Xh4uC8MPemij8w07NvYGh3xADAIxdgB8OaBpn/N1msCEc2N0unviPMKGbO5WhtJEPPfiapTg6EukHyM+z/5f2+QOmWdwURmNUzL/l+fpGy7Aua8cJm0gqg4wCqgs2RxiwIf4KNCxko0bf/JnJgBfmYE13aI55FBshIQyPX4UT9esy5/HU7y0P7QeQHU2Ri3gYibpKhSl3E+UnCk4E0+lKYfb9xUKb5iZJJYAw5AVTPSy+n+aOZqy7dHiOGi8tqxSxaWl5b9Ynupegl66Vts9d7Hze8iciYYkYgzNbDeX97l6UtkKHeyXMyI17UXCC+JeRdGMf/Neau55E+EVxxsUqD7QxbgBMznthwXyIBCVvT26lln6wCw0C4IpVNiFyYVTQc6WAy3hsmJkzrsUkRTcJpMcOVHFLnRS7XjLVZ5lT5fvURcqoQ3gKooiLx0MpvoUqveKB/IqfHbwVIlrYAaVImwHWRN+gaEYqnNCTYi6D+CSqRCV827n1TducotKwAA="); }
@@ -1316,7 +1383,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       <header class="bt-head">
         <span class="bt-title" id="battle-title">決闘</span>
         <span class="bt-round" id="round-info"></span>
-        <button type="button" class="bt-menu-btn" id="btn-battle-menu" aria-label="メニュー（履歴・遊び方・降参）"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <button type="button" class="bt-menu-btn" id="btn-battle-menu" aria-label="メニュー（戦闘履歴・遊び方・降参）"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       </header>
       <div class="conn-info hidden" id="conn-info" role="status"></div>
 
@@ -1330,16 +1397,11 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 
       <div class="bt-side">
         <div class="bt-center">
-          <div id="dice" class="dice" aria-live="polite"><span>？</span></div>
+          <!-- 数字を出す：中央のサイコロ自体を押す -->
+          <button type="button" class="bt-dice-btn" id="btn-roll" aria-describedby="roll-cap"><span id="dice" class="dice" aria-live="polite"><span>？</span></span><span class="bt-dice-cap" id="roll-cap"></span></button>
           <div class="bt-phase"><b id="phase-text" class="phase-text"></b><span id="phase-sub" class="bt-phase-sub"></span></div>
-          <button type="button" class="btn btn-primary btn-roll" id="btn-roll">数字を出す</button>
         </div>
         <div class="bt-flags"><span id="turn-flags" class="boost-info"></span><span id="fatigue-info"></span></div>
-        <div class="bt-actions">
-          <button type="button" class="bt-act" id="btn-swap"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg><span>交代</span></button>
-          <button type="button" class="bt-act bt-act-skill" id="btn-skill-menu"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg><span>固有スキル</span></button>
-          <button type="button" class="bt-act bt-act-log" id="btn-log"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>履歴</span></button>
-        </div>
         <div id="last-action" class="last-action" aria-live="polite"></div>
         <div class="bt-log-panel"><div class="bt-log-head">戦闘履歴<span class="muted">新しい順</span></div><ol id="log" class="log"></ol></div>
       </div>
@@ -1347,7 +1409,6 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       <div class="bt-zone bt-ally">
         <div class="bt-label bt-label-ally"><span><span id="ally-title">味方</span>・前衛</span><small id="drag-hint" class="bt-drag-hint"></small></div>
         <div id="ally-front" class="bt-front-row"></div>
-        <div id="move-options" class="move-options"></div>
         <p class="bt-range-note" id="range-note">攻撃は敵前衛全員／回復は味方前衛全員</p>
         <div class="bt-label bt-label-ally">味方・後衛</div>
         <div id="ally-back" class="bt-back-row"></div>
@@ -1414,11 +1475,24 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
   /* ---------- 属性 ---------- */
   // 新しい属性を追加した場合、ELEMENT_ADVANTAGE に書かなければ常に1倍になります。
   const ELEMENTS = {
-    fire:   { name: '火',   color: '#e2673b' },
-    water:  { name: '水',   color: '#3d93d6' },
+    fire:   { name: '猛火', color: '#e2673b' },   // 内部ID（fire など）は変えない。表示名だけ
+    water:  { name: '水脈', color: '#3d93d6' },
     nature: { name: '自然', color: '#5fae55' },
     holy:   { name: '聖光', color: '#e8cf6a' },
     dark:   { name: '呪闇', color: '#9a6ad6' }
+  };
+
+  /*
+   * ---------- キャラクターのランク（★の数） ----------
+   * キャラ固有のランク。レベル・残りHP・技の付け替えでは変わらない。
+   * 比較の値 ＝ 基礎HP ＋ 初期構成（出目1〜6）の通常技の攻撃の平均 ＋ 回復の平均
+   *   （攻撃しない技の攻撃・回復しない技の回復は0。固有スキル・リーダースキル・属性・一時強化は含めない）
+   * thresholds は上の星から順に「この値以上ならこの星」。どれにも届かなければ base。
+   * ダンジョンのボスには付けない（雑魚・中ボス・大ボスで表示）。
+   */
+  const RANKS = {
+    base: 2,
+    thresholds: [{ stars: 3, minScore: 130 }]
   };
 
   // 攻撃側 → 有利を取れる防御側の属性
@@ -1710,7 +1784,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       floors: [{ boss: 'b-imp', level: 9, exp: 220 }, { boss: 'b-witch', level: 10, exp: 320 }, { boss: 'b-maou', level: 11, exp: 450 }] }
   ];
 
-  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, ECONOMY, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
+  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
 
   if (typeof module === 'object' && module.exports) module.exports = Data;
   else global.RikuyouData = Data;
@@ -1821,6 +1895,24 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
   function computeSkillDamage(amount, ignoreDefense, defenderUnit) {
     const barrier = !ignoreDefense && !!defenderUnit.barrier;
     return { base: amount, barrier, damage: finalizeDamage(amount, false, barrier) };
+  }
+
+  /* ---------- ランク（★の数。data.js の RANKS） ---------- */
+  // 比較の値：基礎HP＋初期構成（出目1〜6）の攻撃の平均＋回復の平均。レベル・残りHP・技の付け替えに左右されない
+  function rankParts(charId) {
+    const c = getChar(charId);
+    const lo = defaultLoadout(charId);
+    const avg = key => lo.reduce((a, k) => a + (c.moves[k][key] || 0), 0) / lo.length;
+    const atk = avg('atk'), heal = avg('heal');
+    return { hp: c.maxHp, atk, heal, score: c.maxHp + atk + heal };
+  }
+  // ★の数（ボスは null）
+  function starsOf(charId) {
+    if (!getChar(charId) || isBoss(charId)) return null;
+    const R = Data.RANKS || { base: 2, thresholds: [] };
+    const score = rankParts(charId).score;
+    const hit = R.thresholds.slice().sort((a, b) => b.minScore - a.minScore).find(t => score >= t.minScore);
+    return hit ? hit.stars : R.base;
   }
 
   /* ---------- 技の構成（出目1〜6に割り当てる6技） ---------- */
@@ -2405,7 +2497,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
-    movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
+    rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus,
@@ -3304,6 +3396,15 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     const el = ELEMENTS[ch.element] || { color: '#888' };
     return `<span class="portrait${o.dim ? ' dim' : ''}${o.zoom ? ' zoom' : ''}" data-char="${esc(ch.id)}" style="--el:${el.color}" aria-hidden="true"><i>${esc(ch.glyph)}</i></span>`;
   }
+  // ランク（★の数）。ボスは出さない
+  function starsHtml(ch) {
+    const n = E.starsOf(ch.id);
+    return n ? `<span class="stars" data-stars="${n}" aria-label="★${n}" title="ランク★${n}">${'★'.repeat(n)}</span>` : '';
+  }
+  // カードの枠：属性ごとの基本色（data-el）× ランクごとの濃さ（data-stars）。style.css の .el-frame
+  function frameAttrs(ch) {
+    return `data-el="${esc(ch.element)}" data-stars="${E.starsOf(ch.id) || 0}"`;
+  }
   // 石のアイコン
   function gemIcon(cls) {
     return `<svg class="gem${cls ? ' ' + cls : ''}" viewBox="0 0 20 28" aria-hidden="true"><path d="M10 1l8 9-8 17-8-17z" fill="#3f6fe0"/><path d="M10 1l8 9h-8z" fill="#9cc4ff"/><path d="M10 1L2 10h8z" fill="#6c9cf5"/><path d="M2 10h8v17z" fill="#2a4fb8"/><path d="M10 10h8l-8 17z" fill="#5585ec"/><path d="M10 1l8 9-8 17-8-17z" fill="none" stroke="#dbe8ff" stroke-width=".8" stroke-linejoin="round"/></svg>`;
@@ -3402,7 +3503,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
    * マウスは少し動かしたら、タッチは長押ししてから持ち上げる（長押し前に動いたらスクロールとして扱う）。
    * o: { selector, ghostClass, canStart(card) → 理由の文字列（動かせないとき）| null,
    *      canDrop(card, target) → bool, onDrop(card, target), enabled() → bool,
-   *      immediate() → true のあいだはタッチも長押しなしで動かし始める（交代モードなど） }
+   *      immediate() → true のあいだはタッチも長押しなしで動かし始める, ignore: ここから押した時はドラッグしない }
    * 戻り値：suppressed()（ドラッグ直後のクリックを無視する）, busy(), destroy() */
   const DRAG_HOLD_MS = 320, DRAG_SLOP = 8;
   function cardDrag(root, o) {
@@ -3413,6 +3514,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     function onDown(e) {
       const c = e.target.closest(o.selector);
       if (!c || !root.contains(c) || drag || (e.pointerType === 'mouse' && e.button !== 0) || (o.enabled && !o.enabled())) return;
+      if (o.ignore && e.target.closest(o.ignore)) return; // 技のボタンなどからはドラッグを始めない
       drag = { card: c, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
         touch: e.pointerType !== 'mouse' && !(o.immediate && o.immediate()), active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
       if (drag.touch) drag.timer = setTimeout(begin, DRAG_HOLD_MS);
@@ -3501,7 +3603,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 
   window.RikuyouUI = {
     E, CONFIG, FAST, DELAY, rng, $, esc,
-    emblem, elMark, portrait, gemIcon, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
+    emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
     ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen, cardDrag
   };
 })();
@@ -3523,7 +3625,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 
   const U = window.RikuyouUI;
   const CPU = window.RikuyouCPU;
-  const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, openModal, closeModal, toast } = U;
+  const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, openModal, closeModal, toast } = U;
 
   const bt = {
     active: false,
@@ -3551,9 +3653,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     room: null,
     heartbeat: null,
     formationShown: false,
-    fmDraft: null,   // 準備画面で並べ中の配置（{ slots, leader }）。対人戦で依頼が戻されたときも引き継ぐ
-    uiMode: null,    // 'swap'（交代：ドラッグか2体タップ）／'skill'（固有スキル：使うキャラをタップ）
-    swapPick: null   // 交代モードで先にタップしたキャラ
+    fmDraft: null    // 準備画面で並べ中の配置（{ slots, leader }）。対人戦で依頼が戻されたときも引き継ぐ
   };
 
   const foeIsCpu = () => bt.mode === 'cpu';
@@ -3600,7 +3700,6 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     bt.locked = true;
     bt.formationShown = false;
     bt.fmDraft = null;
-    bt.uiMode = null; bt.swapPick = null;
     bt.backend = opts.backend || null;
     bt.code = opts.code || null;
     bt.pushSeq = 0; bt.lastSeq = 0; bt.intentSeq = 0; bt.handledIntent = 0; bt.waiting = false; bt.room = null;
@@ -3868,6 +3967,22 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
   const hpState = u => (u.hp <= 0 ? 'ko' : u.hp / u.maxHp <= 0.25 ? 'low' : u.hp / u.maxHp <= 0.5 ? 'mid' : '');
   const hpNum = u => `<span class="bt-hp"><b>${u.hp}</b>/${u.maxHp}</span>`;
 
+  // 出目の通常技（味方の前衛カードの下部に出す。押すと確認画面）
+  function moveArea(i) {
+    const s = bt.state;
+    const u = s.teams[bt.me][i];
+    const ch = E.unitChar(u);
+    const p = E.previewMove(s, bt.me, i);
+    const atk = p.move.atk > 0, heal = p.move.heal > 0;
+    const healVal = p.heals.length ? p.heals[0].amount : p.healBase;
+    const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
+    const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: '効果なし' }[kind];
+    const main = kind === 'both' ? `攻${p.boosted}＋回${healVal}` : kind === 'atk' ? `攻撃 ${p.boosted}` : kind === 'heal' ? `回復 ${healVal}` : '—';
+    return `<button type="button" class="mo-btn ${kind}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
+      <span class="mo-kind">${head}</span><b class="mo-main">${esc(main)}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>`;
+  }
+
+  // カード：絵（押すと詳細）＋名前・★・HP＋（味方前衛で出目確定後は）通常技。枠は属性色×ランクの濃さ
   function unitCard(side, i, kind) {
     const s = bt.state;
     const u = s.teams[side][i];
@@ -3881,12 +3996,13 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     if (E.isBoss(u.charId)) tags.push(`<span class="bt-tag boss">${esc(ch.rank || 'ボス')}</span>`);
     if (u.barrier && u.hp > 0) tags.push('<span class="bt-tag barrier">結界</span>');
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
-    const label = `${ch.name} HP${u.hp}/${u.maxHp}${st === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
-    const picked = mine && bt.uiMode === 'swap' && bt.swapPick === i;
-    return `<div class="bt-card unit-card ${kind}${mine ? ' mine' : ''}${picked ? ' picked' : ''}${st ? ' hp-' + st : ''}${u.hp <= 0 ? ' ko' : ''}" data-side="${side}" data-idx="${i}" data-pos="${kind}" role="button" tabindex="0" aria-label="${esc(label)}（詳細）">
-      <span class="bt-art">${portrait(ch, { zoom: true })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${u.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(u) : ''}</span>
-      ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}</span><span class="bt-hpline">${hpNum(u)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(u)}</span>`
-        : `${hpBar(u)}${cd ? `<span class="bt-backcd">${cd}</span>` : ''}`}
+    const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${st === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
+    const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
+    return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${u.hp <= 0 ? ' ko' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
+      <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: true })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${u.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(u) : ''}</span>
+      ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}${starsHtml(ch)}</span><span class="bt-hpline">${hpNum(u)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(u)}</span>`
+        : `${hpBar(u)}<span class="bt-backline">${starsHtml(ch)}${u.hp > 0 && u.cd > 0 && !hidden ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : ''}</span>`}
+      ${withMove ? `<span class="bt-move">${moveArea(i)}</span>` : ''}
       ${hidden ? '<span class="bt-hidden">配置前</span>' : ''}
     </div>`;
   }
@@ -3916,38 +4032,6 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       : (s.teams[side].some(u => E.isBoss(u.charId)) ? '<span>ダンジョンの敵（リーダーなし）</span>' : '');
   }
 
-  // 前衛の並びに合わせて、出目の通常技を3つ並べる（倒れた枠は空ける）
-  function renderMoveOptions() {
-    const s = bt.state;
-    const box = $('#move-options');
-    const slots = s.front[bt.me] || [];
-    const note = $('#range-note');
-    if (!myActing(s) || bt.waiting) {
-      let msg = '';
-      if (s.phase === 'roll' && s.turnSide === bt.me && !bt.waiting) msg = '数字を出すと、前衛3体の技が表示されます';
-      else if (s.phase === 'roll' || s.phase === 'action') msg = s.turnSide === bt.me ? (s.moveUsed ? '' : '処理中…') : `${whoName(bt.foe)}のターン`;
-      box.innerHTML = msg ? `<div class="mo-wait">${esc(msg)}</div>` : '';
-      note.classList.add('hidden');
-      return;
-    }
-    note.classList.remove('hidden');
-    box.innerHTML = slots.map(i => {
-      const u = s.teams[bt.me][i];
-      if (u.hp <= 0) return '<div class="mo-empty" aria-hidden="true"></div>';
-      const ch = E.unitChar(u);
-      const p = E.previewMove(s, bt.me, i);
-      const atk = p.move.atk > 0, heal = p.move.heal > 0;
-      const healVal = p.heals.length ? p.heals[0].amount : p.healBase;
-      const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
-      const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: '効果なし' }[kind];
-      const main = kind === 'both' ? `攻${p.boosted}＋回${healVal}` : kind === 'atk' ? `攻撃 ${p.boosted}` : kind === 'heal' ? `回復 ${healVal}` : '—';
-      return `<div class="mo-card" data-move-card="${i}">
-        <button type="button" class="mo-btn ${kind} btn-pick-move" data-move="${i}"${bt.locked ? ' disabled' : ''} aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
-          <span class="mo-kind">${head}</span><b class="mo-main">${esc(main)}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>
-      </div>`;
-    }).join('');
-  }
-
   function renderCenter() {
     const s = bt.state;
     const pct = E.healPercent(Math.max(1, s.round));
@@ -3957,55 +4041,41 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     let phase = '', sub = '';
     if (s.phase === 'formation') { phase = '戦闘準備'; sub = s.front[bt.me].length ? `${foe}が配置を決めています…` : '前衛とリーダーを決めてください'; }
     else if (s.phase === 'initiative') { phase = '先攻・後攻'; sub = 'サイコロで決めています…'; }
-    else if (s.phase === 'over') { phase = s.winner === bt.me ? '勝利！' : '敗北…'; sub = '決着しました'; }
-    else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : `${foe}のターン`; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
-    else if (s.turnSide === bt.foe) { phase = `${foe}のターン`; sub = s.phase === 'roll' ? '数字を出しています…' : `出目 ${s.dice}：行動を考えています…`; }
+    else if (s.phase === 'over') { phase = s.winner === bt.me ? '勝利！' : '敗北…'; sub = 'サイコロを押すと結果を見られます'; }
+    else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
+    else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
-    else if (s.phase === 'roll') { phase = 'あなたのターン'; sub = '「数字を出す」を押してください'; }
-    else if (bt.diceAnim) { phase = 'あなたのターン'; sub = '数字を出しています…'; }
+    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロを押して数字を出す'; }
+    else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = '数字を出しています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
-    else { phase = 'あなたのターン'; sub = '使う技を選んでください'; }
+    else { phase = '技を選ぶ'; sub = '前衛の技を1つ選ぶ（スキルは絵を押す）'; }
     $('#phase-text').textContent = phase;
     $('#phase-sub').textContent = sub;
     $('#screen-battle').classList.toggle('my-turn', s.turnSide === bt.me && (s.phase === 'roll' || s.phase === 'action'));
+    $('#range-note').classList.toggle('hidden', !(myActing(s) && !bt.waiting));
 
     const dice = $('#dice');
     if (!bt.diceAnim) {
       dice.className = 'dice' + (s.dice ? '' : ' empty') + (s.turnSide === bt.foe && s.dice ? ' cpu' : '');
       dice.innerHTML = `<span>${s.dice || '？'}</span>`;
-      dice.setAttribute('aria-label', s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません');
     }
+    // サイコロ自体が「数字を出す」ボタン
     const btn = $('#btn-roll');
-    if (s.phase === 'over') {
-      btn.disabled = !!U.ui.modal;
-      btn.textContent = '結果を見る';
-    } else {
+    let cap = '';
+    if (s.phase === 'over') { btn.disabled = !!U.ui.modal; cap = '結果を見る'; }
+    else {
       btn.disabled = bt.locked || bt.waiting || s.turnSide !== bt.me || s.phase !== 'roll';
-      btn.textContent = (s.turnSide === bt.me && s.phase === 'action') ? '出目確定' : '数字を出す';
+      cap = btn.disabled ? '' : 'タップして数字を出す';
     }
+    $('#roll-cap').textContent = cap;
     btn.classList.toggle('ready', !btn.disabled);
-    const swapBtn = $('#btn-swap');
-    const swapReason = bt.locked || bt.waiting ? '処理中' : E.swapBlockReason(s, bt.me);
-    const skillReason = skillModeBlock(s);
-    // 使えなくなったモードは解除する（相手のターン・交代済み・行動後など）
-    if (bt.uiMode === 'swap' && swapReason) setMode(null, true);
-    if (bt.uiMode === 'skill' && skillReason) setMode(null, true);
-    swapBtn.disabled = !!swapReason;
-    swapBtn.setAttribute('aria-pressed', String(bt.uiMode === 'swap'));
-    swapBtn.querySelector('span').textContent = bt.uiMode === 'swap' ? 'やめる' : s.swapUsed && s.turnSide === bt.me ? '交代済み' : '交代';
-    const skBtn = $('#btn-skill-menu');
-    skBtn.disabled = !!skillReason;
-    skBtn.setAttribute('aria-pressed', String(bt.uiMode === 'skill'));
-    skBtn.querySelector('span').textContent = bt.uiMode === 'skill' ? 'やめる' : '固有スキル';
-    const active = !(s.phase === 'over' || s.phase === 'formation' || s.phase === 'initiative');
-    $('#screen-battle').classList.toggle('mode-swap', bt.uiMode === 'swap');
-    $('#screen-battle').classList.toggle('mode-skill', bt.uiMode === 'skill');
-    // 今のモードと、交代できない理由を短く出す
+    btn.setAttribute('aria-label', s.phase === 'over' ? '結果を見る' : !btn.disabled ? '数字を出す' : (s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません'));
+    // 交代できるか（できない理由）を短く出す
     const hint = $('#drag-hint');
-    if (bt.uiMode === 'swap') hint.textContent = bt.swapPick !== null ? '入れ替える相手をタップ' : '前衛と後衛をドラッグ（または2体をタップ）';
-    else if (bt.uiMode === 'skill') hint.textContent = '固有スキルを使うキャラをタップ（後衛も可）';
-    else if (!active) hint.textContent = '';
-    else if (!swapReason) hint.textContent = '「交代」を押すか長押しで交代';
+    const swapReason = bt.locked || bt.waiting ? '処理中' : E.swapBlockReason(s, bt.me);
+    const active = !(s.phase === 'over' || s.phase === 'formation' || s.phase === 'initiative');
+    if (!active) hint.textContent = '';
+    else if (!swapReason) hint.textContent = '長押ししてドラッグで交代';
     else hint.textContent = s.turnSide === bt.me && s.phase !== 'roll' ? `交代：${swapReason}` : '';
 
     const flags = [];
@@ -4038,67 +4108,30 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     }
     renderSide(bt.foe);
     renderCenter();
-    renderMoveOptions();
     renderSide(bt.me);
     renderLog();
     renderConnection();
     if (U.ui.modal && U.ui.modal.refresh) U.ui.modal.refresh();
   }
 
-  /* ---------- 履歴・固有スキル・メニュー ---------- */
+  /* ---------- 上部メニュー（戦闘履歴・遊び方・降参） ---------- */
   function showLogModal() {
     openModal('', { kind: 'log', refresh: () => { const l = $('#modal-body .log'); if (l) l.innerHTML = logHtml(); } });
     $('#modal-body').innerHTML = `<h3>戦闘履歴</h3><p class="muted">新しい順</p><ol class="log log-full">${logHtml()}</ol>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`;
   }
-  /* ---------- 交代モード・固有スキルモード ----------
-   * 「交代」を押すと、長押しなしでドラッグでき、2体を順にタップしても入れ替えられる。
-   * 「固有スキル」を押すと、味方のキャラをタップしてそのキャラの固有スキルの確認画面を開く。 */
-  function skillModeBlock(s) {
-    if (!s || bt.locked || bt.waiting) return '処理中です';
-    if (s.phase === 'over' || s.turnSide !== bt.me || (s.phase !== 'roll' && s.phase !== 'action')) return `${whoName(bt.foe)}のターンです`;
-    if (s.phase === 'roll' || !s.dice) return '数字を出してから使えます';
-    if (s.moveUsed) return 'このターンはすでに通常技を使いました';
-    if (s.skillUsed) return 'このターンはすでに固有スキルを使いました';
-    return null;
-  }
-  function setMode(mode, quiet) {
-    bt.uiMode = mode;
-    bt.swapPick = null;
-    if (!quiet) render();
-  }
-  function toggleMode(mode) {
-    if (!bt.state) return;
-    if (bt.uiMode === mode) { setMode(null); return; }
-    const reason = mode === 'swap' ? (bt.locked || bt.waiting ? '処理中です' : E.swapBlockReason(bt.state, bt.me)) : skillModeBlock(bt.state);
-    if (reason) { toast(reason); return; }
-    setMode(mode);
-  }
-  // モード中に味方のカードをタップしたとき。処理したら true
-  function modeTap(side, idx) {
-    if (!bt.uiMode) return false;
-    const s = bt.state;
-    if (side !== bt.me) { toast(bt.uiMode === 'skill' ? '固有スキルを使う味方をタップしてください' : '入れ替える味方をタップしてください'); return true; }
-    if (s.teams[bt.me][idx].hp <= 0) { toast('戦闘不能のキャラは選べません'); return true; }
-    if (bt.uiMode === 'skill') { showSkillModal(idx); return true; }
-    const pick = bt.swapPick;
-    if (pick === null || pick === idx) { bt.swapPick = pick === idx ? null : idx; render(); return true; }
-    if (E.isFront(s, bt.me, pick) === E.isFront(s, bt.me, idx)) { bt.swapPick = idx; render(); return true; } // 同じ列なら選び直し
-    const out = E.isFront(s, bt.me, pick) ? pick : idx, inn = out === pick ? idx : pick;
-    setMode(null, true);
-    perform('swap', { out, in: inn });
-    return true;
-  }
-
   function showBattleMenu() {
     const over = bt.state && bt.state.phase === 'over';
     openModal(`<h3>メニュー</h3>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost btn-block" id="btn-menu-log">戦闘履歴</button>
+        ${bt.opts && bt.opts.onHelp ? '<button type="button" class="btn btn-ghost btn-block" id="btn-menu-help">遊び方</button>' : ''}
         ${over ? '' : `<button type="button" class="btn btn-ghost btn-block btn-danger" id="btn-surrender">${bt.mode !== 'cpu' ? '降参して退出' : '戦闘をやめる'}</button>`}
         <button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button>
       </div>`, { kind: 'menu', bind: b => {
       b.querySelector('#btn-menu-log').addEventListener('click', showLogModal);
+      const h = b.querySelector('#btn-menu-help');
+      if (h) h.addEventListener('click', () => { closeModal(true); bt.opts.onHelp(); });
       const sr = b.querySelector('#btn-surrender');
       if (sr) sr.addEventListener('click', showSurrenderConfirm);
     } });
@@ -4223,10 +4256,10 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       const u = team[i], ch = E.unitChar(u);
       const lead = fm.leader === i, ko = u.hp <= 0;
       const hp = u.hp < u.maxHp ? `${u.hp}/${u.maxHp}` : `${u.maxHp}`;
-      return `<button type="button" class="fm-card${lead ? ' leader' : ''}${ko ? ' ko' : ''}${swapPick === i ? ' picked' : ''}" data-idx="${i}" data-pos="${posOf(i)}" aria-pressed="${lead}"
-        aria-label="${esc(ch.name)} Lv${u.level || 1} HP${hp}${lead ? '（リーダー）' : ''}${ko ? '（戦闘不能）' : ''}">
+      return `<button type="button" class="fm-card el-frame${lead ? ' leader' : ''}${ko ? ' ko' : ''}${swapPick === i ? ' picked' : ''}" ${frameAttrs(ch)} data-idx="${i}" data-pos="${posOf(i)}" aria-pressed="${lead}"
+        aria-label="${esc(ch.name)} ★${E.starsOf(ch.id) || ''} Lv${u.level || 1} HP${hp}${lead ? '（リーダー）' : ''}${ko ? '（戦闘不能）' : ''}">
         <span class="fm-art">${portrait(ch, { zoom: true })}${elMark(ch)}${lead ? `<span class="fm-lead">${CROWN}リーダー</span>` : ''}${ko ? '<span class="fm-ko">戦闘不能</span>' : ''}</span>
-        <span class="fm-name">${esc(ch.name)}</span>
+        <span class="fm-name">${esc(ch.name)}${starsHtml(ch)}</span>
         <span class="fm-stats"><span>Lv${u.level || 1}</span><span>HP ${hp}</span></span>${hpBar(u)}</button>`;
     };
 
@@ -4328,74 +4361,75 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     draw();
   }
 
-  function showDetailModal(side, idx) {
+  // 固有スキルの効果を対象別に（Engine.previewSkill と同じ計算）
+  function skillPreviewLines(side, idx) {
     const s = bt.state;
-    const draw = () => {
-      const u = s.teams[side][idx];
-      const ch = E.unitChar(u);
-      const mine = side === bt.me;
-      const acting = mine && myActing(s);
-      const inFront = E.isFront(s, side, idx);
-      const skillReason = mine ? E.skillBlockReason(s, bt.me, idx) : null;
-      const skill = ch.skill;
-      const moveOk = acting && inFront && !bt.locked && !bt.waiting && !E.moveBlockReason(s, bt.me, idx);
-      const isLeader = s.leader && s.leader[side] === idx && !(side === bt.foe && s.phase === 'formation');
-      $('#modal-body').innerHTML = `<h3>${esc(ch.name)} ${levelTag(u.level || 1)}</h3>
-        <div class="uc-head">${emblem(ch, u, 'big')}<div style="flex:1">
-          <div>${elementTag(ch)}属性 ${subTags(ch)}</div>
-          <div class="uc-badges">${statusBadges(s, side, idx)}</div>
-          ${hpBar(u)}${hpText(u)}</div></div>
-        <h4>通常技（出目1〜6）<span class="muted">攻撃は敵前衛全員・回復は味方前衛全員${(u.level || 1) > 1 ? `・レベルで攻撃+${E.levelAtkBonus(u.level)}` : ''}</span></h4>${movesList(ch, acting && inFront ? s.dice : null, u.loadout)}
-        <h4>固有スキル「${esc(skill.name)}」</h4>
-        <div class="effect-box"><div>${esc(skill.text)}</div>
-          <div class="muted">CD ${skill.cd}／残りCD ${u.cd}（前衛・後衛どちらでも使用可）</div>
-          ${mine && skillReason && u.hp > 0 ? `<div class="reason">今は使えません：${esc(skillReason)}</div>` : ''}</div>
-        ${ch.leaderSkill ? `<h4>リーダースキル</h4>${leaderBox(ch, isLeader ? 'このチームのリーダー（発動中）' : '')}
-        ${isLeader ? '' : '<p class="muted">リーダーに選んだときだけ発動します。</p>'}` : '<p class="muted">ダンジョンの敵です（リーダースキルなし）。</p>'}
-        <div class="modal-actions">
-          ${moveOk ? `<button type="button" class="btn btn-primary btn-block" id="btn-detail-move">出目${s.dice}の技を使う…</button>` : ''}
-          ${mine && !skillReason && !bt.locked && !bt.waiting ? '<button type="button" class="btn btn-skill btn-block" id="btn-open-skill">固有スキルを使う…</button>' : ''}
-          <button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button>
-        </div>`;
-      const b = $('#modal-body');
-      const m = b.querySelector('#btn-detail-move');
-      if (m) m.addEventListener('click', () => showMoveConfirm(idx));
-      const sk = b.querySelector('#btn-open-skill');
-      if (sk) sk.addEventListener('click', () => showSkillModal(idx));
-    };
-    openModal('', { kind: 'detail', refresh: draw });
-    draw();
+    return E.previewSkill(s, side, idx).map(p => {
+      if (p.type === 'damage') return `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">${p.base}ダメージ${p.ignoreDefense ? '（防御・属性無視）' : '（属性倍率なし・結界有効）'}</span></div><div class="chips">${p.targets.map(t => `<span class="chip dmg">${esc(t.name)} <b>-${t.damage}</b>${t.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('')}</div>`;
+      if (p.type === 'heal') return `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">回復${p.base}${p.percent < 100 ? `（疲労${p.percent}%で${p.amount}）` : ''}</span></div><div class="chips">${p.targets.map(t => `<span class="chip heal">${esc(t.name)} <b>+${t.effective}</b></span>`).join('')}</div>`;
+      if (p.type === 'barrier') return `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">結界（次の防御可能なダメージ1回を半減）</span></div><div class="chips">${p.targets.map(t => `<span class="chip">${esc(t.name)} ${t.already ? '（すでに結界あり）' : '<b>結界</b>'}</span>`).join('')}</div>`;
+      if (p.type === 'atkMultiplier') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 ×${p.value}（回復は変わらない）</div>`;
+      if (p.type === 'atkBonus') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 +${p.value}（攻撃0の技は除く）</div>`;
+      if (p.type === 'reroll') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} を振り直す（同じ数字の可能性あり）</div>`;
+      return '';
+    }).join('');
+  }
+  // 対象範囲を短く
+  function skillRange(ch) {
+    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目' }[e.type]) || '');
+    return t.filter((x, i) => x && t.indexOf(x) === i).join('・');
   }
 
-  function showSkillModal(userIdx) {
-    const s = bt.state;
+  // キャラの詳細＝固有スキルの確認画面。味方で使えるときだけ「このスキルを使う」。交代の代わりの操作もここから
+  function showDetailModal(side, idx) {
     const draw = () => {
-      const u = s.teams[bt.me][userIdx];
+      const s = bt.state;
+      const u = s.teams[side][idx];
       const ch = E.unitChar(u);
-      const skill = ch.skill;
-      const reason = bt.locked || bt.waiting ? '処理中です' : E.skillBlockReason(s, bt.me, userIdx);
-      const lines = E.previewSkill(s, bt.me, userIdx).map(p => {
-        if (p.type === 'damage') return `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">${p.base}ダメージ${p.ignoreDefense ? '（防御・属性無視）' : '（属性倍率なし・結界有効）'}</span></div><div class="chips">${p.targets.map(t => `<span class="chip dmg">${esc(t.name)} <b>-${t.damage}</b>${t.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('')}</div>`;
-        if (p.type === 'heal') return `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">回復${p.base}${p.percent < 100 ? `（疲労${p.percent}%で${p.amount}）` : ''}</span></div><div class="chips">${p.targets.map(t => `<span class="chip heal">${esc(t.name)} <b>+${t.effective}</b></span>`).join('')}</div>`;
-        if (p.type === 'barrier') return `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">結界（次の防御可能なダメージ1回を半減・消費まで持続）</span></div><div class="chips">${p.targets.map(t => `<span class="chip">${esc(t.name)} ${t.already ? '（すでに結界あり）' : '<b>結界</b>'}</span>`).join('')}</div>`;
-        if (p.type === 'atkMultiplier') return `<div class="pv-line">このターンの通常技の攻撃 ×${p.value}（回復は変わらない）</div>`;
-        if (p.type === 'atkBonus') return `<div class="pv-line">このターンの通常技の攻撃 +${p.value}（攻撃0の技は除く）</div>`;
-        if (p.type === 'reroll') return `<div class="pv-line">出目 ${s.dice || '？'} を振り直す（同じ数字の可能性あり）</div>`;
-        return '';
-      }).join('');
-      $('#modal-body').innerHTML = `<h3>固有スキル「${esc(skill.name)}」</h3>
-        <div class="uc-head">${emblem(ch, u)}<div><b>${esc(ch.name)}</b><div class="muted">CD ${skill.cd}／残りCD ${u.cd}</div></div></div>
-        <div class="effect-box"><div>${esc(skill.text)}</div></div>
-        <h4>今回の効果（対象別）</h4><div class="effect-box">${lines}</div>
-        <p class="muted">スキルはチーム全体で1ターン1回。使った後は、そのターンの交代はできません（通常技は使えます）。</p>
-        <div class="modal-actions">
-          ${reason ? `<div class="reason">使用できません：${esc(reason)}</div>` : '<button type="button" class="btn btn-primary btn-block" id="btn-confirm-skill">固有スキルを使う</button>'}
-          <button type="button" class="btn btn-ghost btn-block" data-close="1">使わずに戻る</button>
-        </div>`;
-      const c = $('#modal-body').querySelector('#btn-confirm-skill');
-      if (c) c.addEventListener('click', () => { c.disabled = true; perform('skill', { user: userIdx }); });
+      const el = E.ELEMENTS[ch.element] || { name: ch.element };
+      const mine = side === bt.me;
+      const busy = bt.locked || bt.waiting;
+      const skillReason = !mine ? null : busy ? '処理中です' : u.hp <= 0 ? '戦闘不能のため使えません' : E.skillBlockReason(s, bt.me, idx);
+      const isLeader = s.leader && s.leader[side] === idx && !(side === bt.foe && s.phase === 'formation');
+      const inFront = E.isFront(s, side, idx);
+      // 交代の相手（前衛なら生存している後衛、後衛なら生存している前衛）
+      let swapHtml = '';
+      if (mine && u.hp > 0 && s.phase !== 'formation' && s.phase !== 'over') {
+        const swapReason = busy ? '処理中です' : E.swapBlockReason(s, bt.me);
+        const partners = inFront ? E.backAlive(s, bt.me) : E.frontAlive(s, bt.me);
+        swapHtml = `<h4>交代（ドラッグの代わり）</h4>${swapReason
+          ? `<p class="reason">今は交代できません：${esc(swapReason)}</p>`
+          : `<p class="muted">${inFront ? '後衛' : '前衛'}の誰と入れ替えるか選んでください（HP・クールダウンはそのまま）。</p>
+            <div class="target-list">${partners.map(j => { const v = s.teams[bt.me][j]; const c2 = E.unitChar(v); return `<button type="button" class="target-btn" data-swap-with="${j}">${emblem(c2, v, 'small')}<span class="t-main"><b>${esc(c2.name)}</b> と入れ替える<br>${hpText(v)}</span></button>`; }).join('')}</div>`}`;
+      }
+      const stars = E.starsOf(ch.id);
+      $('#modal-body').innerHTML = `<div class="dt-head el-frame" ${frameAttrs(ch)}>${portrait(ch, { zoom: true })}<div>
+          <h3>${esc(ch.name)}</h3>
+          <div class="dt-meta">${stars ? `<span class="stars">${'★'.repeat(stars)}</span>` : (E.isBoss(ch.id) ? `<span class="badge boss">${esc(ch.rank || 'ボス')}</span>` : '')}${elMark(ch)}<span>${esc(el.name)}</span>${levelTag(u.level || 1)}${isLeader ? '<span class="badge leader">リーダー</span>' : ''}</div>
+          <div class="dt-hp">${hpBar(u)}${hpText(u)}</div>
+          <div class="uc-badges">${statusBadges(s, side, idx)}</div></div></div>
+        <h4>固有スキル「${esc(ch.skill.name)}」</h4>
+        <div class="effect-box"><div>${esc(ch.skill.text)}</div>
+          <div class="dt-skill-meta"><span>対象：${esc(skillRange(ch))}</span><span>クールダウン ${ch.skill.cd}ターン</span><span>${u.cd > 0 ? `残り <b>${u.cd}</b>ターン` : '今は待ち時間なし'}</span><span>${inFront ? '前衛' : '後衛'}からも使える</span></div>
+          ${mine && u.hp > 0 ? `<div class="dt-preview">${skillPreviewLines(side, idx)}</div>` : ''}
+          ${mine && skillReason ? `<p class="reason">今は使えません：${esc(skillReason)}${u.cd > 0 ? `（残りクールダウン ${u.cd}）` : ''}</p>` : ''}
+          ${!mine ? '<p class="muted">相手のキャラです（情報の確認のみ）。</p>' : ''}</div>
+        ${mine && !skillReason ? '<div class="modal-actions"><button type="button" class="btn btn-primary btn-block" id="btn-use-skill">このスキルを使う</button></div>' : ''}
+        ${swapHtml}
+        <details class="dt-more"><summary>通常技（出目1〜6）・リーダースキル</summary>
+          ${movesList(ch, mine && myActing(s) && inFront ? s.dice : null, u.loadout)}
+          ${ch.leaderSkill ? leaderBox(ch, isLeader ? 'このチームのリーダー（発動中）' : '') : '<p class="muted">ダンジョンの敵です（リーダースキルなし）。</p>'}
+        </details>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button></div>`;
+      const b = $('#modal-body');
+      const use = b.querySelector('#btn-use-skill');
+      if (use) use.addEventListener('click', () => { use.disabled = true; perform('skill', { user: idx }); });
+      b.querySelectorAll('[data-swap-with]').forEach(t => t.addEventListener('click', () => {
+        const j = Number(t.dataset.swapWith);
+        perform('swap', inFront ? { out: idx, in: j } : { out: j, in: idx });
+      }));
     };
-    openModal('', { kind: 'skill', refresh: draw, onClose: () => { if (bt.uiMode === 'skill') setMode(null); } });
+    openModal('', { kind: 'detail', refresh: draw });
     draw();
   }
 
@@ -4411,26 +4445,18 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 
   /* ---------- イベント登録 ---------- */
   function bind() {
+    // 中央のサイコロ＝数字を出す（決着後は結果を見る）
     $('#btn-roll').addEventListener('click', () => {
       if (!bt.state) return;
       if (bt.state.phase === 'over') { if (bt.opts && bt.opts.onShowResult) bt.opts.onShowResult(); return; }
       perform('roll', {});
     });
-    $('#btn-swap').addEventListener('click', () => toggleMode('swap'));
-    $('#btn-skill-menu').addEventListener('click', () => toggleMode('skill'));
-    $('#btn-log').addEventListener('click', () => { if (bt.state) showLogModal(); });
     $('#btn-battle-menu').addEventListener('click', showBattleMenu);
-    $('#move-options').addEventListener('click', e => {
-      if (U.tapGuarded() || dragger.suppressed()) return;
-      const b = e.target.closest('[data-move]');
-      if (b && !bt.locked && !bt.waiting) showMoveConfirm(Number(b.dataset.move));
-    });
     // 前衛⇄後衛のドラッグ交代（判定はすべて Engine。対人戦のゲストはホストに依頼し、結果の状態で描き直す）
     const layout = $('#screen-battle .bt-layout');
     const dragger = U.cardDrag(layout, {
-      selector: '#screen-battle .bt-card.mine:not(.ko)', ghostClass: 'bt-ghost',
-      enabled: () => !!bt.state && bt.active && bt.uiMode !== 'skill',
-      immediate: () => bt.uiMode === 'swap', // 交代モード中はタッチでもすぐ動かせる
+      selector: '#screen-battle .bt-card.mine:not(.ko)', ghostClass: 'bt-ghost', ignore: '[data-move]',
+      enabled: () => !!bt.state && bt.active,
       canStart: () => {
         const s = bt.state;
         if (s.turnSide !== bt.me || (s.phase !== 'roll' && s.phase !== 'action')) return `${whoName(bt.foe)}のターンです`;
@@ -4442,21 +4468,23 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       onDrop: (c, t) => {
         const a = Number(c.dataset.idx), b = Number(t.dataset.idx);
         const out = c.dataset.pos === 'front' ? a : b, inn = c.dataset.pos === 'front' ? b : a;
-        setMode(null, true);
         perform('swap', { out, in: inn });
       }
     });
+    // カードの技欄＝通常技、絵（そのほか）＝詳細。1回のクリックでどちらか一方だけ
     const cardClick = e => {
       if (U.tapGuarded() || dragger.suppressed() || !bt.state) return;
+      const mv = e.target.closest('[data-move]');
+      if (mv) {
+        if (!mv.disabled && !bt.locked && !bt.waiting) showMoveConfirm(Number(mv.dataset.move));
+        return;
+      }
       const card = e.target.closest('.bt-card[data-idx]');
-      if (!card) return;
-      if (modeTap(card.dataset.side, Number(card.dataset.idx))) return;
-      showDetailModal(card.dataset.side, Number(card.dataset.idx));
+      if (card) showDetailModal(card.dataset.side, Number(card.dataset.idx));
     };
     ['#ally-front', '#ally-back', '#enemy-front', '#enemy-back'].forEach(sel => $(sel).addEventListener('click', cardClick));
-    document.addEventListener('keydown', e => { if (e.key === 'Escape' && bt.uiMode && !U.ui.modal) setMode(null); });
     layout.addEventListener('keydown', e => {
-      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.bt-card[data-idx]')) { e.preventDefault(); e.target.click(); }
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.bt-art[role="button"]')) { e.preventDefault(); e.target.click(); }
     });
     U.ui.onModalClose = () => { if (bt.active && bt.state && bt.state.phase === 'over') renderCenter(); };
   }
@@ -4488,7 +4516,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
   const BK = window.RikuyouBackend;
   const CPU = window.RikuyouCPU;
   const D = window.RikuyouData;
-  const { E, CONFIG, rng, $, esc, emblem, elMark, portrait, gemIcon, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, openModal, closeModal, toast, showScreen } = U;
+  const { E, CONFIG, rng, $, esc, emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, openModal, closeModal, toast, showScreen } = U;
 
   const app = {
     backend: null,
@@ -4635,7 +4663,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       ? `<button type="button" class="team-missing" data-go="team"><b>チームが未完成です</b><span>「編成」で6体を選んで保存してください</span></button>`
       : p.team.map(id => {
         const ch = E.getChar(id);
-        return `<button type="button" class="portrait-card" data-go="team" aria-label="${esc(ch.name)} Lv${P.levelOf(p, id)}（編成へ）">${portrait(ch, { zoom: true })}${levelTag(P.levelOf(p, id))}${elMark(ch)}</button>`;
+        return `<button type="button" class="portrait-card el-frame" ${frameAttrs(ch)} data-go="team" aria-label="${esc(ch.name)} ★${E.starsOf(ch.id)} Lv${P.levelOf(p, id)}（編成へ）">${portrait(ch, { zoom: true })}${levelTag(P.levelOf(p, id))}${elMark(ch)}${starsHtml(ch)}</button>`;
       }).join('');
     renderBonus();
     if (!app.bonusOffered && !P.loginStatus(p).claimed) { app.bonusOffered = true; showBonusModal(); }
@@ -4689,7 +4717,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       const sel = app.picked.indexOf(ch.id) >= 0;
       if (!owned) {
         return `<div class="pick-card locked"><span class="pick-mark">未所持</span>
-          <div class="uc-head">${emblem(ch, { hp: 0 }, 'big')}<div><div class="uc-name">${esc(ch.name)}</div><div>${elementTag(ch)}${subTags(ch)}</div></div></div>
+          <div class="uc-head">${emblem(ch, { hp: 0 }, 'big')}<div><div class="uc-name">${esc(ch.name)}${starsHtml(ch)}</div><div>${elementTag(ch)}${subTags(ch)}</div></div></div>
           <p class="muted">ガチャで仲間にできます。</p>${leaderBox(ch)}</div>`;
       }
       const c = p.chars[ch.id];
@@ -4700,7 +4728,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       const maxed = c.level >= CONFIG.LEVEL.max;
       return `<div class="pick-card${sel ? ' selected' : ''}" data-pick="${ch.id}" role="button" tabindex="0" aria-pressed="${sel}">
         <span class="pick-mark">${sel ? '選択中 ' + (app.picked.indexOf(ch.id) + 1) : '未選択'}</span>
-        <div class="uc-head">${emblem(ch, null, 'big')}<div><div class="uc-name">${esc(ch.name)} ${levelTag(c.level)}</div>
+        <div class="uc-head">${emblem(ch, null, 'big')}<div><div class="uc-name">${esc(ch.name)}${starsHtml(ch)} ${levelTag(c.level)}</div>
         <div>${elementTag(ch)}${subTags(ch)}</div>
         <div class="hptext">最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</div></div></div>
         <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
@@ -4806,7 +4834,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     };
     B.start({
       mode: 'cpu', state, cpuPlan, title: ctx.title, foeName: ctx.foeName, ...formationOpts(),
-      bg: ctx.kind === 'dungeon' ? ctx.dungeonId : 'arena',
+      bg: ctx.kind === 'dungeon' ? ctx.dungeonId : 'arena', onHelp: showHelp,
       onFinish: res => (ctx.kind === 'dungeon' ? onDungeonFloorFinish(ctx, res) : onMatchFinish(ctx, res)),
       onExit: () => (ctx.kind === 'dungeon' ? showDungeon() : showMatch()),
       onShowResult: () => app.lastResult && app.lastResult()
@@ -4990,7 +5018,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     b10.textContent = `10回引く（石${P.gachaCost(10)}）`;
     b1.disabled = p.stones < P.gachaCost(1);
     b10.disabled = p.stones < P.gachaCost(10);
-    $('#gacha-pool').innerHTML = E.CHARACTERS.map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
+    $('#gacha-pool').innerHTML = E.CHARACTERS.map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}${starsHtml(ch)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
   }
   let gachaBusy = false;
   function pullGacha(count) {
@@ -5003,7 +5031,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     openModal(`<h3>ガチャの結果（${count}回）</h3>
       <div class="gacha-results">${r.results.map((x, i) => {
         const ch = E.getChar(x.id);
-        return `<div class="gacha-card${x.isNew ? ' new' : ''}" style="animation-delay:${U.FAST ? 0 : i * 90}ms">${emblem(ch, null, 'big')}<b>${esc(ch.name)}</b>
+        return `<div class="gacha-card${x.isNew ? ' new' : ''}" style="animation-delay:${U.FAST ? 0 : i * 90}ms">${emblem(ch, null, 'big')}<b>${esc(ch.name)}</b>${starsHtml(ch)}
           ${x.isNew ? '<span class="badge leader">NEW 仲間になった</span>' : `<span class="muted">経験値+${x.exp}${x.to > x.from ? `<br>Lv${x.from}→${x.to}` : ''}</span>`}</div>`;
       }).join('')}</div>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`,
@@ -5110,7 +5138,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     app.lobby.unwatch = null;
     if (unwatchLobby) { try { unwatchLobby(); } catch (e) { /* noop */ } }
     B.start({
-      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`, ...formationOpts(), bg: 'arena',
+      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`, ...formationOpts(), bg: 'arena', onHelp: showHelp,
       onFinish: res => onPvpFinish(foeName, res),
       onExit: showLobby,
       onShowResult: () => app.lastResult && app.lastResult()
@@ -5164,9 +5192,9 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     $('#zukan-total').textContent = E.CHARACTERS.length;
     $('#zukan-grid').innerHTML = E.CHARACTERS.map(ch => {
       const owned = P.owns(p, ch.id);
-      return `<button type="button" class="zukan-card${owned ? '' : ' missing'}" data-zukan="${ch.id}">
+      return `<button type="button" class="zukan-card el-frame${owned ? '' : ' missing'}" ${frameAttrs(ch)} data-zukan="${ch.id}">
         <span class="zk-art">${portrait(ch, { dim: !owned })}${elMark(ch)}${owned ? levelTag(P.levelOf(p, ch.id)) : '<span class="lv-tag">未所持</span>'}</span>
-        <b class="zk-name">${esc(ch.name)}</b><span class="zk-tags">${elementTag(ch)}${subTags(ch)}</span></button>`;
+        <b class="zk-name">${esc(ch.name)}${starsHtml(ch)}</b><span class="zk-tags">${elementTag(ch)}${subTags(ch)}</span></button>`;
     }).join('');
   }
   function showZukanEntry(id) {
@@ -5182,7 +5210,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       return `<li class="${slot >= 0 ? 'hit' : ''}"><span class="num">${slot >= 0 ? slot + 1 : '・'}</span><span>${esc(m.name)}${lockNote}</span><span class="eff">${moveEffText(m)}</span></li>`;
     }).join('');
     openModal(`<div class="zk-detail">${portrait(ch, { dim: !owned })}<div>
-        <h3>${esc(ch.name)}</h3>
+        <h3>${esc(ch.name)}${starsHtml(ch)}</h3>
         <div>${elementTag(ch)}${subTags(ch)}</div>
         <p class="hptext">${owned ? `Lv${lv}・最大HP <b>${E.levelMaxHp(ch.maxHp, lv)}</b>（基礎${ch.maxHp}）` : `最大HP <b>${ch.maxHp}</b>（Lv1）・<span class="reason">未所持</span>`}</p>
       </div></div>
@@ -5226,7 +5254,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
         <li>ガチャ：1回${E2.gachaCost}・10回${E2.gacha10Cost}。</li>
       </ul>
       <h4>属性相性（通常技の攻撃のみ ×${CONFIG.ADVANTAGE_MULTIPLIER}）</h4>
-      <p>水 → 火 → 自然 → 水、聖光 ⇄ 呪闇。それ以外は等倍です。</p>
+      <p>${['water', 'fire', 'nature', 'water'].map(k => D.ELEMENTS[k].name).join(' → ')}、${D.ELEMENTS.holy.name} ⇄ ${D.ELEMENTS.dark.name}。それ以外は等倍です。</p>
       <h4>計算の順番</h4>
       <p class="muted">基礎ダメージ ×スキル倍率 ＋（スキル・リーダー・レベルの加算）→ 属性倍率 → 結界（半減）→ 最後に四捨五入。</p>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'help' });

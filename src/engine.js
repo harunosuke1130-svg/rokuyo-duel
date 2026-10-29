@@ -103,6 +103,24 @@
     return { base: amount, barrier, damage: finalizeDamage(amount, false, barrier) };
   }
 
+  /* ---------- ランク（★の数。data.js の RANKS） ---------- */
+  // 比較の値：基礎HP＋初期構成（出目1〜6）の攻撃の平均＋回復の平均。レベル・残りHP・技の付け替えに左右されない
+  function rankParts(charId) {
+    const c = getChar(charId);
+    const lo = defaultLoadout(charId);
+    const avg = key => lo.reduce((a, k) => a + (c.moves[k][key] || 0), 0) / lo.length;
+    const atk = avg('atk'), heal = avg('heal');
+    return { hp: c.maxHp, atk, heal, score: c.maxHp + atk + heal };
+  }
+  // ★の数（ボスは null）
+  function starsOf(charId) {
+    if (!getChar(charId) || isBoss(charId)) return null;
+    const R = Data.RANKS || { base: 2, thresholds: [] };
+    const score = rankParts(charId).score;
+    const hit = R.thresholds.slice().sort((a, b) => b.minScore - a.minScore).find(t => score >= t.minScore);
+    return hit ? hit.stars : R.base;
+  }
+
   /* ---------- 技の構成（出目1〜6に割り当てる6技） ---------- */
   // loadout は技の候補（ch.moves）の番号を出目1〜6の順に並べた配列
   const movePower = m => m.atk + m.heal;
@@ -685,7 +703,7 @@
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
-    movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
+    rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus,

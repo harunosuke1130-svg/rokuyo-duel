@@ -162,7 +162,7 @@ test('desktop: 出撃準備（ドラッグで前後衛を交換・クリック�
   await page.waitForTimeout(450);
   await page.click('#modal .fm-card[data-idx="1"]');
   assert.equal(await leaderIdx(page), 1);
-  assert.ok((await page.textContent('#modal .fm-leader')).includes(await page.textContent('#modal .fm-card[data-idx="1"] .fm-name')), '下部のリーダー名');
+  assert.ok((await page.textContent('#modal .fm-leader')).includes(await page.$eval('#modal .fm-card[data-idx="1"] .fm-name', n => n.firstChild.textContent)), '下部のリーダー名');
   assert.ok(await page.$('#modal .fm-card[data-idx="1"] .fm-lead .crown'), '王冠とリーダー表示');
   // リーダーを前衛に入れ替えても、リーダー指定はそのキャラのまま
   await drag(1, 0);
@@ -284,24 +284,22 @@ test('desktop: 戦闘画面（盤面の右に操作欄・ドラッグで交代�
   await H.waitMyAction(page);
   await page.waitForTimeout(450);
   s = await H.state(page);
-  assert.equal(await page.$$eval('#move-options .mo-btn', b => b.length), s.front.player.filter(i => s.teams.player[i].hp > 0).length, '前衛の技を同時に表示');
+  assert.equal(await page.$$eval('#ally-front .mo-btn', b => b.length), s.front.player.filter(i => s.teams.player[i].hp > 0).length, '前衛の技を同時に表示');
   // 対象外・同じ列で離す → 元のまま（交代回数も使わない）
   await mouseDrag(page, front(f0), { x: 20, y: 20 });
   await mouseDrag(page, front(f0), front(s.front.player[1]), async () => assert.equal(await page.$('.bt-card.drop-target'), null));
-  // 技ボタンの上で離しても技は出ない
-  await mouseDrag(page, back(b0), `#move-options [data-move="${f0}"]`);
-  await page.waitForTimeout(100);
-  assert.equal(await page.isHidden('#modal'), true, 'ドラッグ終了で技の確認が開かない');
   s = await H.state(page);
-  assert.equal(s.swapUsed, false);
-  assert.ok(s.front.player.indexOf(f0) >= 0);
-  // 後衛を前衛に重ねて離す → 交代（HP・CDはキャラのまま）
+  assert.equal(s.swapUsed, false, '対象外・同じ列では交代回数を使わない');
+  // 後衛を前衛カード（技の欄の上）に重ねて離す → 交代。技は出ない（HP・CDはキャラのまま）
   await page.evaluate(i => { const st = window.RikuyouApp.getState(); st.teams.player[i].cd = 2; }, b0);
-  await mouseDrag(page, back(b0), front(f0), async () => {
+  await mouseDrag(page, back(b0), `#ally-front [data-move="${f0}"]`, async () => {
     assert.ok(await page.$('.drag-ghost'), 'カードがポインターに追従');
     assert.ok(await page.$(`${front(f0)}.drop-target`), '交換先を強調');
   });
-  await page.$eval(`#screen-battle .bt-card[data-idx="${b0}"]`, c => c.click());
+  await page.waitForTimeout(100);
+  assert.notEqual(await page.getAttribute('#modal', 'data-kind'), 'move', 'ドラッグ終了で技の確認が開かない');
+  assert.equal((await H.state(page)).moveUsed, false);
+  await page.$eval(`#screen-battle .bt-card[data-idx="${b0}"] .bt-art`, c => c.click());
   assert.equal(await page.isHidden('#modal'), true, 'ドラッグ直後のクリックで詳細が開かない');
   await H.waitMyAction(page);
   s = await H.state(page);
@@ -316,7 +314,7 @@ test('desktop: 戦闘画面（盤面の右に操作欄・ドラッグで交代�
   assert.deepEqual((await H.state(page)).front.player, s.front.player);
   // 技はボタン→確認で1回だけ
   await page.waitForTimeout(450);
-  await page.click(`#move-options [data-move="${b0}"]`);
+  await page.click(`#ally-front [data-move="${b0}"]`);
   await page.waitForSelector('#btn-confirm-move');
   await page.click('#btn-confirm-move');
   await page.waitForFunction(() => { const st = window.RikuyouApp.getState(); return st.turnSide === 'cpu' || st.phase !== 'action'; });
@@ -345,7 +343,7 @@ test('mobile: 戦闘画面（長押ししてスワイプで交代・すぐ動か
   await page.click('#btn-roll');
   await H.waitMyAction(page);
   assert.ok(await H.noHorizontalScroll(page));
-  assert.ok(await page.isVisible('#btn-swap') && await page.isVisible('#btn-skill-menu') && await page.isVisible('#btn-log'), '下部の操作欄');
+  assert.equal(await page.$('.bt-actions, #btn-swap, #btn-skill-menu, #btn-log'), null, '画面下の常設ボタン列はない');
   let s = await H.state(page);
   const f0 = s.front.player[0];
   const b0 = s.teams.player.findIndex((u, i) => u.hp > 0 && s.front.player.indexOf(i) < 0);
@@ -364,30 +362,86 @@ test('mobile: 戦闘画面（長押ししてスワイプで交代・すぐ動か
   const back = `#ally-back .bt-card[data-idx="${b0}"]`, front = `#ally-front .bt-card[data-idx="${f0}"]`;
   await touch(back, front, 0);
   assert.equal((await H.state(page)).swapUsed, false, 'すぐ動かしたときは交代しない（スクロール扱い）');
-  // 固有スキルモード：キャラをタップすると確認画面。やめるとモードも終わる
-  await page.waitForTimeout(TAP_GUARD);
-  await page.click('#btn-skill-menu');
-  assert.equal(await page.getAttribute('#btn-skill-menu', 'aria-pressed'), 'true');
-  await page.click(back);
-  await page.waitForSelector('#modal[data-kind="skill"]:not(.hidden)');
-  assert.ok((await page.textContent('#modal h3')).includes('固有スキル'));
-  assert.ok(await page.$('#btn-confirm-skill'), '後衛のキャラも使える');
-  await page.click('#modal [data-close="1"].btn');
-  assert.equal(await page.getAttribute('#btn-skill-menu', 'aria-pressed'), 'false');
-  assert.equal((await H.state(page)).skillUsed, false);
-  // 交代モード中は、長押しなしですぐドラッグして交代できる
-  await page.waitForTimeout(450);
-  await page.click('#btn-swap');
-  await touch(back, front, 0);
+  // 長押ししてからスワイプ → 交代（後衛→前衛）
+  await touch(back, front, 420);
   await H.waitMyAction(page);
   s = await H.state(page);
-  assert.ok(s.front.player.indexOf(b0) >= 0 && s.swapUsed, '交代モードでスワイプして交代');
-  // 履歴は「履歴」ボタンから
+  assert.ok(s.front.player.indexOf(b0) >= 0 && s.swapUsed, '長押ししてスワイプで交代');
+  // 履歴は上部メニューから
   await page.waitForTimeout(450);
-  await page.click('#btn-log');
+  await page.click('#btn-battle-menu');
+  await page.click('#btn-menu-log');
   await page.waitForSelector('#modal[data-kind="log"]:not(.hidden)');
   assert.ok((await page.textContent('#modal')).includes('味方の交代'));
   await page.click('#modal [data-close="1"].btn');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: 戦闘画面（サイコロで数字・カードの絵で詳細・確認してから固有スキル・敵は確認のみ・★と属性枠）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'fast=1&seed=12');
+  await H.startLocal(page, '軍師', { claim: false });
+  await page.click('[data-go="match"]');
+  await page.click('[data-match="free"]');
+  await H.formation(page, [0, 1, 2], 0);
+  await H.waitMyRoll(page);
+  // カードに★と属性枠（属性ごとの色×ランクの濃さ）
+  const cards = await page.$$eval('#screen-battle .bt-card[data-idx]', cs => cs.map(c => ({ el: c.dataset.el, st: c.dataset.stars, stars: (c.querySelector('.stars') || {}).textContent || '', border: getComputedStyle(c).borderTopColor })));
+  assert.ok(cards.length >= 6 && cards.every(c => c.el && /^[23]$/.test(c.st) && c.stars === '★'.repeat(Number(c.st))));
+  const s0 = await H.state(page);
+  const ids = s0.teams.player.map(u => u.charId);
+  const exp = { ryogen: 3, gessen: 2, gyakufu: 2, kohaku: 3, yoiyami: 2, suiju: 3, raimei: 2, mukai: 3 };
+  for (const [i, id] of ids.entries()) assert.equal(await page.getAttribute(`#ally-front .bt-card[data-idx="${i}"], #ally-back .bt-card[data-idx="${i}"]`, 'data-stars'), String(exp[id]));
+  // 数字を出す前：技の欄はない。サイコロに案内
+  assert.equal(await page.$$eval('#ally-front [data-move]', b => b.length), 0);
+  assert.ok((await page.textContent('#roll-cap')).includes('タップして数字を出す'));
+  await page.click('#btn-roll');
+  await H.waitMyAction(page);
+  await page.waitForTimeout(470);
+  let s = await H.state(page);
+  // 前衛の絵を押す → 詳細（スキルの確認）。閉じても何も消費しない
+  const f0 = s.front.player[0];
+  await page.click(`#ally-front .bt-card[data-idx="${f0}"] .bt-art`);
+  await page.waitForSelector('#modal[data-kind="detail"]:not(.hidden)');
+  const t = await page.textContent('#modal');
+  const ch = s.teams.player[f0];
+  assert.ok(t.includes('固有スキル') && t.includes('クールダウン') && t.includes('対象') && t.includes(`${ch.hp}`), '名前・HP・スキル・対象・CD');
+  assert.ok(await page.$('#modal .stars') && await page.$('#modal .el-mark'), '星と属性');
+  assert.ok(await page.$('#btn-use-skill'), '使えるときは「このスキルを使う」');
+  await page.click('#modal [data-close="1"].btn');
+  s = await H.state(page);
+  assert.equal(s.skillUsed, false, '詳細を開いて閉じても使っていない');
+  // 技欄を押すと技の確認（詳細は開かない）→ キャンセル
+  await page.waitForTimeout(470);
+  await page.click(`#ally-front [data-move="${f0}"]`);
+  await page.waitForSelector('#modal[data-kind="move"]:not(.hidden)');
+  await page.click('#modal [data-close="1"].btn');
+  // 後衛のキャラの固有スキルを確認してから使う
+  const b0 = s.teams.player.findIndex((u, i) => u.hp > 0 && s.front.player.indexOf(i) < 0);
+  await page.waitForTimeout(470);
+  await page.click(`#ally-back .bt-card[data-idx="${b0}"] .bt-art`);
+  await page.waitForSelector('#btn-use-skill');
+  await page.click('#btn-use-skill');
+  await page.waitForFunction(() => window.RikuyouApp.getState().skillUsed);
+  s = await H.state(page);
+  assert.ok(s.log.some(l => l.kind === 'skill' && l.text.includes(s.teams.player[b0].charId === 'gyakufu' ? '風向き' : '')), '後衛から使えた');
+  // 使った後は理由と残りCDを表示
+  await H.waitMyAction(page);
+  await page.waitForTimeout(470);
+  await page.click(`#ally-back .bt-card[data-idx="${b0}"] .bt-art`);
+  await page.waitForSelector('#modal[data-kind="detail"]:not(.hidden)');
+  assert.equal(await page.$('#btn-use-skill'), null);
+  assert.ok((await page.textContent('#modal .reason')).includes('今は使えません'));
+  await page.click('#modal [data-close="1"].btn');
+  // 敵のカード：情報だけ（使うボタンも交代もない）
+  await page.waitForTimeout(470);
+  await page.click('#enemy-front .bt-card .bt-art');
+  await page.waitForSelector('#modal[data-kind="detail"]:not(.hidden)');
+  assert.equal(await page.$('#btn-use-skill'), null);
+  assert.equal(await page.$('#modal [data-swap-with]'), null);
+  assert.ok((await page.textContent('#modal')).includes('相手のキャラです'));
+  await page.click('#modal [data-close="1"].btn');
+  assert.equal((await H.state(page)).leader.player, 0, '戦闘中のタップでリーダーは変わらない');
   assert.deepEqual(errors, []);
   await ctx.close();
 });
@@ -469,26 +523,21 @@ for (const kind of ['mobile', 'desktop']) {
     s = await H.state(page);
     const dice = s.dice;
     assert.equal(s.log.filter(l => l.kind === 'dice' && l.text.startsWith('あなたの出目')).length, 1, '連打しても1回');
-    assert.equal(await page.$$eval('#move-options .mo-card', c => c.length), s.front.player.filter(i => s.teams.player[i].hp > 0).length);
+    assert.equal(await page.$$eval('#ally-front [data-move]', c => c.length), s.front.player.filter(i => s.teams.player[i].hp > 0).length);
 
-    // 交代モード：1体選んでからやめる → 変化なし。前衛→後衛の順にタップ → 交代（HP・CDは保持、数字は変わらない）
+    // キャラの詳細から交代（ドラッグの代わり）：閉じるだけなら何も変わらない → 相手を選ぶと交代（HP・CDは保持、数字は変わらない）
     const out = s.front.player[0];
     const inn = s.teams.player.findIndex((u, i) => u.hp > 0 && s.front.player.indexOf(i) < 0);
     await page.waitForTimeout(TAP_GUARD);
-    await page.click('#btn-swap');
-    assert.equal(await page.getAttribute('#btn-swap', 'aria-pressed'), 'true');
-    await page.click(`#ally-front .bt-card[data-idx="${out}"]`);
-    assert.ok(await page.$(`#ally-front .bt-card.picked[data-idx="${out}"]`));
-    assert.equal(await page.isHidden('#modal'), true, '交代モードでは詳細を開かない');
-    await page.click('#btn-swap');
-    assert.equal(await page.getAttribute('#btn-swap', 'aria-pressed'), 'false');
+    await page.click(`#ally-front .bt-card[data-idx="${out}"] .bt-art`);
+    await page.waitForSelector('#modal[data-kind="detail"]:not(.hidden)');
+    await page.click('#modal [data-close="1"].btn');
     assert.deepEqual((await H.state(page)).front.player, s.front.player);
     await page.evaluate(i => { const st = window.RikuyouApp.getState(); st.teams.player[i].hp = 41; st.teams.player[i].cd = 2; }, out);
-    await page.click('#btn-swap');
-    await page.click(`#ally-front .bt-card[data-idx="${out}"]`);
-    await page.click(`#ally-back .bt-card[data-idx="${inn}"]`);
+    await page.waitForTimeout(TAP_GUARD);
+    await page.click(`#ally-front .bt-card[data-idx="${out}"] .bt-art`);
+    await page.click(`#modal [data-swap-with="${inn}"]`);
     await H.waitMyAction(page);
-    assert.equal(await page.getAttribute('#btn-swap', 'aria-pressed'), 'false', '交代したらモード終了');
     s = await H.state(page);
     assert.ok(s.front.player.indexOf(inn) >= 0 && s.front.player.indexOf(out) < 0);
     assert.equal(s.teams.player[out].hp, 41);
@@ -499,7 +548,7 @@ for (const kind of ['mobile', 'desktop']) {
     // 技を1つ（確定ボタン連打でも1回）。相手の後衛は無傷
     const foeBack = s.teams.cpu.map((u, i) => (s.front.cpu.indexOf(i) < 0 ? u.hp : null));
     await page.waitForTimeout(TAP_GUARD);
-    await page.click(`#move-options [data-move="${inn}"]`);
+    await page.click(`#ally-front [data-move="${inn}"]`);
     await page.dblclick('#btn-confirm-move', { force: true }).catch(() => {});
     await page.waitForFunction(() => { const st = window.RikuyouApp.getState(); return st.turnSide === 'cpu' || st.phase !== 'action'; });
     s = await H.state(page);
@@ -664,13 +713,12 @@ test('mobile: 通常速度（演出あり）でも相手のターン中は操作
   await H.waitMyAction(page, 20000);
   const s = await H.state(page);
   await page.waitForTimeout(TAP_GUARD);
-  await page.click(`#move-options [data-move="${s.front.player[0]}"]`);
+  await page.click(`#ally-front [data-move="${s.front.player[0]}"]`);
   await page.click('#btn-confirm-move');
   await page.waitForFunction(() => window.RikuyouApp.getState().turnSide === 'cpu' || window.RikuyouApp.getState().phase !== 'action');
   if ((await H.state(page)).phase !== 'over') {
     assert.equal(await page.isDisabled('#btn-roll'), true);
-    assert.equal(await page.isDisabled('#btn-swap'), true);
-    assert.equal(await page.$$eval('#move-options .mo-card', c => c.length), 0);
+    assert.equal(await page.$$eval('#ally-front [data-move]', c => c.length), 0);
   }
   assert.deepEqual(errors, []);
   await ctx.close();

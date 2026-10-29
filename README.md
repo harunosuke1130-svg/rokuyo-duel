@@ -62,6 +62,8 @@ rikuyou-duel/
 | 変えたいもの | 場所 |
 | --- | --- |
 | キャラ・技（9個）・固有スキル・リーダースキル | `src/data.js` の `CHARACTERS` |
+| ランク（★）の境界 | `src/data.js` の `RANKS` |
+| 属性の枠の色・ランクごとの濃さ | `src/style.css` の「属性ごとのカード枠」（`--el-rgb`・`--rk-*`） |
 | レベルの上がり方・必要経験値・技の解放レベル・技力上限の伸び | `CONFIG.LEVEL`（`moveUnlock`・`powerPerLevel`） |
 | 石の量・ガチャの値段・ログインボーナス・対人戦報酬 | `ECONOMY` |
 | 対戦（ランク戦）の相手・報酬 | `CPU_MATCHES` |

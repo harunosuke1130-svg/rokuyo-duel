@@ -34,11 +34,24 @@
   /* ---------- 属性 ---------- */
   // 新しい属性を追加した場合、ELEMENT_ADVANTAGE に書かなければ常に1倍になります。
   const ELEMENTS = {
-    fire:   { name: '火',   color: '#e2673b' },
-    water:  { name: '水',   color: '#3d93d6' },
+    fire:   { name: '猛火', color: '#e2673b' },   // 内部ID（fire など）は変えない。表示名だけ
+    water:  { name: '水脈', color: '#3d93d6' },
     nature: { name: '自然', color: '#5fae55' },
     holy:   { name: '聖光', color: '#e8cf6a' },
     dark:   { name: '呪闇', color: '#9a6ad6' }
+  };
+
+  /*
+   * ---------- キャラクターのランク（★の数） ----------
+   * キャラ固有のランク。レベル・残りHP・技の付け替えでは変わらない。
+   * 比較の値 ＝ 基礎HP ＋ 初期構成（出目1〜6）の通常技の攻撃の平均 ＋ 回復の平均
+   *   （攻撃しない技の攻撃・回復しない技の回復は0。固有スキル・リーダースキル・属性・一時強化は含めない）
+   * thresholds は上の星から順に「この値以上ならこの星」。どれにも届かなければ base。
+   * ダンジョンのボスには付けない（雑魚・中ボス・大ボスで表示）。
+   */
+  const RANKS = {
+    base: 2,
+    thresholds: [{ stars: 3, minScore: 130 }]
   };
 
   // 攻撃側 → 有利を取れる防御側の属性
@@ -330,7 +343,7 @@
       floors: [{ boss: 'b-imp', level: 9, exp: 220 }, { boss: 'b-witch', level: 10, exp: 320 }, { boss: 'b-maou', level: 11, exp: 450 }] }
   ];
 
-  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, ECONOMY, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
+  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
 
   if (typeof module === 'object' && module.exports) module.exports = Data;
   else global.RikuyouData = Data;

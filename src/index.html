@@ -146,7 +146,7 @@
       <header class="bt-head">
         <span class="bt-title" id="battle-title">決闘</span>
         <span class="bt-round" id="round-info"></span>
-        <button type="button" class="bt-menu-btn" id="btn-battle-menu" aria-label="メニュー（履歴・遊び方・降参）"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
+        <button type="button" class="bt-menu-btn" id="btn-battle-menu" aria-label="メニュー（戦闘履歴・遊び方・降参）"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="2.2" stroke-linecap="round"><path d="M4 6h16M4 12h16M4 18h16"/></svg></button>
       </header>
       <div class="conn-info hidden" id="conn-info" role="status"></div>
 
@@ -160,16 +160,11 @@
 
       <div class="bt-side">
         <div class="bt-center">
-          <div id="dice" class="dice" aria-live="polite"><span>？</span></div>
+          <!-- 数字を出す：中央のサイコロ自体を押す -->
+          <button type="button" class="bt-dice-btn" id="btn-roll" aria-describedby="roll-cap"><span id="dice" class="dice" aria-live="polite"><span>？</span></span><span class="bt-dice-cap" id="roll-cap"></span></button>
           <div class="bt-phase"><b id="phase-text" class="phase-text"></b><span id="phase-sub" class="bt-phase-sub"></span></div>
-          <button type="button" class="btn btn-primary btn-roll" id="btn-roll">数字を出す</button>
         </div>
         <div class="bt-flags"><span id="turn-flags" class="boost-info"></span><span id="fatigue-info"></span></div>
-        <div class="bt-actions">
-          <button type="button" class="bt-act" id="btn-swap"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M7 4L3 8l4 4M3 8h13M17 20l4-4-4-4M21 16H8"/></svg><span>交代</span></button>
-          <button type="button" class="bt-act bt-act-skill" id="btn-skill-menu"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><path d="M12 2l2.4 7.6L22 12l-7.6 2.4L12 22l-2.4-7.6L2 12l7.6-2.4z"/></svg><span>固有スキル</span></button>
-          <button type="button" class="bt-act bt-act-log" id="btn-log"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><rect x="5" y="3" width="14" height="18" rx="2"/><path d="M9 8h6M9 12h6M9 16h4"/></svg><span>履歴</span></button>
-        </div>
         <div id="last-action" class="last-action" aria-live="polite"></div>
         <div class="bt-log-panel"><div class="bt-log-head">戦闘履歴<span class="muted">新しい順</span></div><ol id="log" class="log"></ol></div>
       </div>
@@ -177,7 +172,6 @@
       <div class="bt-zone bt-ally">
         <div class="bt-label bt-label-ally"><span><span id="ally-title">味方</span>・前衛</span><small id="drag-hint" class="bt-drag-hint"></small></div>
         <div id="ally-front" class="bt-front-row"></div>
-        <div id="move-options" class="move-options"></div>
         <p class="bt-range-note" id="range-note">攻撃は敵前衛全員／回復は味方前衛全員</p>
         <div class="bt-label bt-label-ally">味方・後衛</div>
         <div id="ally-back" class="bt-back-row"></div>

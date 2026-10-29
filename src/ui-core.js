@@ -36,6 +36,15 @@
     const el = ELEMENTS[ch.element] || { color: '#888' };
     return `<span class="portrait${o.dim ? ' dim' : ''}${o.zoom ? ' zoom' : ''}" data-char="${esc(ch.id)}" style="--el:${el.color}" aria-hidden="true"><i>${esc(ch.glyph)}</i></span>`;
   }
+  // ランク（★の数）。ボスは出さない
+  function starsHtml(ch) {
+    const n = E.starsOf(ch.id);
+    return n ? `<span class="stars" data-stars="${n}" aria-label="★${n}" title="ランク★${n}">${'★'.repeat(n)}</span>` : '';
+  }
+  // カードの枠：属性ごとの基本色（data-el）× ランクごとの濃さ（data-stars）。style.css の .el-frame
+  function frameAttrs(ch) {
+    return `data-el="${esc(ch.element)}" data-stars="${E.starsOf(ch.id) || 0}"`;
+  }
   // 石のアイコン
   function gemIcon(cls) {
     return `<svg class="gem${cls ? ' ' + cls : ''}" viewBox="0 0 20 28" aria-hidden="true"><path d="M10 1l8 9-8 17-8-17z" fill="#3f6fe0"/><path d="M10 1l8 9h-8z" fill="#9cc4ff"/><path d="M10 1L2 10h8z" fill="#6c9cf5"/><path d="M2 10h8v17z" fill="#2a4fb8"/><path d="M10 10h8l-8 17z" fill="#5585ec"/><path d="M10 1l8 9-8 17-8-17z" fill="none" stroke="#dbe8ff" stroke-width=".8" stroke-linejoin="round"/></svg>`;
@@ -134,7 +143,7 @@
    * マウスは少し動かしたら、タッチは長押ししてから持ち上げる（長押し前に動いたらスクロールとして扱う）。
    * o: { selector, ghostClass, canStart(card) → 理由の文字列（動かせないとき）| null,
    *      canDrop(card, target) → bool, onDrop(card, target), enabled() → bool,
-   *      immediate() → true のあいだはタッチも長押しなしで動かし始める（交代モードなど） }
+   *      immediate() → true のあいだはタッチも長押しなしで動かし始める, ignore: ここから押した時はドラッグしない }
    * 戻り値：suppressed()（ドラッグ直後のクリックを無視する）, busy(), destroy() */
   const DRAG_HOLD_MS = 320, DRAG_SLOP = 8;
   function cardDrag(root, o) {
@@ -145,6 +154,7 @@
     function onDown(e) {
       const c = e.target.closest(o.selector);
       if (!c || !root.contains(c) || drag || (e.pointerType === 'mouse' && e.button !== 0) || (o.enabled && !o.enabled())) return;
+      if (o.ignore && e.target.closest(o.ignore)) return; // 技のボタンなどからはドラッグを始めない
       drag = { card: c, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
         touch: e.pointerType !== 'mouse' && !(o.immediate && o.immediate()), active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
       if (drag.touch) drag.timer = setTimeout(begin, DRAG_HOLD_MS);
@@ -233,7 +243,7 @@
 
   window.RikuyouUI = {
     E, CONFIG, FAST, DELAY, rng, $, esc,
-    emblem, elMark, portrait, gemIcon, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
+    emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
     ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen, cardDrag
   };
 })();
