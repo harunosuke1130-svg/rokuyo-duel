@@ -492,6 +492,17 @@ button { font-family: inherit; }
 .init-result { text-align: center; font-family: var(--mincho); font-size: 20px; font-weight: 700; color: var(--muted); }
 .init-result.win { color: var(--gold2); }
 #toast.ok { background: #13321f; color: #c9f5d6; border-color: var(--hp); }
+
+/* v5：ダンジョンのボス・管理用ログイン */
+.badge.boss { background: #5a1f2b; color: #ffc6cf; }
+.boss-path { display: flex; align-items: center; justify-content: space-between; gap: 6px; margin: 8px 0; }
+.boss-step { flex: 1; min-width: 0; display: flex; flex-direction: column; align-items: center; gap: 4px; text-align: center; padding: 8px 4px; border-radius: 12px; background: rgba(0, 0, 0, .2); border: 1px solid var(--line); font-size: 12.5px; }
+.boss-step b { font-family: var(--mincho); font-size: 13.5px; line-height: 1.3; }
+.boss-step .muted { font-size: 11px; }
+.boss-arrow { color: var(--gold); font-weight: 700; flex: none; }
+.small-note { font-size: 12px; }
+.admin-login { margin-top: 14px; padding: 8px 10px; border: 1px dashed var(--line); border-radius: 10px; }
+.admin-login summary { cursor: pointer; color: var(--gold2); font-weight: 700; min-height: 32px; display: flex; align-items: center; }
 </style>
 </head>
 <body>
@@ -525,8 +536,8 @@ button { font-family: inherit; }
     <div class="panel profile-panel" id="home-profile"></div>
     <div class="panel bonus-panel" id="home-bonus"></div>
     <div class="menu-grid">
-      <button type="button" class="menu-btn" data-go="dungeon"><span class="menu-icon" aria-hidden="true">迷</span><b>ダンジョン</b><span>階層を進んで経験値と石を集める</span></button>
-      <button type="button" class="menu-btn" data-go="free"><span class="menu-icon" aria-hidden="true">戦</span><b>CPUとフリー対戦</b><span>自分と同じくらいの強さのCPU</span></button>
+      <button type="button" class="menu-btn" data-go="match"><span class="menu-icon" aria-hidden="true">戦</span><b>対戦（CPU）</b><span>CPUのチームと6対6。ランク戦とフリー対戦</span></button>
+      <button type="button" class="menu-btn" data-go="dungeon"><span class="menu-icon" aria-hidden="true">迷</span><b>ダンジョン</b><span>雑魚→中ボス→大ボスを6人で倒す</span></button>
       <button type="button" class="menu-btn" data-go="lobby"><span class="menu-icon" aria-hidden="true">対</span><b>プレイヤー対戦</b><span>ルームを作るか、コードで参加</span></button>
       <button type="button" class="menu-btn" data-go="gacha"><span class="menu-icon" aria-hidden="true">召</span><b>ガチャ</b><span>石でキャラクターを呼ぶ</span></button>
       <button type="button" class="menu-btn" data-go="team"><span class="menu-icon" aria-hidden="true">編</span><b>チーム・キャラ</b><span>6体の編成・技のカスタム・レベル</span></button>
@@ -548,11 +559,21 @@ button { font-family: inherit; }
     </div>
   </section>
 
+  <!-- 対戦（CPU） -->
+  <section id="screen-match" class="screen hidden">
+    <div class="panel intro">
+      <h2 class="heading">対戦（CPU）</h2>
+      <p>CPUのチームと6対6で戦います。ランク戦は上から順に、勝つと次の相手が出てきます。勝つとチーム6体が経験値を得て、初勝利では石をもらえます。</p>
+      <p class="muted" id="match-team"></p>
+    </div>
+    <div class="panel"><div id="match-list" class="floor-list"></div></div>
+  </section>
+
   <!-- ダンジョン -->
   <section id="screen-dungeon" class="screen hidden">
     <div class="panel intro">
       <h2 class="heading">ダンジョン</h2>
-      <p>上の階層から順に挑戦できます。勝つとチーム6体が経験値を得て、初回クリアでは石を多くもらえます。負けても経験値が少し入ります。</p>
+      <p>6人のチームで、1階の雑魚・2階の中ボス・3階の大ボスを1体ずつ順番に倒します。HPと戦闘不能は次の階に引き継ぎ。大ボスを倒すと踏破で、石がもらえます。勝った階では経験値も入ります。</p>
       <p class="muted" id="dungeon-team"></p>
     </div>
     <div id="dungeon-list"></div>
@@ -900,35 +921,81 @@ button { font-family: inherit; }
   };
 
   /*
-   * ---------- ダンジョン ----------
-   * floors: enemies=敵チーム6体、level=敵のレベル、leader=敵リーダー（enemies の番号）
-   *         exp=勝利時にチーム6体それぞれが得る経験値、firstStones=初回クリア報酬、stones=2回目以降の報酬
-   * requires: 解放条件（そのダンジョンを最後までクリア）
+   * ---------- 対戦（CPUチームとの6対6） ----------
+   * 上から順に解放（前の相手に1回勝つと次が開く）。enemies=敵チーム6体、level=敵のレベル、leader=敵リーダー
+   * exp=勝利時にチーム6体それぞれが得る経験値（敗北は3割）、firstStones=初勝利の石、stones=2回目以降の勝利の石
    */
-  const DUNGEONS = [
-    {
-      id: 'forest', name: '翠の迷い森', text: '木々がささやく、はじまりの森。', requires: null,
-      floors: [
-        { name: '森の入口', enemies: ['suiju', 'gyakufu', 'kohaku', 'raimei', 'gessen', 'mukai'], level: 1, leader: 2, exp: 60, firstStones: 100, stones: 10 },
-        { name: '苔むす小道', enemies: ['gyakufu', 'suiju', 'mukai', 'ryogen', 'kohaku', 'gessen'], level: 2, leader: 0, exp: 80, firstStones: 100, stones: 10 },
-        { name: '木霊の泉', enemies: ['mukai', 'gessen', 'suiju', 'raimei', 'gyakufu', 'kohaku'], level: 3, leader: 1, exp: 100, firstStones: 120, stones: 15 },
-        { name: '迷い路', enemies: ['ryogen', 'kohaku', 'yoiyami', 'suiju', 'gyakufu', 'mukai'], level: 4, leader: 0, exp: 130, firstStones: 150, stones: 15 },
-        { name: '森の主', enemies: ['kohaku', 'suiju', 'gyakufu', 'gessen', 'ryogen', 'raimei'], level: 6, leader: 0, exp: 180, firstStones: 300, stones: 20 }
-      ]
-    },
-    {
-      id: 'tower', name: '宵闇の塔', text: '星を喰らう魔術師が棲む、夜の塔。', requires: 'forest',
-      floors: [
-        { name: '塔の一階', enemies: ['yoiyami', 'raimei', 'gessen', 'ryogen', 'mukai', 'kohaku'], level: 7, leader: 0, exp: 220, firstStones: 150, stones: 20 },
-        { name: '月影の回廊', enemies: ['gessen', 'yoiyami', 'raimei', 'suiju', 'ryogen', 'mukai'], level: 9, leader: 0, exp: 260, firstStones: 180, stones: 25 },
-        { name: '雷鳴の間', enemies: ['raimei', 'ryogen', 'yoiyami', 'kohaku', 'gessen', 'gyakufu'], level: 11, leader: 0, exp: 300, firstStones: 200, stones: 25 },
-        { name: '虚空の書庫', enemies: ['yoiyami', 'mukai', 'ryogen', 'raimei', 'kohaku', 'suiju'], level: 13, leader: 3, exp: 350, firstStones: 250, stones: 30 },
-        { name: '宵闇の頂', enemies: ['yoiyami', 'ryogen', 'raimei', 'gessen', 'kohaku', 'mukai'], level: 16, leader: 4, exp: 400, firstStones: 500, stones: 40 }
-      ]
-    }
+  const CPU_MATCHES = [
+    { id: 'm1', rank: '見習い', name: '森の入口の一団', enemies: ['suiju', 'gyakufu', 'kohaku', 'raimei', 'gessen', 'mukai'], level: 1, leader: 2, exp: 60, firstStones: 100, stones: 10 },
+    { id: 'm2', rank: '見習い', name: '苔むす小道の一団', enemies: ['gyakufu', 'suiju', 'mukai', 'ryogen', 'kohaku', 'gessen'], level: 2, leader: 0, exp: 80, firstStones: 100, stones: 10 },
+    { id: 'm3', rank: '一人前', name: '木霊の泉の一団', enemies: ['mukai', 'gessen', 'suiju', 'raimei', 'gyakufu', 'kohaku'], level: 3, leader: 1, exp: 100, firstStones: 120, stones: 15 },
+    { id: 'm4', rank: '一人前', name: '迷い路の一団', enemies: ['ryogen', 'kohaku', 'yoiyami', 'suiju', 'gyakufu', 'mukai'], level: 4, leader: 0, exp: 130, firstStones: 150, stones: 15 },
+    { id: 'm5', rank: '腕利き', name: '森の主の一団', enemies: ['kohaku', 'suiju', 'gyakufu', 'gessen', 'ryogen', 'raimei'], level: 6, leader: 0, exp: 180, firstStones: 300, stones: 20 },
+    { id: 'm6', rank: '腕利き', name: '塔の一階の一団', enemies: ['yoiyami', 'raimei', 'gessen', 'ryogen', 'mukai', 'kohaku'], level: 7, leader: 0, exp: 220, firstStones: 150, stones: 20 },
+    { id: 'm7', rank: '精鋭', name: '月影の回廊の一団', enemies: ['gessen', 'yoiyami', 'raimei', 'suiju', 'ryogen', 'mukai'], level: 9, leader: 0, exp: 260, firstStones: 180, stones: 25 },
+    { id: 'm8', rank: '精鋭', name: '雷鳴の間の一団', enemies: ['raimei', 'ryogen', 'yoiyami', 'kohaku', 'gessen', 'gyakufu'], level: 11, leader: 0, exp: 300, firstStones: 200, stones: 25 },
+    { id: 'm9', rank: '達人', name: '虚空の書庫の一団', enemies: ['yoiyami', 'mukai', 'ryogen', 'raimei', 'kohaku', 'suiju'], level: 13, leader: 3, exp: 350, firstStones: 250, stones: 30 },
+    { id: 'm10', rank: '達人', name: '宵闇の頂の一団', enemies: ['yoiyami', 'ryogen', 'raimei', 'gessen', 'kohaku', 'mukai'], level: 16, leader: 4, exp: 400, firstStones: 500, stones: 40 }
   ];
 
-  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, ECONOMY, DUNGEONS };
+  /*
+   * ---------- ダンジョンの敵（ボス） ----------
+   * ガチャやチームには出てこない、ダンジョン専用のキャラ。1体で6人のチームと戦う。
+   * 形式はキャラクターと同じ（moves は出目1〜6の順、skill は固有スキル）。
+   */
+  const BOSSES = [
+    // 翠の迷い森
+    { id: 'b-goblin', name: '苔ゴブリン', glyph: '苔', maxHp: 150, element: 'nature', subTypes: ['クリーチャー', '小鬼'], rank: '雑魚',
+      moves: [{ name: 'こん棒', atk: 14, heal: 0 }, { name: 'ひっかき', atk: 11, heal: 0 }, { name: '苔をかじる', atk: 0, heal: 8 }, { name: '体当たり', atk: 18, heal: 0 }, { name: '石つぶて', atk: 13, heal: 0 }, { name: 'めった打ち', atk: 22, heal: 0 }],
+      skill: { name: '仲間を呼ぶ声', cd: 4, text: '敵前衛全員に、それぞれ8ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 8 }] } },
+    { id: 'b-boar', name: '棘甲の大猪', glyph: '猪', maxHp: 290, element: 'nature', subTypes: ['クリーチャー', '剛力'], rank: '中ボス',
+      moves: [{ name: '突進', atk: 24, heal: 0 }, { name: '牙の一撃', atk: 19, heal: 0 }, { name: '泥浴び', atk: 0, heal: 12 }, { name: '棘の背', atk: 20, heal: 0 }, { name: '踏みならし', atk: 17, heal: 0 }, { name: '猛突進', atk: 34, heal: 0 }],
+      skill: { name: '怒りの咆哮', cd: 4, text: 'このターンに使う通常技の攻撃を2倍にする。', effects: [{ type: 'atkMultiplier', value: 2 }] } },
+    { id: 'b-elder', name: '森の主・古樹ガルム', glyph: '樹', maxHp: 400, element: 'nature', subTypes: ['守護者', '古樹'], rank: '大ボス',
+      moves: [{ name: '根の鞭', atk: 31, heal: 0 }, { name: '枝の槍', atk: 40, heal: 0 }, { name: '大地の恵み', atk: 0, heal: 20 }, { name: '木の葉嵐', atk: 35, heal: 0 }, { name: '樹液の盾', atk: 18, heal: 10 }, { name: '大樹の怒り', atk: 53, heal: 0 }],
+      skill: { name: '古樹の結界', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
+    // 霧の海底神殿
+    { id: 'b-jelly', name: '霧クラゲ', glyph: '海', maxHp: 170, element: 'water', subTypes: ['クリーチャー'], rank: '雑魚',
+      moves: [{ name: 'しびれ触手', atk: 17, heal: 0 }, { name: '泡はじけ', atk: 14, heal: 0 }, { name: 'ただよう', atk: 0, heal: 9 }, { name: '霧の毒', atk: 20, heal: 0 }, { name: '水鉄砲', atk: 15, heal: 0 }, { name: '大放電', atk: 26, heal: 0 }],
+      skill: { name: '霧の放電', cd: 4, text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 10 }] } },
+    { id: 'b-serpent', name: '渦潮の大海蛇', glyph: '蛇', maxHp: 320, element: 'water', subTypes: ['クリーチャー', '竜'], rank: '中ボス',
+      moves: [{ name: '締めつけ', atk: 25, heal: 0 }, { name: '水流ブレス', atk: 29, heal: 0 }, { name: '脱皮', atk: 0, heal: 15 }, { name: '尾の一撃', atk: 22, heal: 0 }, { name: '渦潮', atk: 18, heal: 5 }, { name: '大津波', atk: 40, heal: 0 }],
+      skill: { name: '渦の守り', cd: 4, text: '自分を30回復する。', effects: [{ type: 'heal', amount: 30 }] } },
+    { id: 'b-nagi', name: '深淵の海神ナギ', glyph: '凪', maxHp: 460, element: 'water', subTypes: ['神', '王族'], rank: '大ボス',
+      moves: [{ name: '深海の槍', atk: 34, heal: 0 }, { name: '潮騒', atk: 27, heal: 5 }, { name: '凪の祈り', atk: 0, heal: 22 }, { name: '大渦', atk: 38, heal: 0 }, { name: '冷たい霧', atk: 23, heal: 0 }, { name: '海神の怒り', atk: 53, heal: 0 }],
+      skill: { name: '深淵の波動', cd: 4, text: '敵前衛全員に、それぞれ18ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 18, ignoreDefense: true }] } },
+    // 宵闇の塔
+    { id: 'b-imp', name: '影の使い魔', glyph: '影', maxHp: 180, element: 'dark', subTypes: ['クリーチャー', '魔術師'], rank: '雑魚',
+      moves: [{ name: '影の爪', atk: 19, heal: 0 }, { name: '闇の玉', atk: 15, heal: 0 }, { name: '影に潜む', atk: 0, heal: 10 }, { name: '呪いの針', atk: 22, heal: 0 }, { name: 'いたずら', atk: 10, heal: 3 }, { name: '影の嵐', atk: 27, heal: 0 }],
+      skill: { name: '影分身', cd: 3, text: '確定した数字を1回振り直す。', effects: [{ type: 'reroll' }] } },
+    { id: 'b-witch', name: '月喰いの魔女', glyph: '魔', maxHp: 350, element: 'dark', subTypes: ['魔術師', '哲学者'], rank: '中ボス',
+      moves: [{ name: '月蝕の矢', atk: 29, heal: 0 }, { name: '黒い呪文', atk: 23, heal: 0 }, { name: '生命吸収', atk: 18, heal: 9 }, { name: '星くず', atk: 22, heal: 0 }, { name: '魔力の泉', atk: 0, heal: 15 }, { name: '月喰い', atk: 43, heal: 0 }],
+      skill: { name: '虚無の詠唱', cd: 4, text: '敵前衛全員に、それぞれ20ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 20, ignoreDefense: true }] } },
+    { id: 'b-maou', name: '星喰いの魔王', glyph: '王', maxHp: 510, element: 'dark', subTypes: ['王族', '魔術師'], rank: '大ボス',
+      moves: [{ name: '魔王の剣', atk: 32, heal: 0 }, { name: '暗黒波', atk: 26, heal: 0 }, { name: '闇の玉座', atk: 0, heal: 23 }, { name: '星喰らい', atk: 35, heal: 0 }, { name: '絶望の霧', atk: 19, heal: 6 }, { name: '終焉の一撃', atk: 48, heal: 0 }],
+      skill: { name: '魔王の覚醒', cd: 4, text: 'このターンに使う通常技の攻撃を2倍にする。', effects: [{ type: 'atkMultiplier', value: 2 }] } }
+  ];
+
+  /*
+   * ---------- ダンジョン（3階層：雑魚 → 中ボス → 大ボス） ----------
+   * 6人のチームで、1体ずつ3回戦う。HPと戦闘不能は次の階層に引き継ぐ（階層の間に生存キャラが少し回復）。
+   * floors: boss=敵（BOSSES の id）、level=敵のレベル、exp=勝利時にチーム6体それぞれが得る経験値
+   * clearStones=大ボスまで倒したときの石（初回は firstClearStones）、requires=解放条件（そのダンジョンを踏破）
+   */
+  const DUNGEON_RULES = {
+    healBetweenFloorsPercent: 20, // 階層の間に、生存キャラが最大HPの何%回復するか
+    loseExpPercent: 30            // 負けた階層でもらえる経験値（%）
+  };
+  const DUNGEONS = [
+    { id: 'forest', name: '翠の迷い森', text: '木々がささやく、はじまりの森。', recommend: 'Lv1〜', requires: null, firstClearStones: 300, clearStones: 40,
+      floors: [{ boss: 'b-goblin', level: 1, exp: 50 }, { boss: 'b-boar', level: 2, exp: 80 }, { boss: 'b-elder', level: 5, exp: 140 }] },
+    { id: 'sea', name: '霧の海底神殿', text: '霧に沈んだ、海神をまつる神殿。', recommend: 'Lv5〜', requires: 'forest', firstClearStones: 400, clearStones: 60,
+      floors: [{ boss: 'b-jelly', level: 6, exp: 120 }, { boss: 'b-serpent', level: 7, exp: 180 }, { boss: 'b-nagi', level: 8, exp: 280 }] },
+    { id: 'tower', name: '宵闇の塔', text: '星を喰らう魔王が棲む、夜の塔。', recommend: 'Lv10〜', requires: 'sea', firstClearStones: 600, clearStones: 80,
+      floors: [{ boss: 'b-imp', level: 9, exp: 220 }, { boss: 'b-witch', level: 10, exp: 320 }, { boss: 'b-maou', level: 11, exp: 450 }] }
+  ];
+
+  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, ECONOMY, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
 
   if (typeof module === 'object' && module.exports) module.exports = Data;
   else global.RikuyouData = Data;
@@ -955,8 +1022,11 @@ button { font-family: inherit; }
   const DEFAULT_LABELS = { player: { team: '味方', who: 'あなた' }, cpu: { team: '敵', who: '相手' } };
   const team = (state, side) => ((state.labels || DEFAULT_LABELS)[side] || DEFAULT_LABELS[side]).team;
   const who = (state, side) => ((state.labels || DEFAULT_LABELS)[side] || DEFAULT_LABELS[side]).who;
+  const BOSSES = Data.BOSSES || [];
   const CHAR_MAP = {};
   CHARACTERS.forEach(c => { CHAR_MAP[c.id] = c; });
+  BOSSES.forEach(c => { CHAR_MAP[c.id] = Object.assign({ boss: true }, c); });
+  const isBoss = id => !!(CHAR_MAP[id] && CHAR_MAP[id].boss);
 
   /* ---------- 乱数 ---------- */
   // シード付き乱数（テスト・再現用）。シードなしなら Math.random を使う。
@@ -1121,10 +1191,18 @@ button { font-family: inherit; }
     return { charId, index, level: lv, hp, maxHp: hp, cd: 0, barrier: false, loadout: lo.slice() };
   }
 
-  function validateTeam(ids) {
-    if (!Array.isArray(ids) || ids.length !== CONFIG.TEAM_SIZE) return false;
+  // プレイヤー側：通常キャラ6体。boss:true のときは敵（ダンジョン）用で、1〜6体・ボスも可
+  function validateTeam(ids, opts) {
+    const boss = opts && opts.boss;
+    if (!Array.isArray(ids)) return false;
+    if (boss ? (ids.length < 1 || ids.length > CONFIG.TEAM_SIZE) : ids.length !== CONFIG.TEAM_SIZE) return false;
     if (new Set(ids).size !== ids.length) return false;
-    return ids.every(id => !!getChar(id));
+    return ids.every(id => !!getChar(id) && (boss || !isBoss(id)));
+  }
+
+  // 配置で選ぶ前衛の数（生存キャラが3体未満なら、その数）
+  function frontRequired(state, side) {
+    return Math.min(CONFIG.FRONT_SIZE, aliveIndexes(state, side).length);
   }
 
   function randomTeam(rng) {
@@ -1143,13 +1221,15 @@ button { font-family: inherit; }
   // opts.loadouts = { player: { charId: [技番号×6] }, cpu: {...} }（省略時は初期構成）
   // opts.levels   = { player: { charId: レベル }, cpu: {...} }（省略時はレベル1）
   // opts.labels   = { player: { team, who }, cpu: { team, who } }（ログの呼び名）
+  // opts.enemyKind = 'boss' … 敵がダンジョンのボス（1体でもよい）
+  // opts.startHp  = { player: { charId: HP } }（ダンジョンの階層間でHPを引き継ぐ。0なら戦闘不能のまま）
   function createBattle(playerIds, cpuIds, opts) {
     const lo = (opts && opts.loadouts) || {};
     const lv = (opts && opts.levels) || {};
-    if (!validateTeam(playerIds) || !validateTeam(cpuIds)) {
+    if (!validateTeam(playerIds) || !validateTeam(cpuIds, { boss: opts && opts.enemyKind === 'boss' })) {
       throw new Error('チームは異なる' + CONFIG.TEAM_SIZE + '体で編成してください');
     }
-    return Object.assign({
+    const st = Object.assign({
       phase: 'formation',      // formation / initiative / roll / action / replace / over
       turnSide: 'player',
       round: 0,                // 巡（プレイヤーとCPUのターン1回ずつ）
@@ -1168,6 +1248,16 @@ button { font-family: inherit; }
       log: [],
       seq: 0
     }, freshTurnFlags());
+    const startHp = (opts && opts.startHp) || {};
+    SIDES.forEach(side => {
+      const hp = startHp[side];
+      if (!hp) return;
+      st.teams[side].forEach(u => {
+        if (hp[u.charId] !== undefined) u.hp = Math.max(0, Math.min(u.maxHp, Math.floor(hp[u.charId])));
+      });
+    });
+    if (!aliveIndexes(st, 'player').length) throw new Error('戦えるキャラがいません');
+    return st;
   }
 
   /* ---------- ログ ---------- */
@@ -1269,8 +1359,9 @@ button { font-family: inherit; }
     if (state.phase !== 'formation') return fail('今は配置を決める段階ではありません');
     if (SIDES.indexOf(side) < 0) return fail('不正な陣営です');
     if (state.front[side].length) return fail('配置はすでに決まっています');
-    if (!Array.isArray(frontIdxs) || frontIdxs.length !== CONFIG.FRONT_SIZE || new Set(frontIdxs).size !== frontIdxs.length) {
-      return fail(`前衛を${CONFIG.FRONT_SIZE}体選んでください`);
+    const need = frontRequired(state, side);
+    if (!Array.isArray(frontIdxs) || frontIdxs.length !== need || new Set(frontIdxs).size !== frontIdxs.length) {
+      return fail(`前衛を${need}体選んでください`);
     }
     if (!frontIdxs.every(i => isAlive(state.teams[side][i]))) return fail('そのキャラは選べません');
     if (leaderIdx === undefined) return fail('リーダーを選んでください');
@@ -1287,8 +1378,9 @@ button { font-family: inherit; }
       // 最大HPを上げるリーダースキルは配置の時点で反映（初期HPも同じだけ上がる）
       leaderEffects(state, side).filter(e => e.type === 'maxHp').forEach(e => {
         state.teams[side].forEach(u => {
+          const before = u.maxHp;
           u.maxHp = Math.floor(u.maxHp * (100 + e.percent) / 100);
-          u.hp = u.maxHp;
+          if (u.hp > 0) u.hp = Math.min(u.maxHp, u.hp + (u.maxHp - before)); // 減っているHPはそのまま、上がった分だけ増える
         });
       });
     }
@@ -1574,7 +1666,7 @@ button { font-family: inherit; }
     CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, SIDES,
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
-    validateTeam, randomTeam, createBattle,
+    validateTeam, randomTeam, createBattle, frontRequired, isBoss, BOSSES,
     movePower, defaultLoadout, loadoutPower, loadoutBudget, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
@@ -1791,7 +1883,7 @@ button { font-family: inherit; }
     ? require('./data.js')
     : global.RikuyouData;
 
-  const { CONFIG, CHARACTERS, ECONOMY, DUNGEONS } = Data;
+  const { CONFIG, CHARACTERS, ECONOMY, DUNGEONS, CPU_MATCHES, DUNGEON_RULES } = Data;
   const ALL_IDS = CHARACTERS.map(c => c.id);
   const PROFILE_VERSION = 1;
 
@@ -1829,6 +1921,7 @@ button { font-family: inherit; }
       loadouts: {},
       team: owned.slice(0, CONFIG.TEAM_SIZE),
       dungeon: { cleared: {} },
+      matches: { won: {} },
       login: { last: null, streak: 0, total: 0 },
       pvp: { day: null, rewarded: 0, wins: 0, losses: 0 },
       createdAt: Date.now()
@@ -1862,6 +1955,7 @@ button { font-family: inherit; }
     p.loadouts = lo;
     p.team = Array.isArray(raw.team) ? raw.team.filter((id, i, a) => chars[id] && a.indexOf(id) === i).slice(0, CONFIG.TEAM_SIZE) : [];
     p.dungeon = { cleared: Object.assign({}, raw.dungeon && raw.dungeon.cleared) };
+    p.matches = { won: Object.assign({}, raw.matches && raw.matches.won) };
     p.login = Object.assign({ last: null, streak: 0, total: 0 }, raw.login);
     p.pvp = Object.assign({ day: null, rewarded: 0, wins: 0, losses: 0 }, raw.pvp);
     return p;
@@ -1965,42 +2059,65 @@ button { font-family: inherit; }
     return { ok: true, amount: st.amount, streak: st.streak, dayInCycle: st.dayInCycle };
   }
 
-  /* ---------- ダンジョン ---------- */
-  const floorKey = (dungeonId, floor) => dungeonId + ':' + floor;
-  function getDungeon(id) { return DUNGEONS.find(d => d.id === id) || null; }
-  function dungeonCleared(p, id) {
-    const d = getDungeon(id);
-    return !!d && d.floors.every((f, i) => p.dungeon.cleared[floorKey(id, i)]);
+  /* ---------- 対戦（CPUチームとの6対6・順番に解放） ---------- */
+  function getMatch(id) { return CPU_MATCHES.find(m => m.id === id) || null; }
+  function matchUnlocked(p, id) {
+    const k = CPU_MATCHES.findIndex(m => m.id === id);
+    return k === 0 || (k > 0 && !!p.matches.won[CPU_MATCHES[k - 1].id]);
   }
+  function matchEnemy(id) {
+    const m = getMatch(id);
+    const levels = {};
+    m.enemies.forEach(cid => { levels[cid] = m.level; });
+    return { ids: m.enemies.slice(), levels, leader: m.leader };
+  }
+  // 勝利：チーム6体に経験値・石（初勝利は多め）。敗北：経験値の3割だけ
+  function applyMatchResult(p, id, teamIds, won) {
+    const m = getMatch(id);
+    if (!m || !matchUnlocked(p, id)) return { ok: false, error: 'まだ挑戦できない相手です' };
+    const firstWin = won && !p.matches.won[id];
+    const exp = won ? m.exp : Math.floor(m.exp * 0.3);
+    const levelUps = teamIds.filter(cid => owns(p, cid)).map(cid => addExp(p, cid, exp));
+    const stones = won ? (firstWin ? m.firstStones : m.stones) : 0;
+    p.stones += stones;
+    if (won) p.matches.won[id] = true;
+    return { ok: true, won, firstWin, exp, stones, levelUps };
+  }
+
+  /* ---------- ダンジョン（3階層：雑魚 → 中ボス → 大ボス。1体ずつ倒していく） ---------- */
+  function getDungeon(id) { return DUNGEONS.find(d => d.id === id) || null; }
+  function dungeonCleared(p, id) { return !!p.dungeon.cleared[id]; }
   function dungeonUnlocked(p, id) {
     const d = getDungeon(id);
     return !!d && (!d.requires || dungeonCleared(p, d.requires));
   }
-  function floorUnlocked(p, id, floor) {
-    const d = getDungeon(id);
-    if (!d || floor < 0 || floor >= d.floors.length || !dungeonUnlocked(p, id)) return false;
-    return floor === 0 || !!p.dungeon.cleared[floorKey(id, floor - 1)];
-  }
-  // 敵チームの戦闘設定（createBattle の cpu 側）
+  // 階層の敵（createBattle の cpu 側。enemyKind:'boss' で使う）
   function floorEnemy(id, floor) {
     const f = getDungeon(id).floors[floor];
-    const levels = {};
-    f.enemies.forEach(cid => { levels[cid] = f.level; });
-    return { ids: f.enemies.slice(), levels, leader: f.leader };
+    return { ids: [f.boss], levels: { [f.boss]: f.level }, leader: null };
   }
-  // 勝利：チーム6体に経験値・石（初回は多め）。敗北：経験値の3割だけ
-  function applyDungeonResult(p, id, floor, teamIds, won) {
+  // 次の階層に引き継ぐHP：生存キャラは最大HPの一部を回復、戦闘不能はそのまま
+  function carryOverHp(units) {
+    const hp = {};
+    units.forEach(u => {
+      hp[u.charId] = u.hp > 0 ? Math.min(u.maxHp, u.hp + Math.floor(u.maxHp * DUNGEON_RULES.healBetweenFloorsPercent / 100)) : 0;
+    });
+    return hp;
+  }
+  // 1階層ぶんの結果：勝利で経験値、敗北で3割。大ボスを倒したらクリア報酬の石
+  function applyDungeonFloor(p, id, floor, teamIds, won) {
     const d = getDungeon(id);
-    if (!d || !floorUnlocked(p, id, floor)) return { ok: false, error: 'まだ挑戦できない階層です' };
+    if (!d || !dungeonUnlocked(p, id) || floor < 0 || floor >= d.floors.length) return { ok: false, error: 'まだ挑戦できないダンジョンです' };
     const f = d.floors[floor];
-    const key = floorKey(id, floor);
-    const firstClear = won && !p.dungeon.cleared[key];
-    const exp = won ? f.exp : Math.floor(f.exp * 0.3);
+    const exp = won ? f.exp : Math.floor(f.exp * DUNGEON_RULES.loseExpPercent / 100);
     const levelUps = teamIds.filter(cid => owns(p, cid)).map(cid => addExp(p, cid, exp));
-    const stones = won ? (firstClear ? f.firstStones : f.stones) : 0;
+    const last = floor === d.floors.length - 1;
+    const cleared = won && last;
+    const firstClear = cleared && !p.dungeon.cleared[id];
+    const stones = cleared ? (firstClear ? d.firstClearStones : d.clearStones) : 0;
     p.stones += stones;
-    if (won) p.dungeon.cleared[key] = true;
-    return { ok: true, won, firstClear, exp, stones, levelUps };
+    if (cleared) p.dungeon.cleared[id] = true;
+    return { ok: true, won, exp, levelUps, cleared, firstClear, stones, last };
   }
 
   /* ---------- 対人戦の報酬（1日の回数制限あり） ---------- */
@@ -2024,7 +2141,8 @@ button { font-family: inherit; }
     teamError, setTeam, setLoadout,
     gachaCost, drawGacha,
     loginStatus, claimLogin,
-    floorKey, getDungeon, dungeonCleared, dungeonUnlocked, floorUnlocked, floorEnemy, applyDungeonResult,
+    getMatch, matchUnlocked, matchEnemy, applyMatchResult,
+    getDungeon, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, applyDungeonFloor,
     applyPvpResult
   };
 
@@ -2058,6 +2176,36 @@ button { font-family: inherit; }
   }
   const normalizeCode = code => String(code || '').toUpperCase().replace(/[^A-Z0-9]/g, '').slice(0, 6);
   const now = () => Date.now();
+
+  // SHA-256（管理用コードの照合用。file:// でも動くように自前で計算する）
+  function sha256(str) {
+    const K = [0x428a2f98, 0x71374491, 0xb5c0fbcf, 0xe9b5dba5, 0x3956c25b, 0x59f111f1, 0x923f82a4, 0xab1c5ed5, 0xd807aa98, 0x12835b01, 0x243185be, 0x550c7dc3, 0x72be5d74, 0x80deb1fe, 0x9bdc06a7, 0xc19bf174, 0xe49b69c1, 0xefbe4786, 0x0fc19dc6, 0x240ca1cc, 0x2de92c6f, 0x4a7484aa, 0x5cb0a9dc, 0x76f988da, 0x983e5152, 0xa831c66d, 0xb00327c8, 0xbf597fc7, 0xc6e00bf3, 0xd5a79147, 0x06ca6351, 0x14292967, 0x27b70a85, 0x2e1b2138, 0x4d2c6dfc, 0x53380d13, 0x650a7354, 0x766a0abb, 0x81c2c92e, 0x92722c85, 0xa2bfe8a1, 0xa81a664b, 0xc24b8b70, 0xc76c51a3, 0xd192e819, 0xd6990624, 0xf40e3585, 0x106aa070, 0x19a4c116, 0x1e376c08, 0x2748774c, 0x34b0bcb5, 0x391c0cb3, 0x4ed8aa4a, 0x5b9cca4f, 0x682e6ff3, 0x748f82ee, 0x78a5636f, 0x84c87814, 0x8cc70208, 0x90befffa, 0xa4506ceb, 0xbef9a3f7, 0xc67178f2];
+    const bytes = Array.from(unescape(encodeURIComponent(String(str))), c => c.charCodeAt(0));
+    const bitLen = bytes.length * 8;
+    bytes.push(0x80);
+    while (bytes.length % 64 !== 56) bytes.push(0);
+    for (let i = 7; i >= 0; i--) bytes.push(i >= 4 ? 0 : (bitLen >>> (i * 8)) & 0xff);
+    const H = [0x6a09e667, 0xbb67ae85, 0x3c6ef372, 0xa54ff53a, 0x510e527f, 0x9b05688c, 0x1f83d9ab, 0x5be0cd19];
+    const w = new Array(64);
+    const rotr = (x, n) => (x >>> n) | (x << (32 - n));
+    for (let off = 0; off < bytes.length; off += 64) {
+      for (let i = 0; i < 16; i++) w[i] = (bytes[off + i * 4] << 24) | (bytes[off + i * 4 + 1] << 16) | (bytes[off + i * 4 + 2] << 8) | bytes[off + i * 4 + 3];
+      for (let i = 16; i < 64; i++) {
+        const s0 = rotr(w[i - 15], 7) ^ rotr(w[i - 15], 18) ^ (w[i - 15] >>> 3);
+        const s1 = rotr(w[i - 2], 17) ^ rotr(w[i - 2], 19) ^ (w[i - 2] >>> 10);
+        w[i] = (w[i - 16] + s0 + w[i - 7] + s1) | 0;
+      }
+      let [a, b, c, d, e, f, g, h] = H;
+      for (let i = 0; i < 64; i++) {
+        const t1 = (h + (rotr(e, 6) ^ rotr(e, 11) ^ rotr(e, 25)) + ((e & f) ^ (~e & g)) + K[i] + w[i]) | 0;
+        const t2 = ((rotr(a, 2) ^ rotr(a, 13) ^ rotr(a, 22)) + ((a & b) ^ (a & c) ^ (b & c))) | 0;
+        h = g; g = f; f = e; e = (d + t1) | 0; d = c; c = b; b = a; a = (t1 + t2) | 0;
+      }
+      H[0] = (H[0] + a) | 0; H[1] = (H[1] + b) | 0; H[2] = (H[2] + c) | 0; H[3] = (H[3] + d) | 0;
+      H[4] = (H[4] + e) | 0; H[5] = (H[5] + f) | 0; H[6] = (H[6] + g) | 0; H[7] = (H[7] + h) | 0;
+    }
+    return H.map(x => (x >>> 0).toString(16).padStart(8, '0')).join('');
+  }
 
   /* ======================================================================
    * LocalBackend（この端末だけ）
@@ -2095,24 +2243,31 @@ button { font-family: inherit; }
       async init() {
         const uid = ss.getItem(P + 'session');
         const p = players().find(x => x.uid === uid);
-        user = p ? { uid: p.uid, name: p.name, isAdmin: !!opts.localAdmin, email: '' } : null;
+        user = p ? { uid: p.uid, name: p.name, isAdmin: !!opts.localAdmin || !!p.isAdmin, email: '' } : null;
         if (authCb) authCb(user);
       },
       onAuth(cb) { authCb = cb; cb(user); },
       currentUser: () => user,
       // ローカルでは名前だけで「プレイヤー」を作る（同じ端末で複数人を切り替えられる）
       localPlayers: () => players(),
-      async signIn({ name, uid }) {
+      // 管理用コードが設定されているか（設定ファイルの localAdminCodeHash）
+      adminCodeEnabled: () => !!opts.adminCodeHash,
+      async signIn({ name, uid, adminCode }) {
         let list = players();
         let p = uid ? list.find(x => x.uid === uid) : null;
+        let admin = false;
+        if (adminCode !== undefined && adminCode !== null && adminCode !== '') {
+          if (!opts.adminCodeHash || sha256(String(adminCode).trim()) !== String(opts.adminCodeHash).toLowerCase()) throw new Error('管理用コードが違います');
+          admin = true;
+        }
         if (!p) {
           const nm = String(name || '').trim().slice(0, 16);
           if (!nm) throw new Error('名前を入力してください');
-          p = list.find(x => x.name === nm);
-          if (!p) { p = { uid: 'local-' + now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), name: nm }; list = list.concat(p); write('players', list); }
+          p = list.find(x => x.name === nm && !!x.isAdmin === admin);
+          if (!p) { p = { uid: 'local-' + now().toString(36) + Math.floor(Math.random() * 1e6).toString(36), name: nm, isAdmin: admin }; list = list.concat(p); write('players', list); }
         }
         ss.setItem(P + 'session', p.uid);
-        user = { uid: p.uid, name: p.name, isAdmin: !!opts.localAdmin, email: '' };
+        user = { uid: p.uid, name: p.name, isAdmin: !!opts.localAdmin || !!p.isAdmin, email: '' };
         if (authCb) authCb(user);
         return user;
       },
@@ -2354,10 +2509,10 @@ button { font-family: inherit; }
       }
       return FirebaseBackend(st);
     }
-    return LocalBackend({ localAdmin: !!(st && st.localAdmin) });
+    return LocalBackend({ localAdmin: !!(st && st.localAdmin), adminCodeHash: st && st.localAdminCodeHash });
   }
 
-  const Backend = { LocalBackend, FirebaseBackend, createBackend, makeCode, normalizeCode };
+  const Backend = { LocalBackend, FirebaseBackend, createBackend, makeCode, normalizeCode, sha256 };
   if (typeof module === 'object' && module.exports) module.exports = Backend;
   else global.RikuyouBackend = Backend;
 })(typeof globalThis !== 'undefined' ? globalThis : this);
@@ -2816,6 +2971,7 @@ button { font-family: inherit; }
     const u = state.teams[side][i];
     const b = [];
     if (state.leader && state.leader[side] === i) b.push('<span class="badge leader">リーダー</span>');
+    if (E.isBoss(u.charId)) b.push(`<span class="badge boss">${E.unitChar(u).rank || 'ボス'}</span>`);
     if (u.hp <= 0) b.push('<span class="badge ko">戦闘不能</span>');
     else if (E.isFront(state, side, i)) b.push('<span class="badge front">前衛</span>');
     else if (state.phase !== 'formation') b.push('<span class="badge bench">後衛</span>');
@@ -2872,17 +3028,21 @@ button { font-family: inherit; }
     const frontIds = s.phase === 'formation' && side === bt.foe ? [] : s.front[side];
     const backIds = s.teams[side].map((u, i) => i).filter(i => frontIds.indexOf(i) < 0)
       .sort((a, b) => (s.teams[side][b].hp > 0) - (s.teams[side][a].hp > 0));
-    const empty = Array.from({ length: Math.max(0, CONFIG.FRONT_SIZE - frontIds.length) },
+    // ボス戦など、チームが3体未満の側には空き枠を出さない
+    const slots = Math.min(CONFIG.FRONT_SIZE, s.teams[side].length);
+    const empty = Array.from({ length: Math.max(0, slots - frontIds.length) },
       () => `<div class="unit-card fcard empty-slot">${s.phase === 'formation' ? '配置前' : '空き枠'}</div>`).join('');
     $('#' + pre + '-front').innerHTML = frontIds.map(i => unitCard(side, i, 'front')).join('') + empty;
     $('#' + pre + '-back').innerHTML = backIds.map(i => unitCard(side, i, 'back')).join('');
-    $('#' + pre + '-alive').textContent = `生存 ${E.aliveIndexes(s, side).length} / ${CONFIG.TEAM_SIZE}`;
+    $('#' + pre + '-alive').textContent = `生存 ${E.aliveIndexes(s, side).length} / ${s.teams[side].length}`;
+    // 後衛がいない側（ボス）は「後衛」の見出しを隠す
+    $('#' + pre + '-back').previousElementSibling.classList.toggle('hidden', !backIds.length);
     const l = s.leader[side];
     const hideLeader = side === bt.foe && s.phase === 'formation';
     const lc = l === null || l === undefined || hideLeader ? null : E.unitChar(s.teams[side][l]);
     $('#' + pre + '-leader').innerHTML = lc
       ? `<span class="badge leader">リーダー</span> ${esc(lc.name)}「${esc(lc.leaderSkill.name)}」<span class="muted">${esc(lc.leaderSkill.text)}</span>`
-      : '<span class="muted">リーダー：配置時に決定</span>';
+      : (s.teams[side].some(u => E.isBoss(u.charId)) ? '<span class="muted">ダンジョンの敵（リーダーなし）</span>' : '<span class="muted">リーダー：配置時に決定</span>');
   }
 
   function renderMoveOptions() {
@@ -3068,9 +3228,11 @@ button { font-family: inherit; }
     let leader = null;
     const draw = () => {
       const team = bt.state.teams[bt.me];
-      const ready = picked.length === CONFIG.FRONT_SIZE && leader !== null;
+      const need = E.frontRequired(bt.state, bt.me);
+      const ready = picked.length === need && leader !== null;
       $('#modal-body').innerHTML = `<h3>配置とリーダーを決める</h3>
-        <h4>① 前衛3体を選ぶ（<span class="gold">${picked.length}</span> / ${CONFIG.FRONT_SIZE}）</h4>
+        <h4>① 前衛${need}体を選ぶ（<span class="gold">${picked.length}</span> / ${need}）</h4>
+        ${need < CONFIG.FRONT_SIZE ? '<p class="reason">戦えるキャラが少ないため、前衛は' + need + '体です。</p>' : ''}
         <p class="muted">前衛は通常技を使い、敵の攻撃を受けます。残りの3体は後衛として控え、攻撃も回復も受けません。</p>
         ${unitButtons(bt.me, team.map((u, i) => i), { selected: picked })}
         <h4>② リーダーを1体選ぶ</h4>
@@ -3082,7 +3244,7 @@ button { font-family: inherit; }
             <span class="t-main"><b>${esc(ch.name)}</b>「${esc(ch.leaderSkill.name)}」<br><span class="muted">${esc(ch.leaderSkill.text)}</span></span>${sel ? '<span class="t-check">将</span>' : ''}</button>`;
         }).join('')}</div>
         <div class="modal-actions">
-          <button type="button" class="btn btn-primary btn-block" id="btn-formation-ok"${ready ? '' : ' disabled'}>${ready ? 'この配置で決定' : (picked.length < CONFIG.FRONT_SIZE ? '前衛をあと' + (CONFIG.FRONT_SIZE - picked.length) + '体選んでください' : 'リーダーを選んでください')}</button>
+          <button type="button" class="btn btn-primary btn-block" id="btn-formation-ok"${ready ? '' : ' disabled'}>${ready ? 'この配置で決定' : (picked.length < need ? '前衛をあと' + (need - picked.length) + '体選んでください' : 'リーダーを選んでください')}</button>
           ${foeIsCpu() ? '<button type="button" class="btn btn-ghost btn-block" id="btn-formation-back">戦闘をやめて戻る</button>' : ''}
         </div>`;
       const body = $('#modal-body');
@@ -3090,7 +3252,7 @@ button { font-family: inherit; }
         const i = Number(b.dataset.target);
         const k = picked.indexOf(i);
         if (k >= 0) picked.splice(k, 1);
-        else if (picked.length < CONFIG.FRONT_SIZE) picked.push(i);
+        else if (picked.length < E.frontRequired(bt.state, bt.me)) picked.push(i);
         else toast('前衛は3体までです。外したいキャラをもう一度押してください');
         draw();
       }));
@@ -3194,8 +3356,8 @@ button { font-family: inherit; }
         <div class="effect-box"><div>${esc(skill.text)}</div>
           <div class="muted">CD ${skill.cd}／残りCD ${u.cd}（前衛・後衛どちらでも使用可）</div>
           ${mine && skillReason && u.hp > 0 ? `<div class="reason">今は使えません：${esc(skillReason)}</div>` : ''}</div>
-        <h4>リーダースキル</h4>${leaderBox(ch, isLeader ? 'このチームのリーダー（発動中）' : '')}
-        ${isLeader ? '' : '<p class="muted">リーダーに選んだときだけ発動します。</p>'}
+        ${ch.leaderSkill ? `<h4>リーダースキル</h4>${leaderBox(ch, isLeader ? 'このチームのリーダー（発動中）' : '')}
+        ${isLeader ? '' : '<p class="muted">リーダーに選んだときだけ発動します。</p>'}` : '<p class="muted">ダンジョンの敵です（リーダースキルなし）。</p>'}
         <div class="modal-actions">
           ${moveOk ? `<button type="button" class="btn btn-primary btn-block" id="btn-detail-move">出目${s.dice}の技を使う…</button>` : ''}
           ${mine && !skillReason && !bt.locked && !bt.waiting ? '<button type="button" class="btn btn-skill btn-block" id="btn-open-skill">固有スキルを使う…</button>' : ''}
@@ -3385,9 +3547,16 @@ button { font-family: inherit; }
         ${players.length ? `<h4>この端末のプレイヤー</h4><div class="target-list">${players.map(p => `<button type="button" class="target-btn" data-local="${esc(p.uid)}"><span class="t-main"><b>${esc(p.name)}</b> で続ける</span></button>`).join('')}</div>` : ''}
         <h4>新しくはじめる</h4>
         <label class="field"><span>プレイヤー名</span><input id="in-name" maxlength="16" autocomplete="nickname" placeholder="例：はるの"></label>
-        <button type="button" class="btn btn-primary btn-block" id="btn-local-start">はじめる</button>`;
+        <button type="button" class="btn btn-primary btn-block" id="btn-local-start">はじめる</button>
+        ${app.backend.adminCodeEnabled && app.backend.adminCodeEnabled() ? `<details class="admin-login"><summary>管理用アカウントで入る</summary>
+          <p class="muted">管理用コードを持っている人だけが使えます。全キャラクターを持った状態で遊べます（この端末に保存）。</p>
+          <label class="field"><span>名前</span><input id="in-admin-name" maxlength="16" autocomplete="off" placeholder="例：管理人"></label>
+          <label class="field"><span>管理用コード</span><input id="in-admin-code" type="password" autocomplete="off"></label>
+          <button type="button" class="btn btn-ghost btn-block" id="btn-admin-start">管理用アカウントではじめる</button></details>` : ''}`;
       $('#login-body').querySelectorAll('[data-local]').forEach(b => b.addEventListener('click', () => doAuth(() => app.backend.signIn({ uid: b.dataset.local }))));
       $('#btn-local-start').addEventListener('click', () => doAuth(() => app.backend.signIn({ name: $('#in-name').value })));
+      const ab = $('#btn-admin-start');
+      if (ab) ab.addEventListener('click', () => doAuth(() => app.backend.signIn({ name: $('#in-admin-name').value || '管理人', adminCode: $('#in-admin-code').value })));
     } else {
       let signup = false;
       const draw = () => {
@@ -3565,73 +3734,37 @@ button { font-family: inherit; }
     draw();
   }
 
-  /* ---------- CPU戦（ダンジョン・フリー対戦） ---------- */
+  /* ---------- CPU戦の共通処理 ---------- */
   function requireTeam() {
     const err = P.teamError(app.profile, app.profile.team);
     if (err) { toast('先にチームを6体で保存してください'); showTeam(); return false; }
     return true;
   }
 
+  // ctx: { kind: 'free' | 'match' | 'dungeon', title, foeName, enemy: { ids, levels, leader }, boss, startHp, ... }
   function startCpuBattle(ctx) {
     if (!requireTeam()) return;
     const p = app.profile;
-    const team = p.team.slice();
+    const team = ctx.team || p.team.slice();
+    ctx.team = team;
     const state = E.createBattle(team, ctx.enemy.ids, {
       loadouts: { player: P.loadoutsFor(p, team) },
-      levels: { player: P.levelsFor(p, team), cpu: ctx.enemy.levels }
+      levels: { player: P.levelsFor(p, team), cpu: ctx.enemy.levels },
+      enemyKind: ctx.kind === 'dungeon' ? 'boss' : undefined,
+      startHp: ctx.startHp ? { player: ctx.startHp } : undefined
     });
     // CPUは自分のチームの情報だけで配置を決める（プレイヤーの選択は見ない）
     const cpuPlan = {
       front: CPU.chooseFormation(state, 'cpu', rng),
-      leader: ctx.enemy.leader !== undefined && ctx.enemy.leader !== null ? ctx.enemy.leader : CPU.chooseLeader(state, 'cpu', rng)
+      leader: ctx.kind === 'dungeon' ? null
+        : (ctx.enemy.leader !== undefined && ctx.enemy.leader !== null ? ctx.enemy.leader : CPU.chooseLeader(state, 'cpu', rng))
     };
     B.start({
       mode: 'cpu', state, cpuPlan, title: ctx.title, foeName: ctx.foeName,
-      onFinish: res => onCpuFinish(ctx, res),
-      onExit: () => (ctx.kind === 'dungeon' ? showDungeon() : showHome()),
+      onFinish: res => (ctx.kind === 'dungeon' ? onDungeonFloorFinish(ctx, res) : onMatchFinish(ctx, res)),
+      onExit: () => (ctx.kind === 'dungeon' ? showDungeon() : showMatch()),
       onShowResult: () => app.lastResult && app.lastResult()
     });
-  }
-
-  function onCpuFinish(ctx, res) {
-    const p = app.profile;
-    let body = '';
-    let next = null;
-    if (ctx.kind === 'dungeon') {
-      const r = P.applyDungeonResult(p, ctx.dungeonId, ctx.floor, p.team, res.won);
-      if (r.ok) {
-        body = rewardHtml(r.exp, r.stones, r.levelUps, r.firstClear ? '初回クリア報酬' : '');
-        const d = P.getDungeon(ctx.dungeonId);
-        if (res.won && ctx.floor + 1 < d.floors.length) next = { dungeonId: ctx.dungeonId, floor: ctx.floor + 1 };
-      }
-    } else {
-      const exp = res.won ? 40 : 10;
-      const ups = p.team.map(id => P.addExp(p, id, exp));
-      body = rewardHtml(exp, 0, ups, '');
-    }
-    save();
-    const show = () => openModal(`<div class="result-title ${res.won ? 'win' : 'lose'}">${res.won ? '勝利' : '敗北'}</div>
-      <p style="text-align:center">${esc(ctx.title)}<br><span class="muted">第${res.state.round}巡で決着</span></p>
-      ${body}
-      <div class="modal-actions">
-        ${next ? '<button type="button" class="btn btn-primary btn-block" id="btn-next-floor">次の階層へ</button>' : ''}
-        <button type="button" class="btn ${next ? 'btn-ghost' : 'btn-primary'} btn-block" id="btn-retry">もう一度挑戦</button>
-        ${ctx.kind === 'dungeon' ? '<button type="button" class="btn btn-ghost btn-block" id="btn-to-dungeon">ダンジョン一覧へ</button>' : ''}
-        <button type="button" class="btn btn-ghost btn-block" id="btn-to-home">ホームへ</button>
-        <button type="button" class="btn btn-ghost btn-block" data-close="1">戦闘ログを見る</button>
-      </div>`, {
-      kind: 'result',
-      bind: b => {
-        const n = b.querySelector('#btn-next-floor');
-        if (n) n.addEventListener('click', () => { closeModal(true); startDungeon(next.dungeonId, next.floor); });
-        b.querySelector('#btn-retry').addEventListener('click', () => { closeModal(true); ctx.kind === 'dungeon' ? startDungeon(ctx.dungeonId, ctx.floor) : startFree(); });
-        const d = b.querySelector('#btn-to-dungeon');
-        if (d) d.addEventListener('click', () => { closeModal(true); showDungeon(); });
-        b.querySelector('#btn-to-home').addEventListener('click', () => { closeModal(true); showHome(); });
-      }
-    });
-    app.lastResult = show;
-    show();
   }
 
   function rewardHtml(exp, stones, levelUps, note) {
@@ -3643,17 +3776,85 @@ button { font-family: inherit; }
     </div>`;
   }
 
+  function resultModal(won, title, round, body, buttons) {
+    const show = () => openModal(`<div class="result-title ${won ? 'win' : 'lose'}">${won ? '勝利' : '敗北'}</div>
+      <p style="text-align:center">${esc(title)}<br><span class="muted">第${round}巡で決着</span></p>
+      ${body}
+      <div class="modal-actions">
+        ${buttons.map((b, k) => `<button type="button" class="btn ${b.primary ? 'btn-primary' : 'btn-ghost'} btn-block" data-act="${k}">${esc(b.label)}</button>`).join('')}
+        <button type="button" class="btn btn-ghost btn-block" data-close="1">戦闘ログを見る</button>
+      </div>`, {
+      kind: 'result',
+      bind: b => b.querySelectorAll('[data-act]').forEach(x => x.addEventListener('click', () => { closeModal(true); buttons[Number(x.dataset.act)].run(); }))
+    });
+    app.lastResult = show;
+    show();
+  }
+
+  /* ---------- 対戦（CPUチームと6対6） ---------- */
+  function showMatch() {
+    B.stop();
+    go('match');
+    const p = app.profile;
+    const avg = teamAvgLevel();
+    $('#match-team').textContent = P.teamError(p, p.team) ? 'チームが未完成です。先に6体を保存してください。'
+      : '出撃チーム：' + p.team.map(id => `${E.getChar(id).name}(Lv${P.levelOf(p, id)})`).join('・');
+    $('#match-list').innerHTML = `
+      <div class="floor"><div class="floor-main"><b>フリー対戦</b><span class="muted">自分のチームと同じくらいの強さ（敵Lv${avg}）・毎回ちがう相手・経験値 勝ち40／負け10</span></div>
+        <button type="button" class="btn btn-small btn-primary" data-match="free">挑戦</button></div>
+      <h4>ランク戦（勝つと次の相手が出てくる）</h4>` +
+      D.CPU_MATCHES.map(m => {
+        const un = P.matchUnlocked(p, m.id);
+        const won = !!p.matches.won[m.id];
+        return `<div class="floor${won ? ' cleared' : ''}${un ? '' : ' locked'}">
+          <div class="floor-main"><b>${esc(m.rank)}「${esc(m.name)}」</b><span class="muted">敵Lv${m.level}・経験値${m.exp}・石${won ? m.stones : m.firstStones + '（初勝利）'}</span>
+            <span class="floor-enemies">${m.enemies.map(id => emblem(E.getChar(id), null, 'small')).join('')}</span></div>
+          ${un ? `<button type="button" class="btn btn-small ${won ? 'btn-ghost' : 'btn-primary'}" data-match="${m.id}">${won ? '再戦' : '挑戦'}</button>` : '<span class="badge">未解放</span>'}
+        </div>`;
+      }).join('');
+  }
+  function teamAvgLevel() {
+    const p = app.profile;
+    if (!p.team.length) return 1;
+    return Math.max(1, Math.round(p.team.reduce((a, id) => a + P.levelOf(p, id), 0) / p.team.length));
+  }
   function startFree() {
     if (!requireTeam()) return;
-    const p = app.profile;
-    const avg = Math.max(1, Math.round(p.team.reduce((a, id) => a + P.levelOf(p, id), 0) / p.team.length));
+    const avg = teamAvgLevel();
     const ids = E.randomTeam(rng);
     const levels = {};
     ids.forEach(id => { levels[id] = avg; });
     startCpuBattle({ kind: 'free', title: `フリー対戦（敵Lv${avg}）`, foeName: '敵チーム', enemy: { ids, levels, leader: null } });
   }
+  function startMatch(id) {
+    if (id === 'free') { startFree(); return; }
+    if (!P.matchUnlocked(app.profile, id)) { toast('まだ挑戦できない相手です'); return; }
+    const m = P.getMatch(id);
+    startCpuBattle({ kind: 'match', matchId: id, title: `ランク戦 ${m.rank}「${m.name}」`, foeName: `${m.name}（Lv${m.level}）`, enemy: P.matchEnemy(id) });
+  }
+  function onMatchFinish(ctx, res) {
+    const p = app.profile;
+    let body;
+    let nextId = null;
+    if (ctx.kind === 'match') {
+      const r = P.applyMatchResult(p, ctx.matchId, ctx.team, res.won);
+      body = rewardHtml(r.exp, r.stones, r.levelUps, r.firstWin ? '初勝利' : '');
+      const k = D.CPU_MATCHES.findIndex(m => m.id === ctx.matchId);
+      if (res.won && D.CPU_MATCHES[k + 1]) nextId = D.CPU_MATCHES[k + 1].id;
+    } else {
+      const exp = res.won ? 40 : 10;
+      body = rewardHtml(exp, 0, ctx.team.map(id => P.addExp(p, id, exp)), '');
+    }
+    save();
+    const buttons = [];
+    if (nextId) buttons.push({ label: '次の相手に挑戦', primary: true, run: () => startMatch(nextId) });
+    buttons.push({ label: 'もう一度挑戦', primary: !nextId, run: () => (ctx.kind === 'match' ? startMatch(ctx.matchId) : startFree()) });
+    buttons.push({ label: '対戦の一覧へ', run: showMatch });
+    buttons.push({ label: 'ホームへ', run: showHome });
+    resultModal(res.won, ctx.title, res.state.round, body, buttons);
+  }
 
-  /* ---------- ダンジョン ---------- */
+  /* ---------- ダンジョン（雑魚 → 中ボス → 大ボス を順に倒す） ---------- */
   function showDungeon() {
     B.stop();
     go('dungeon');
@@ -3663,25 +3864,52 @@ button { font-family: inherit; }
     $('#dungeon-list').innerHTML = D.DUNGEONS.map(d => {
       const open = P.dungeonUnlocked(p, d.id);
       const req = d.requires ? P.getDungeon(d.requires) : null;
+      const cleared = P.dungeonCleared(p, d.id);
       return `<div class="panel dungeon${open ? '' : ' locked'}">
-        <div class="zone-head"><span class="zone-label">${esc(d.name)}</span><span class="zone-sub">${P.dungeonCleared(p, d.id) ? '踏破済み' : open ? '挑戦中' : '未解放'}</span></div>
-        <p class="muted">${esc(d.text)}${!open && req ? `（「${esc(req.name)}」を最後までクリアすると解放）` : ''}</p>
-        <div class="floor-list">${d.floors.map((f, i) => {
-          const un = P.floorUnlocked(p, d.id, i);
-          const cleared = !!p.dungeon.cleared[P.floorKey(d.id, i)];
-          return `<div class="floor${cleared ? ' cleared' : ''}${un ? '' : ' locked'}">
-            <div class="floor-main"><b>${i + 1}層「${esc(f.name)}」</b><span class="muted">敵Lv${f.level}・経験値${f.exp}・石${cleared ? f.stones : f.firstStones + '（初回）'}</span>
-              <span class="floor-enemies">${f.enemies.map(id => emblem(E.getChar(id), null, 'small')).join('')}</span></div>
-            ${un ? `<button type="button" class="btn btn-small ${cleared ? 'btn-ghost' : 'btn-primary'}" data-floor="${d.id}:${i}">${cleared ? '再挑戦' : '挑戦'}</button>` : '<span class="badge">未解放</span>'}
-          </div>`;
-        }).join('')}</div></div>`;
+        <div class="zone-head"><span class="zone-label">${esc(d.name)}</span><span class="zone-sub">${cleared ? '踏破済み' : open ? '推奨 ' + esc(d.recommend) : '未解放'}</span></div>
+        <p class="muted">${esc(d.text)}${!open && req ? `（「${esc(req.name)}」を踏破すると解放）` : ''}</p>
+        <div class="boss-path">${d.floors.map((f, i) => {
+          const b = E.getChar(f.boss);
+          return `<div class="boss-step">${emblem(b, null, i === 2 ? 'big' : '')}<span class="badge${i === 2 ? ' leader' : ''}">${i + 1}階・${esc(b.rank)}</span><b>${esc(b.name)}</b><span class="muted">Lv${f.level}・HP${E.levelMaxHp(b.maxHp, f.level)}</span></div>`;
+        }).join('<span class="boss-arrow" aria-hidden="true">→</span>')}</div>
+        <p class="muted small-note">3体を順番に倒します。HPと戦闘不能は次の階に引き継ぎ（階の間に生存キャラが最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復）。踏破報酬：石${cleared ? d.clearStones : d.firstClearStones + '（初回）'}</p>
+        ${open ? `<button type="button" class="btn btn-primary btn-block" data-dungeon="${d.id}">${cleared ? 'もう一度挑む' : '挑む'}</button>` : ''}
+      </div>`;
     }).join('');
   }
-  function startDungeon(id, floor) {
-    if (!P.floorUnlocked(app.profile, id, floor)) { toast('まだ挑戦できない階層です'); return; }
+  function startDungeon(id, floor, startHp) {
+    if (!P.dungeonUnlocked(app.profile, id)) { toast('まだ挑戦できないダンジョンです'); return; }
     const d = P.getDungeon(id);
     const f = d.floors[floor];
-    startCpuBattle({ kind: 'dungeon', dungeonId: id, floor, title: `${d.name} ${floor + 1}層「${f.name}」`, foeName: `${f.name}の敵（Lv${f.level}）`, enemy: P.floorEnemy(id, floor) });
+    const b = E.getChar(f.boss);
+    startCpuBattle({
+      kind: 'dungeon', dungeonId: id, floor, startHp,
+      title: `${d.name} ${floor + 1}階（${b.rank}）`, foeName: `${b.name}（Lv${f.level}）`, enemy: P.floorEnemy(id, floor)
+    });
+  }
+  function onDungeonFloorFinish(ctx, res) {
+    const p = app.profile;
+    const d = P.getDungeon(ctx.dungeonId);
+    const r = P.applyDungeonFloor(p, ctx.dungeonId, ctx.floor, ctx.team, res.won);
+    save();
+    const units = res.state.teams[B.me()];
+    const buttons = [];
+    let body = rewardHtml(r.exp, r.stones, r.levelUps, r.firstClear ? '初回踏破' : (r.cleared ? '踏破' : ''));
+    if (res.won && !r.last) {
+      const hp = P.carryOverHp(units);
+      body += `<h4>次の階へ引き継ぐHP（生存キャラは最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復）</h4>
+        <div class="levelups">${units.map(u => `<span class="team-chip">${esc(E.unitChar(u).name)} <b>${hp[u.charId] > 0 ? hp[u.charId] + '/' + u.maxHp : '戦闘不能'}</b></span>`).join('')}</div>`;
+      const nb = E.getChar(d.floors[ctx.floor + 1].boss);
+      buttons.push({ label: `${ctx.floor + 2}階へ進む（${nb.rank}：${nb.name}）`, primary: true, run: () => startDungeon(ctx.dungeonId, ctx.floor + 1, hp) });
+      buttons.push({ label: 'ここで引き返す', run: showDungeon });
+    } else {
+      if (r.cleared) body = `<div class="big-reward">「${esc(d.name)}」踏破！</div>` + body;
+      else body = `<p class="reason" style="text-align:center">${ctx.floor + 1}階で力尽きました。もう一度、1階から挑戦できます。</p>` + body;
+      buttons.push({ label: r.cleared ? 'もう一度挑む' : '1階から挑み直す', primary: true, run: () => startDungeon(ctx.dungeonId, 0) });
+      buttons.push({ label: 'ダンジョン一覧へ', run: showDungeon });
+    }
+    buttons.push({ label: 'ホームへ', run: showHome });
+    resultModal(res.won, ctx.title, res.state.round, body, buttons);
   }
 
   /* ---------- ガチャ ---------- */
@@ -3857,17 +4085,23 @@ button { font-family: inherit; }
         <li>攻撃は<b>敵前衛全員</b>、回復は<b>味方前衛全員</b>にそれぞれ全量。後衛は攻撃も回復も受けません。固有スキルは後衛のキャラも使えます。</li>
         <li>前衛が倒れたら後衛から補充します。6体すべてが戦闘不能になったら負けです。</li>
       </ol>
+      <h4>遊び方の種類</h4>
+      <ul class="help-list">
+        <li><b>対戦（CPU）</b>：CPUのチームと6対6。ランク戦は勝つと次の相手が出てきます。フリー対戦は自分と同じくらいの強さの相手です。</li>
+        <li><b>ダンジョン</b>：6人のチームで、1階の雑魚・2階の中ボス・3階の大ボスを1体ずつ順に倒します。HPと戦闘不能は次の階に引き継ぎ（階の間に生存キャラが最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復）。大ボスを倒すと踏破です。</li>
+        <li><b>プレイヤー対戦</b>：ルームを作ってコードを伝えるか、コードで参加します。</li>
+      </ul>
       <h4>成長</h4>
       <ul class="help-list">
         <li><b>レベル</b>：1レベルごとに最大HP+${CONFIG.LEVEL.hpPercentPerLevel}%、通常技の攻撃+${CONFIG.LEVEL.atkPerLevel}（攻撃0の技は除く）。最大Lv${CONFIG.LEVEL.max}。</li>
-        <li><b>経験値</b>：ダンジョン（勝利で全量・敗北で3割）、フリー対戦、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>
+        <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>
         <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。</li>
         <li><b>リーダースキル</b>：リーダーにしたキャラの効果が戦闘中ずっと有効です。</li>
       </ul>
       <h4>石の集め方</h4>
       <ul class="help-list">
         <li>ログインボーナス：1日1回（連続日数で ${E2.loginBonus.join('・')}）。日本時間0時に切り替わり。</li>
-        <li>ダンジョンの初回クリアで多め、2回目以降は少し。</li>
+        <li>対戦（ランク戦）の初勝利、ダンジョンの踏破（初回は多め）。</li>
         <li>対人戦：勝利${E2.pvpWinStones}・敗北${E2.pvpLoseStones}（1日${E2.pvpRewardsPerDay}回まで）。</li>
         <li>ガチャ：1回${E2.gachaCost}・10回${E2.gacha10Cost}。</li>
       </ul>
@@ -3885,7 +4119,7 @@ button { font-family: inherit; }
     document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
       const g = b.dataset.go;
       if (g === 'dungeon') showDungeon();
-      else if (g === 'free') startFree();
+      else if (g === 'match') showMatch();
       else if (g === 'lobby') showLobby();
       else if (g === 'gacha') showGacha();
       else if (g === 'team') showTeam();
@@ -3906,10 +4140,12 @@ button { font-family: inherit; }
       showHome();
     });
     $('#dungeon-list').addEventListener('click', e => {
-      const b = e.target.closest('[data-floor]');
-      if (!b) return;
-      const [id, f] = b.dataset.floor.split(':');
-      startDungeon(id, Number(f));
+      const b = e.target.closest('[data-dungeon]');
+      if (b) startDungeon(b.dataset.dungeon, 0);
+    });
+    $('#match-list').addEventListener('click', e => {
+      const b = e.target.closest('[data-match]');
+      if (b) startMatch(b.dataset.match);
     });
     $('#btn-gacha-1').addEventListener('click', () => pullGacha(1));
     $('#btn-gacha-10').addEventListener('click', () => pullGacha(10));
