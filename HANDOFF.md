@@ -81,6 +81,12 @@
 - 戦闘の背景：`src/img/battle/sea-portrait.webp`（縦画面）・`sea-landscape.webp`（横画面）。ビルドが `<ID>-portrait/-landscape` を向きで切り替える CSS を生成し、専用背景はぼかさない（`--bt-blur: 0`）。
 - ダンジョンの敵1体の表示を大きく（スマホは幅72%、PCは300px）。
 
+## v6.7：管理用アカウントの機能
+
+- 管理用アカウント（`profile.isAdmin`）は、すべての対戦（`P.matchUnlocked`）とダンジョン（`P.dungeonUnlocked`）を最初から選べる。
+- 編成画面でレベルを直接変更できる（キャラごとの −10／−1／数値／+1／+10、所持キャラ全員を一括）。`P.setLevel`（管理用のみ・1〜30・経験値は0に）。
+- 公開中の `docs/firebase-config.js` に `localAdminCodeHash` を設定済み（利用者の許可を得て1回だけ変更）。
+
 ## 構成と責任
 
 | ファイル | 役割 |

@@ -680,6 +680,29 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   assert.equal(p.isAdmin, true);
   assert.equal(Object.keys(p.chars).length, 8);
   assert.ok((await page.textContent('#home-profile')).includes('管理用アカウント'));
+  // 管理用：すべての対戦・ダンジョンが選べる
+  await page.click('[data-go="match"]');
+  assert.ok(await page.$('[data-match="m10"]'), '最後の対戦も選べる');
+  await page.click('#btn-home');
+  await page.click('[data-go="dungeon"]');
+  assert.ok(await page.$('[data-dungeon="tower"]'), '最後のダンジョンも選べる');
+  await page.click('#btn-home');
+  // 管理用：編成画面でレベルを直接変える（キャラごと・全員）
+  await page.click('[data-go="team"]');
+  await page.waitForSelector('#screen-team:not(.hidden)');
+  const before = await page.evaluate(() => window.RikuyouApp.getProfile().team.slice());
+  await page.click('[data-lv="ryogen"][data-lv-step="10"]');
+  assert.equal((await H.profile(page)).chars.ryogen.level, 11);
+  await page.fill('[data-lv-input="ryogen"]', '25');
+  await page.press('[data-lv-input="ryogen"]', 'Enter');
+  await page.dispatchEvent('[data-lv-input="ryogen"]', 'change');
+  assert.equal((await H.profile(page)).chars.ryogen.level, 25);
+  assert.deepEqual(await page.evaluate(() => window.RikuyouApp.getProfile().team.slice()), before, 'レベル操作で選択は変わらない');
+  await page.fill('#in-level-all', '30');
+  await page.click('#btn-level-all');
+  assert.ok(Object.values((await H.profile(page)).chars).every(c => c.level === 30));
+  await page.click('#btn-team-back');
+  await page.waitForSelector('#screen-home:not(.hidden)');
   // 普通に名前で入った人は管理用にならない
   await page.click('#btn-settings');
   await page.click('#modal [data-go="logout"]');
@@ -689,6 +712,9 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   await H.closeBonus(page, false);
   assert.equal((await H.profile(page)).isAdmin, false);
   assert.equal(Object.keys((await H.profile(page)).chars).length, 6);
+  await page.click('[data-go="team"]');
+  assert.equal(await page.$('[data-lv-box]'), null, '一般アカウントにはレベル変更がない');
+  assert.equal(await page.isHidden('#admin-level-all'), true);
   assert.deepEqual(w.errors, []);
   await ctx.close();
 });

@@ -134,6 +134,15 @@
     return out;
   }
 
+  // 管理用アカウント：キャラのレベルを直接変える（経験値は0に）
+  function setLevel(p, id, level) {
+    if (!p.isAdmin) return { ok: false, error: '管理用アカウントだけが変更できます' };
+    if (!owns(p, id)) return { ok: false, error: '持っていないキャラです' };
+    p.chars[id].level = Engine.clampLevel(level);
+    p.chars[id].exp = 0;
+    return { ok: true, level: p.chars[id].level };
+  }
+
   /* ---------- チーム・技構成 ---------- */
   function teamError(p, ids) {
     if (!Array.isArray(ids) || ids.length !== CONFIG.TEAM_SIZE) return `チームは${CONFIG.TEAM_SIZE}体で編成してください`;
@@ -200,8 +209,10 @@
 
   /* ---------- 対戦（CPUチームとの6対6・順番に解放） ---------- */
   function getMatch(id) { return CPU_MATCHES.find(m => m.id === id) || null; }
+  // 管理用アカウントはすべての対戦・ダンジョンを最初から選べる
   function matchUnlocked(p, id) {
     const k = CPU_MATCHES.findIndex(m => m.id === id);
+    if (k >= 0 && p.isAdmin) return true;
     return k === 0 || (k > 0 && !!p.matches.won[CPU_MATCHES[k - 1].id]);
   }
   function matchEnemy(id) {
@@ -228,7 +239,7 @@
   function dungeonCleared(p, id) { return !!p.dungeon.cleared[id]; }
   function dungeonUnlocked(p, id) {
     const d = getDungeon(id);
-    return !!d && (!d.requires || dungeonCleared(p, d.requires));
+    return !!d && (!!p.isAdmin || !d.requires || dungeonCleared(p, d.requires));
   }
   // 階層の敵（createBattle の cpu 側。enemyKind:'boss' で使う）
   function floorEnemy(id, floor) {
@@ -277,7 +288,7 @@
     PROFILE_VERSION, ALL_IDS,
     dayKey, dayDiff, newProfile, sanitize,
     owns, ownedIds, levelOf, expToNext, addExp, levelsFor, loadoutsFor,
-    teamError, setTeam, setLoadout,
+    teamError, setTeam, setLoadout, setLevel,
     gachaCost, drawGacha,
     loginStatus, claimLogin,
     getMatch, matchUnlocked, matchEnemy, applyMatchResult,

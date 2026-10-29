@@ -203,6 +203,7 @@
   function showTeam() {
     go('team');
     app.picked = P.teamError(app.profile, app.profile.team) ? app.profile.team.filter(id => P.owns(app.profile, id)) : app.profile.team.slice();
+    renderAdminTools();
     renderTeam();
   }
   function renderTeam() {
@@ -227,6 +228,7 @@
         <div>${elementTag(ch)}${subTags(ch)}</div>
         <div class="hptext">最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</div></div></div>
         <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
+        ${p.isAdmin ? levelControl(ch.id, c.level) : ''}
         <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(ch.id, lo)} / ${E.loadoutBudget(ch.id, c.level)}・使える技${usable}/${ch.moves.length}${nextUnlock ? `（次はLv${nextUnlock}）` : ''}</span></div>
         ${movesList(ch, null, lo)}
         <button type="button" class="btn btn-small btn-ghost btn-block btn-edit" data-edit="${ch.id}">技の入れ替え・並べ替え</button>
@@ -237,6 +239,36 @@
     $('#team-count').textContent = app.picked.length;
     $('#btn-team-ok').disabled = app.picked.length !== CONFIG.TEAM_SIZE;
   }
+  // 管理用アカウント：レベルを直接動かす（キャラごと・全員まとめて）
+  function levelControl(id, lv) {
+    const b = (d, t) => `<button type="button" class="lv-btn" data-lv="${id}" data-lv-step="${d}" aria-label="レベル${t}"${(d < 0 && lv <= 1) || (d > 0 && lv >= CONFIG.LEVEL.max) ? ' disabled' : ''}>${t}</button>`;
+    return `<div class="lv-control" data-lv-box="${id}"><span>レベル変更</span>${b(-10, '−10')}${b(-1, '−1')}
+      <input type="number" class="lv-input" data-lv-input="${id}" min="1" max="${CONFIG.LEVEL.max}" value="${lv}" aria-label="レベル（1〜${CONFIG.LEVEL.max}）">${b(1, '+1')}${b(10, '+10')}</div>`;
+  }
+  function renderAdminTools() {
+    const box = $('#admin-level-all');
+    box.classList.toggle('hidden', !app.profile.isAdmin);
+    if (!app.profile.isAdmin) return;
+    box.innerHTML = `<b>管理用</b><span>所持キャラ全員のレベルを</span>
+      <input type="number" class="lv-input" id="in-level-all" min="1" max="${CONFIG.LEVEL.max}" value="${CONFIG.LEVEL.max}" aria-label="全員のレベル">
+      <button type="button" class="btn btn-small btn-ghost" id="btn-level-all">にする</button>`;
+    $('#btn-level-all').addEventListener('click', () => {
+      const lv = Number($('#in-level-all').value);
+      P.ownedIds(app.profile).forEach(id => P.setLevel(app.profile, id, lv));
+      save();
+      toast(`所持キャラ全員を Lv${E.clampLevel(lv)} にしました`, 'ok');
+      renderTeam();
+    });
+  }
+  function changeLevel(id, lv) {
+    const r = P.setLevel(app.profile, id, lv);
+    if (!r.ok) { toast(r.error); return; }
+    save();
+    renderTeam();
+    const inp = document.querySelector(`[data-lv-input="${id}"]`);
+    if (inp) inp.focus();
+  }
+
   function togglePick(id) {
     if (!P.owns(app.profile, id)) return;
     const k = app.picked.indexOf(id);
@@ -781,11 +813,22 @@
       if (c) showZukanEntry(c.dataset.zukan);
     });
     $('#team-grid').addEventListener('click', e => {
+      if (e.target.closest('[data-lv-box]')) {
+        e.stopPropagation();
+        const b = e.target.closest('[data-lv-step]');
+        if (b) changeLevel(b.dataset.lv, P.levelOf(app.profile, b.dataset.lv) + Number(b.dataset.lvStep));
+        return;
+      }
       const ed = e.target.closest('[data-edit]');
       if (ed) { e.stopPropagation(); showLoadoutEditor(ed.dataset.edit); return; }
       const c = e.target.closest('[data-pick]');
       if (c) togglePick(c.dataset.pick);
     });
+    $('#team-grid').addEventListener('change', e => {
+      const inp = e.target.closest('[data-lv-input]');
+      if (inp) changeLevel(inp.dataset.lvInput, Number(inp.value));
+    });
+    $('#team-grid').addEventListener('keydown', e => { if (e.target.closest('[data-lv-box]')) e.stopPropagation(); });
     $('#btn-team-back').addEventListener('click', showHome);
     $('#btn-team-ok').addEventListener('click', () => {
       const r = P.setTeam(app.profile, app.picked);

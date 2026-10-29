@@ -164,6 +164,7 @@ test('ログインボーナス：1日1回・連続日数で額が変わる・途
 
 test('対戦（ランク戦）：順番に解放・勝利で経験値と石（初勝利は多め）・敗北は経験値3割', () => {
   const p = P.newProfile({ isAdmin: true });
+  p.isAdmin = false; // 全キャラを持った一般アカウントとして、解放の順番を確かめる
   assert.ok(P.matchUnlocked(p, 'm1'));
   assert.ok(!P.matchUnlocked(p, 'm2'));
   const lose = P.applyMatchResult(p, 'm1', ['ryogen'], false);
@@ -190,6 +191,7 @@ test('ダンジョン：3階（雑魚→中ボス→大ボス）・各階1体・
     });
   });
   const p = P.newProfile({ isAdmin: true });
+  p.isAdmin = false; // 解放の順番は一般アカウントで確かめる
   assert.ok(P.dungeonUnlocked(p, 'forest'));
   assert.ok(!P.dungeonUnlocked(p, 'sea'));
   const f1 = P.applyDungeonFloor(p, 'forest', 0, ['ryogen'], true);
@@ -264,4 +266,22 @@ test('チーム編成は所持キャラ6体のみ・技構成の保存', () => {
   assert.ok(P.setLoadout(p, id, [0, 1, 2, 3, 4, 5]).ok);
   assert.equal(p.loadouts[id], undefined, '初期構成に戻したら保存しない');
   assert.equal(P.setLoadout(p, notOwned, [0, 1, 2, 3, 4, 5]).ok, false);
+});
+
+test('管理用アカウント：すべての対戦・ダンジョンを選べて、レベルを直接変えられる', () => {
+  const a = P.newProfile({ uid: 'adm', name: '管理', isAdmin: true });
+  assert.ok(D.CPU_MATCHES.every(m => P.matchUnlocked(a, m.id)), '対戦はすべて解放');
+  assert.ok(D.DUNGEONS.every(d => P.dungeonUnlocked(a, d.id)), 'ダンジョンはすべて解放');
+  assert.deepEqual(P.setLevel(a, 'ryogen', 25), { ok: true, level: 25 });
+  assert.equal(P.levelOf(a, 'ryogen'), 25);
+  assert.equal(a.chars.ryogen.exp, 0);
+  assert.equal(P.setLevel(a, 'ryogen', 99).level, D.CONFIG.LEVEL.max, '最大レベルまで');
+  assert.equal(P.setLevel(a, 'ryogen', 0).level, 1, '最低はLv1');
+  // 一般アカウントは今までどおり
+  const n = P.newProfile({ uid: 'u', name: '一般' }, E.createRng(1));
+  assert.equal(P.matchUnlocked(n, D.CPU_MATCHES[1].id), false);
+  assert.equal(P.dungeonUnlocked(n, 'sea'), false);
+  const id = P.ownedIds(n)[0];
+  assert.equal(P.setLevel(n, id, 10).ok, false);
+  assert.equal(P.levelOf(n, id), 1);
 });
