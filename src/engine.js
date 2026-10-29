@@ -115,7 +115,7 @@
   // ★の数（ボスは null）
   function starsOf(charId) {
     if (!getChar(charId) || isBoss(charId)) return null;
-    const R = Data.RANKS || { base: 2, thresholds: [] };
+    const R = Data.RANKS || { base: 1, thresholds: [] };
     const score = rankParts(charId).score;
     const hit = R.thresholds.slice().sort((a, b) => b.minScore - a.minScore).find(t => score >= t.minScore);
     return hit ? hit.stars : R.base;

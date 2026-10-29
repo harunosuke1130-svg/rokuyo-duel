@@ -9,6 +9,7 @@ const os = require('os');
 const http = require('http');
 const { chromium } = require('playwright');
 const H = require('./helpers.js');
+const E = require('../src/engine.js');
 
 const DOCS = path.join(__dirname, '..', 'docs');
 const ADMIN = 'admin@example.com';
@@ -101,7 +102,7 @@ test('管理用アカウント（設定のメールアドレス）は全キャ�
   await H.closeBonus(page, false);
   const p = await H.profile(page);
   assert.equal(p.isAdmin, true);
-  assert.equal(Object.keys(p.chars).length, 8);
+  assert.equal(Object.keys(p.chars).length, E.CHARACTERS.length);
   assert.ok((await page.textContent('#home-profile')).includes('管理用アカウント'));
   await page.click('[data-go="team"]');
   assert.equal(await page.$$eval('.pick-card.locked', c => c.length), 0);

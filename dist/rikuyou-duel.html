@@ -1132,6 +1132,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 .el-frame[data-el="holy"]   { --el-rgb: 218, 190, 112; }
 /* ランクごとの濃さ（縁の不透明度・にじみの不透明度・縁の太さ）。★2はほんのり、★3は少し深く。★4以上は将来用 */
 .el-frame { --rk-border: .4; --rk-glow: .1; --rk-width: 2px; }
+.el-frame[data-stars="1"] { --rk-border: .26; --rk-glow: .05; --rk-width: 1.5px; }
 .el-frame[data-stars="2"] { --rk-border: .42; --rk-glow: .1; --rk-width: 2px; }
 .el-frame[data-stars="3"] { --rk-border: .66; --rk-glow: .18; --rk-width: 2px; }
 .el-frame[data-stars="4"] { --rk-border: .82; --rk-glow: .26; --rk-width: 2.5px; }
@@ -1524,8 +1525,8 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
    * ダンジョンのボスには付けない（雑魚・中ボス・大ボスで表示）。
    */
   const RANKS = {
-    base: 2,
-    thresholds: [{ stars: 3, minScore: 130 }]
+    base: 1,
+    thresholds: [{ stars: 3, minScore: 130 }, { stars: 2, minScore: 110 }]
   };
 
   // 攻撃側 → 有利を取れる防御側の属性
@@ -1942,7 +1943,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
   // ★の数（ボスは null）
   function starsOf(charId) {
     if (!getChar(charId) || isBoss(charId)) return null;
-    const R = Data.RANKS || { base: 2, thresholds: [] };
+    const R = Data.RANKS || { base: 1, thresholds: [] };
     const score = rankParts(charId).score;
     const hit = R.thresholds.slice().sort((a, b) => b.minScore - a.minScore).find(t => score >= t.minScore);
     return hit ? hit.stars : R.base;

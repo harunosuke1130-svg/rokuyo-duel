@@ -406,7 +406,9 @@ test('全滅で決着・新しい戦闘は初期状態', () => {
 });
 
 test('キャラクターデータ（技8個以上・初期構成・リーダースキル・属性・副属性・説明文の対象範囲）', () => {
-  assert.equal(E.CHARACTERS.length, 8);
+  assert.ok(E.CHARACTERS.length >= 8);
+  assert.equal(new Set(E.CHARACTERS.map(c => c.id)).size, E.CHARACTERS.length, 'IDの重複');
+  assert.equal(new Set(E.CHARACTERS.map(c => c.name)).size, E.CHARACTERS.length, '名前の重複');
   assert.equal(E.CONFIG.TEAM_SIZE, 6);
   assert.equal(E.CONFIG.FRONT_SIZE, 3);
   E.CHARACTERS.forEach(c => {

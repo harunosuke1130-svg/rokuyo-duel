@@ -9,6 +9,8 @@ const http = require('http');
 const fs = require('fs');
 const { chromium } = require('playwright');
 const H = require('./helpers.js');
+const E = require('../src/engine.js');
+const CHAR_COUNT = E.CHARACTERS.length;
 
 const FILE = 'file://' + path.join(__dirname, '..', 'dist', 'rikuyou-duel.html');
 const TAP_GUARD = 470;
@@ -61,8 +63,8 @@ for (const kind of ['mobile', 'desktop']) {
     // 下のタブから図鑑：全キャラが並び、未所持も詳細を見られる
     await page.click('#tabbar [data-tab="zukan"]');
     await page.waitForSelector('#screen-zukan:not(.hidden)');
-    assert.equal(await page.$$eval('.zukan-card', c => c.length), 8);
-    assert.equal(await page.$$eval('.zukan-card.missing', c => c.length), 2);
+    assert.equal(await page.$$eval('.zukan-card', c => c.length), CHAR_COUNT);
+    assert.equal(await page.$$eval('.zukan-card.missing', c => c.length), CHAR_COUNT - 6);
     await page.click('.zukan-card.missing');
     await page.waitForSelector('#modal[data-kind="zukan"]:not(.hidden)');
     assert.equal(await page.$$eval('#modal .moves li', c => c.length), 9, '技の候補9個');
@@ -411,10 +413,10 @@ test('mobile: 戦闘画面（サイコロで数字・カードの絵で詳細・
   await H.waitMyRoll(page);
   // カードに★と属性枠（属性ごとの色×ランクの濃さ）
   const cards = await page.$$eval('#screen-battle .bt-card[data-idx]', cs => cs.map(c => ({ el: c.dataset.el, st: c.dataset.stars, stars: (c.querySelector('.stars') || {}).textContent || '', border: getComputedStyle(c).borderTopColor })));
-  assert.ok(cards.length >= 6 && cards.every(c => c.el && /^[23]$/.test(c.st) && c.stars === '★'.repeat(Number(c.st))));
+  assert.ok(cards.length >= 6 && cards.every(c => c.el && /^[123]$/.test(c.st) && c.stars === '★'.repeat(Number(c.st))));
   const s0 = await H.state(page);
   const ids = s0.teams.player.map(u => u.charId);
-  const exp = { ryogen: 3, gessen: 2, gyakufu: 2, kohaku: 3, yoiyami: 2, suiju: 3, raimei: 2, mukai: 3 };
+  const exp = Object.fromEntries(E.CHARACTERS.map(c => [c.id, E.starsOf(c.id)]));
   for (const [i, id] of ids.entries()) assert.equal(await page.getAttribute(`#ally-front .bt-card[data-idx="${i}"], #ally-back .bt-card[data-idx="${i}"]`, 'data-stars'), String(exp[id]));
   // 数字を出す前：技の欄はない。サイコロに案内
   assert.equal(await page.$$eval('#ally-front [data-move]', b => b.length), 0);
@@ -678,7 +680,7 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   await H.closeBonus(page, false);
   const p = await H.profile(page);
   assert.equal(p.isAdmin, true);
-  assert.equal(Object.keys(p.chars).length, 8);
+  assert.equal(Object.keys(p.chars).length, CHAR_COUNT);
   assert.ok((await page.textContent('#home-profile')).includes('管理用アカウント'));
   // 管理用：すべての対戦・ダンジョンが選べる
   await page.click('[data-go="match"]');

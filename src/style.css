@@ -1124,6 +1124,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 .el-frame[data-el="holy"]   { --el-rgb: 218, 190, 112; }
 /* ランクごとの濃さ（縁の不透明度・にじみの不透明度・縁の太さ）。★2はほんのり、★3は少し深く。★4以上は将来用 */
 .el-frame { --rk-border: .4; --rk-glow: .1; --rk-width: 2px; }
+.el-frame[data-stars="1"] { --rk-border: .26; --rk-glow: .05; --rk-width: 1.5px; }
 .el-frame[data-stars="2"] { --rk-border: .42; --rk-glow: .1; --rk-width: 2px; }
 .el-frame[data-stars="3"] { --rk-border: .66; --rk-glow: .18; --rk-width: 2px; }
 .el-frame[data-stars="4"] { --rk-border: .82; --rk-glow: .26; --rk-width: 2.5px; }

@@ -34,7 +34,7 @@
    - `leaderSkill`：`{ name, text, effects }`。種類は `maxHp` / `atkBonus` / `healBonus` / `skillDamageBonus` / `skillHealBonus` / `startBarrier`。
 3. **強さを既存に合わせる**。
    - ランク（★）は自動で決まる：基礎 HP ＋ 初期 6 技の攻撃の平均 ＋ 回復の平均（`E.rankParts`）。`RANKS` の境界（★3 は 130 以上）。
-     ★2 にしたいなら合計 110〜128 くらい、★3 なら 135〜180 くらいが既存の範囲。作ったら `node -e` で `E.rankParts` と `E.starsOf` を出して確かめる。
+     ★1 は合計 110 未満（目安 90〜107）、★2 は 110〜129（目安 112〜127）、★3 は 130 以上（目安 135〜180）。境界ぎりぎりは避ける。作ったら `node -e` で `E.rankParts` と `E.starsOf` を出して確かめる。
    - 技力の上限（初期 6 技の攻撃＋回復の合計 ＋ 5）を超える技構成は初期構成にできない。`E.loadoutError(id, E.defaultLoadout(id))` が `null` になること。
    - 既存キャラの HP は 95〜160、技 1 つの攻撃はおおむね 0〜40、回復は 0〜39。極端な値にしない。
 4. **絵を入れる**（利用者から絵をもらったとき）。
@@ -42,7 +42,7 @@
    - 顔の位置に合わせて `src/style.css` の `[data-char="<id>"] { --cx; --cy; --ex; --ey }` を足す（ホームのカードと丸い紋章で顔が切れないように）。スクリーンショットで確認する。
    - 絵が無い間は、属性色の地に `glyph` の文字が出る（それで動く）。
 5. **テストと文書を直す**。キャラの数が決め打ちのテストがある：
-   - `tests/engine.test.js` の `E.CHARACTERS.length`、`tests/e2e.test.js` の図鑑・管理用アカウントの所持数、`tests/online.test.js` の所持数、`tests/custom.test.js` の★の一覧。
+   - キャラ数はテストが `E.CHARACTERS.length` から数えるので、数の書き換えは不要。
    - `GAME-OVERVIEW.md` のキャラ表、`HANDOFF.md`、`README.md` を更新する。
 6. 必要なら CPU 対戦（`CPU_MATCHES`）の敵チームに入れる（入れなくてもガチャ・フリー対戦には出る）。
 
@@ -60,6 +60,20 @@
    - ボスの絵：`src/img/chara/<id>.webp`（切り取らずに全体を表示する）。
    - ダンジョンの背景：`src/img/battle/<ダンジョンID>-portrait.webp`（縦画面）と `-landscape.webp`（横画面）。1 枚だけなら `<ダンジョンID>.webp`。
 5. **テストと文書を直す**：`tests/progress.test.js` のダンジョンのテスト、`GAME-OVERVIEW.md`・`HANDOFF.md`。
+
+### 毎日の自動追加（定期タスク）
+
+定期タスクから「今日の仲間キャラを作って」と頼まれたら、次のとおりにする。
+
+- 作る数：**★1×2・★2×1・★3×1 の 4 体**。属性はなるべく散らし、その日の 4 体で同じ属性は 2 体まで。全体で数が少ない属性を優先する。
+- 名前・`id`・`glyph`・技名・固有スキル名・リーダースキル名は、既存のすべてのキャラと重ならないこと（`glyph` は同じ漢字が 3 体以上にならないように）。
+- `CHARACTERS` の末尾に、`// ---- 自動追加 YYYY-MM-DD ----` のコメントを付けて足す。CPU 対戦（`CPU_MATCHES`）・ダンジョンは変えない。
+- ★は `E.starsOf` で必ず確かめ、狙いと違えば数値を直す。初期構成が `E.loadoutError` で `null` になること。
+- 絵は無し（紋章の漢字で表示）。`--cx` などの CSS も不要。
+- 文書は `HANDOFF.md` の「v6.8」節に、日付と 4 体の名前を 1 行で追記するだけでよい。
+- ビルド → `--check` → `npm test` → `npm run e2e` が通ったら、作業ブランチ `claude/determined-archimedes-wy7qnj` にコミット・push し、main に fast-forward で取り込んで push、Pages の成功を確認する。
+  テストが通らないときは main に入れず、原因を報告する。
+- 最後の報告は、4 体の「名前・属性・★（合計値）・HP・初期 6 技・固有スキル・リーダースキル」の表。
 
 ### 作り終えたら
 

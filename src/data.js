@@ -50,8 +50,8 @@
    * ダンジョンのボスには付けない（雑魚・中ボス・大ボスで表示）。
    */
   const RANKS = {
-    base: 2,
-    thresholds: [{ stars: 3, minScore: 130 }]
+    base: 1,
+    thresholds: [{ stars: 3, minScore: 130 }, { stars: 2, minScore: 110 }]
   };
 
   // 攻撃側 → 有利を取れる防御側の属性
