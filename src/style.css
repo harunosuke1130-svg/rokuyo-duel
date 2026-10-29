@@ -629,7 +629,7 @@ body[data-screen="home"] { background: #2a1d14; }
 
 /* 属性マーク */
 .el-mark {
-  --el: #888; display: inline-grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; flex: none;
+  --el: #888; display: inline-grid; place-items: center; width: 26px; height: 26px; border-radius: 50%; flex: none;
   background: radial-gradient(circle at 35% 30%, color-mix(in srgb, var(--el) 70%, #fff 30%), var(--el) 60%, #1c140c);
   border: 1.5px solid #e2c98c; box-shadow: 0 1px 4px rgba(0, 0, 0, .6); background-size: cover;
 }
@@ -723,3 +723,4 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
 .slot-btn.locked-move .eff { font-size: 12px; }
 .unlock-note { margin: 8px 0 0; color: var(--gold2); font-weight: 700; font-size: 13.5px; }
 .moves small { font-weight: 400; font-size: 11px; margin-left: 4px; }
+.el-ico { display: none; width: 1.15em; height: 1.15em; margin-right: 2px; vertical-align: -.2em; }

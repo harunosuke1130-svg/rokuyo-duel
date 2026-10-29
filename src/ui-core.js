@@ -42,7 +42,7 @@
   }
   function elementTag(ch) {
     const el = ELEMENTS[ch.element] || { name: ch.element, color: '#888' };
-    return `<span class="el-tag" style="--el:${el.color}">${esc(el.name)}</span>`;
+    return `<span class="el-tag" style="--el:${el.color}"><span class="el-ico" data-el="${esc(ch.element)}" aria-hidden="true"></span>${esc(el.name)}</span>`;
   }
   function subTags(ch) {
     return (ch.subTypes || []).map(t => `<span class="sub-tag">${esc(t)}</span>`).join('');
