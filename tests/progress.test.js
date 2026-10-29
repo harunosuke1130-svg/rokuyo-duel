@@ -204,6 +204,20 @@ test('ダンジョン：3階（雑魚→中ボス→大ボス）・各階1体・
   assert.ok(P.dungeonUnlocked(p, 'sea'));
   assert.equal(P.applyDungeonFloor(p, 'forest', 2, [], true).stones, 40, '2回目以降の踏破');
   assert.equal(P.applyDungeonFloor(p, 'tower', 0, [], true).ok, false, '未解放は不可');
+  // 分かれ道と合流：requires が配列なら、どれか1つの踏破で解放
+  const q = P.newProfile({ isAdmin: false }); q.isAdmin = false;
+  const fake = [{ id: 'fork-root', requires: null, floors: [] }, { id: 'fork-a', requires: 'fork-root', floors: [] }, { id: 'fork-b', requires: 'fork-root', floors: [] }, { id: 'join', requires: ['fork-a', 'fork-b'], floors: [] }];
+  D.DUNGEONS.push(...fake);
+  try {
+    assert.deepEqual(P.dungeonSiblings('fork-a').map(d => d.id), ['fork-b']);
+    assert.equal(P.dungeonUnlocked(q, 'join'), false);
+    q.dungeon.cleared['fork-b'] = true;
+    assert.equal(P.dungeonUnlocked(q, 'join'), true);
+    assert.deepEqual(P.dungeonRequires(P.getDungeon('forest')), []);
+  } finally { D.DUNGEONS.splice(D.DUNGEONS.length - fake.length, fake.length); }
+  // ダンジョンのIDは重ならず、解放の条件は実在するダンジョン
+  assert.equal(new Set(D.DUNGEONS.map(d => d.id)).size, D.DUNGEONS.length);
+  D.DUNGEONS.forEach(d => P.dungeonRequires(d).forEach(r => assert.ok(P.getDungeon(r), d.id + ' の条件 ' + r)));
   const en = P.floorEnemy('forest', 2);
   assert.deepEqual(en.ids, ['b-elder']);
   // ボスはガチャ・チームには出てこない

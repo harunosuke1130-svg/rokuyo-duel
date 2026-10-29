@@ -237,9 +237,16 @@
   /* ---------- ダンジョン（3階層：雑魚 → 中ボス → 大ボス。1体ずつ倒していく） ---------- */
   function getDungeon(id) { return DUNGEONS.find(d => d.id === id) || null; }
   function dungeonCleared(p, id) { return !!p.dungeon.cleared[id]; }
+  // 解放の条件：requires は null（最初から）・ID・ID の配列（どれか1つを踏破すれば解放。分かれ道の合流）
+  function dungeonRequires(d) { return !d || !d.requires ? [] : [].concat(d.requires); }
   function dungeonUnlocked(p, id) {
-    const d = getDungeon(id);
-    return !!d && (!!p.isAdmin || !d.requires || dungeonCleared(p, d.requires));
+    const d = getDungeon(id), req = dungeonRequires(d);
+    return !!d && (!!p.isAdmin || !req.length || req.some(r => dungeonCleared(p, r)));
+  }
+  // 分かれ道：同じ条件で解放される、ほかのダンジョン
+  function dungeonSiblings(id) {
+    const key = dungeonRequires(getDungeon(id)).slice().sort().join(',');
+    return key ? DUNGEONS.filter(d => d.id !== id && dungeonRequires(d).slice().sort().join(',') === key) : [];
   }
   // 階層の敵（createBattle の cpu 側。enemyKind:'boss' で使う）
   function floorEnemy(id, floor) {
@@ -292,7 +299,7 @@
     gachaCost, drawGacha,
     loginStatus, claimLogin,
     getMatch, matchUnlocked, matchEnemy, applyMatchResult,
-    getDungeon, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, applyDungeonFloor,
+    getDungeon, dungeonRequires, dungeonSiblings, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, applyDungeonFloor,
     applyPvpResult
   };
 

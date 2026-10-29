@@ -458,6 +458,8 @@ button { font-family: inherit; }
 
 /* ダンジョン */
 .dungeon.locked { opacity: .55; }
+.dungeon-fork { margin: 2px 0 6px; font-size: 13px; color: #6b4b1f; }
+.dungeon-fork .badge { margin-right: 6px; }
 .floor-list { display: grid; gap: 6px; }
 .floor { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .2); border: 1px solid var(--line); }
 .floor.cleared { border-color: rgba(95, 207, 124, .5); }
@@ -2971,9 +2973,16 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
   /* ---------- ダンジョン（3階層：雑魚 → 中ボス → 大ボス。1体ずつ倒していく） ---------- */
   function getDungeon(id) { return DUNGEONS.find(d => d.id === id) || null; }
   function dungeonCleared(p, id) { return !!p.dungeon.cleared[id]; }
+  // 解放の条件：requires は null（最初から）・ID・ID の配列（どれか1つを踏破すれば解放。分かれ道の合流）
+  function dungeonRequires(d) { return !d || !d.requires ? [] : [].concat(d.requires); }
   function dungeonUnlocked(p, id) {
-    const d = getDungeon(id);
-    return !!d && (!!p.isAdmin || !d.requires || dungeonCleared(p, d.requires));
+    const d = getDungeon(id), req = dungeonRequires(d);
+    return !!d && (!!p.isAdmin || !req.length || req.some(r => dungeonCleared(p, r)));
+  }
+  // 分かれ道：同じ条件で解放される、ほかのダンジョン
+  function dungeonSiblings(id) {
+    const key = dungeonRequires(getDungeon(id)).slice().sort().join(',');
+    return key ? DUNGEONS.filter(d => d.id !== id && dungeonRequires(d).slice().sort().join(',') === key) : [];
   }
   // 階層の敵（createBattle の cpu 側。enemyKind:'boss' で使う）
   function floorEnemy(id, floor) {
@@ -3026,7 +3035,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     gachaCost, drawGacha,
     loginStatus, claimLogin,
     getMatch, matchUnlocked, matchEnemy, applyMatchResult,
-    getDungeon, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, applyDungeonFloor,
+    getDungeon, dungeonRequires, dungeonSiblings, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, applyDungeonFloor,
     applyPvpResult
   };
 
@@ -5072,11 +5081,13 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       : '出撃チーム：' + p.team.map(id => `${E.getChar(id).name}(Lv${P.levelOf(p, id)})`).join('・');
     $('#dungeon-list').innerHTML = D.DUNGEONS.map(d => {
       const open = P.dungeonUnlocked(p, d.id);
-      const req = d.requires ? P.getDungeon(d.requires) : null;
+      const req = P.dungeonRequires(d).map(r => P.getDungeon(r)).filter(Boolean);
+      const sib = P.dungeonSiblings(d.id);
       const cleared = P.dungeonCleared(p, d.id);
       return `<div class="panel dungeon${open ? '' : ' locked'}">
         <div class="zone-head"><span class="zone-label">${esc(d.name)}</span><span class="zone-sub">${cleared ? '踏破済み' : open ? '推奨 ' + esc(d.recommend) : '未解放'}</span></div>
-        <p class="muted">${esc(d.text)}${!open && req ? `（「${esc(req.name)}」を踏破すると解放）` : ''}</p>
+        <p class="muted">${esc(d.text)}${!open && req.length ? `（${req.map(r => `「${esc(r.name)}」`).join('か')}を踏破すると解放）` : ''}</p>
+        ${sib.length ? `<p class="dungeon-fork"><span class="badge">分かれ道</span>${sib.map(s => `「${esc(s.name)}」`).join('・')}と同じ所から進めます</p>` : ''}
         <div class="boss-path">${d.floors.map((f, i) => {
           const b = E.getChar(f.boss);
           return `<div class="boss-step">${emblem(b, null, i === 2 ? 'big' : '')}<span class="badge${i === 2 ? ' leader' : ''}">${i + 1}階・${esc(b.rank)}</span><b>${esc(b.name)}</b><span class="muted">Lv${f.level}・HP${E.levelMaxHp(b.maxHp, f.level)}</span></div>`;

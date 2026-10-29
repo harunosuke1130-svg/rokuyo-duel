@@ -483,11 +483,13 @@
       : '出撃チーム：' + p.team.map(id => `${E.getChar(id).name}(Lv${P.levelOf(p, id)})`).join('・');
     $('#dungeon-list').innerHTML = D.DUNGEONS.map(d => {
       const open = P.dungeonUnlocked(p, d.id);
-      const req = d.requires ? P.getDungeon(d.requires) : null;
+      const req = P.dungeonRequires(d).map(r => P.getDungeon(r)).filter(Boolean);
+      const sib = P.dungeonSiblings(d.id);
       const cleared = P.dungeonCleared(p, d.id);
       return `<div class="panel dungeon${open ? '' : ' locked'}">
         <div class="zone-head"><span class="zone-label">${esc(d.name)}</span><span class="zone-sub">${cleared ? '踏破済み' : open ? '推奨 ' + esc(d.recommend) : '未解放'}</span></div>
-        <p class="muted">${esc(d.text)}${!open && req ? `（「${esc(req.name)}」を踏破すると解放）` : ''}</p>
+        <p class="muted">${esc(d.text)}${!open && req.length ? `（${req.map(r => `「${esc(r.name)}」`).join('か')}を踏破すると解放）` : ''}</p>
+        ${sib.length ? `<p class="dungeon-fork"><span class="badge">分かれ道</span>${sib.map(s => `「${esc(s.name)}」`).join('・')}と同じ所から進めます</p>` : ''}
         <div class="boss-path">${d.floors.map((f, i) => {
           const b = E.getChar(f.boss);
           return `<div class="boss-step">${emblem(b, null, i === 2 ? 'big' : '')}<span class="badge${i === 2 ? ' leader' : ''}">${i + 1}階・${esc(b.rank)}</span><b>${esc(b.name)}</b><span class="muted">Lv${f.level}・HP${E.levelMaxHp(b.maxHp, f.level)}</span></div>`;

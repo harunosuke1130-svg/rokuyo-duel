@@ -450,6 +450,8 @@ button { font-family: inherit; }
 
 /* ダンジョン */
 .dungeon.locked { opacity: .55; }
+.dungeon-fork { margin: 2px 0 6px; font-size: 13px; color: #6b4b1f; }
+.dungeon-fork .badge { margin-right: 6px; }
 .floor-list { display: grid; gap: 6px; }
 .floor { display: flex; justify-content: space-between; align-items: center; gap: 8px; padding: 8px 10px; border-radius: 10px; background: rgba(0, 0, 0, .2); border: 1px solid var(--line); }
 .floor.cleared { border-color: rgba(95, 207, 124, .5); }
