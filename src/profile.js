@@ -84,6 +84,11 @@
       if (Engine.getChar(id) && !Engine.loadoutError(id, raw.loadouts[id], lv)) lo[id] = raw.loadouts[id].slice();
     });
     p.loadouts = lo;
+    // 前回出撃した配置（準備画面の初期配置に使う）
+    const fm = raw.formation;
+    p.formation = fm && Array.isArray(fm.front)
+      ? { front: fm.front.filter(id => typeof id === 'string' && Engine.getChar(id)).slice(0, CONFIG.FRONT_SIZE), leader: typeof fm.leader === 'string' && Engine.getChar(fm.leader) ? fm.leader : null }
+      : null;
     p.team = Array.isArray(raw.team) ? raw.team.filter((id, i, a) => chars[id] && a.indexOf(id) === i).slice(0, CONFIG.TEAM_SIZE) : [];
     p.dungeon = { cleared: Object.assign({}, raw.dungeon && raw.dungeon.cleared) };
     p.matches = { won: Object.assign({}, raw.matches && raw.matches.won) };

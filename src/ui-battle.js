@@ -13,7 +13,7 @@
 
   const U = window.RikuyouUI;
   const CPU = window.RikuyouCPU;
-  const { E, CONFIG, DELAY, rng, $, esc, emblem, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, openModal, closeModal, toast } = U;
+  const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, openModal, closeModal, toast } = U;
 
   const bt = {
     active: false,
@@ -40,7 +40,8 @@
     waiting: false,  // ゲスト：依頼の結果待ち
     room: null,
     heartbeat: null,
-    formationShown: false
+    formationShown: false,
+    fmDraft: null    // 準備画面で並べ中の配置（{ slots, leader }）。対人戦で依頼が戻されたときも引き継ぐ
   };
 
   const foeIsCpu = () => bt.mode === 'cpu';
@@ -86,6 +87,7 @@
     bt.finished = false;
     bt.locked = true;
     bt.formationShown = false;
+    bt.fmDraft = null;
     bt.backend = opts.backend || null;
     bt.code = opts.code || null;
     bt.pushSeq = 0; bt.lastSeq = 0; bt.intentSeq = 0; bt.handledIntent = 0; bt.waiting = false; bt.room = null;
@@ -570,44 +572,171 @@
     }).join('') + '</div>';
   }
 
+  /* ---------- 出撃準備（前衛・後衛の配置とリーダー） ----------
+   * 短いタップ（クリック・Enter）でリーダー、ドラッグで前衛⇄後衛の入れ替え。
+   * タッチは長押ししてから動かす（すぐ動かした場合は縦スクロールとして扱う）。
+   * ドラッグできない環境向けに「タップで入れ替え」モードも用意する。 */
+  const FM_HOLD_MS = 320;   // タッチの長押し判定
+  const FM_SLOP = 8;        // これ以上動いたらドラッグ（マウス）／スクロール（長押し前のタッチ）
+  const CROWN = '<svg class="crown" viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15L1 4l6 5 5-8 5 8 6-5-1 11z" fill="#d9ad45" stroke="#7a5418" stroke-width="1.2" stroke-linejoin="round"/><rect x="2" y="15" width="20" height="2.4" rx="1" fill="#b98a2c"/></svg>';
+
   function showFormationModal() {
-    const picked = [];
-    let leader = null;
-    const draw = () => {
-      const team = bt.state.teams[bt.me];
-      const need = E.frontRequired(bt.state, bt.me);
-      const ready = picked.length === need && leader !== null;
-      $('#modal-body').innerHTML = `<h3>配置とリーダーを決める</h3>
-        <h4>① 前衛${need}体を選ぶ（<span class="gold">${picked.length}</span> / ${need}）</h4>
-        ${need < CONFIG.FRONT_SIZE ? '<p class="reason">戦えるキャラが少ないため、前衛は' + need + '体です。</p>' : ''}
-        <p class="muted">前衛は通常技を使い、敵の攻撃を受けます。残りの3体は後衛として控え、攻撃も回復も受けません。</p>
-        ${unitButtons(bt.me, team.map((u, i) => i), { selected: picked })}
-        <h4>② リーダーを1体選ぶ</h4>
-        <p class="muted">リーダーのリーダースキルが戦闘中ずっと有効になります（前衛・後衛どちらでも、倒れても続きます）。</p>
-        <div class="target-list">${team.map((u, i) => {
-          const ch = E.unitChar(u);
-          const sel = leader === i;
-          return `<button type="button" class="target-btn${sel ? ' selected' : ''}" data-leader="${i}">${emblem(ch, u, 'small')}
-            <span class="t-main"><b>${esc(ch.name)}</b>「${esc(ch.leaderSkill.name)}」<br><span class="muted">${esc(ch.leaderSkill.text)}</span></span>${sel ? '<span class="t-check">将</span>' : ''}</button>`;
-        }).join('')}</div>
-        <div class="modal-actions">
-          <button type="button" class="btn btn-primary btn-block" id="btn-formation-ok"${ready ? '' : ' disabled'}>${ready ? 'この配置で決定' : (picked.length < need ? '前衛をあと' + (need - picked.length) + '体選んでください' : 'リーダーを選んでください')}</button>
-          ${foeIsCpu() ? '<button type="button" class="btn btn-ghost btn-block" id="btn-formation-back">戦闘をやめて戻る</button>' : ''}
-        </div>`;
-      const body = $('#modal-body');
-      body.querySelectorAll('[data-target]').forEach(b => b.addEventListener('click', () => {
-        const i = Number(b.dataset.target);
-        const k = picked.indexOf(i);
-        if (k >= 0) picked.splice(k, 1);
-        else if (picked.length < E.frontRequired(bt.state, bt.me)) picked.push(i);
-        else toast('前衛は3体までです。外したいキャラをもう一度押してください');
-        draw();
-      }));
-      body.querySelectorAll('[data-leader]').forEach(b => b.addEventListener('click', () => { leader = Number(b.dataset.leader); draw(); }));
-      body.querySelector('#btn-formation-ok').addEventListener('click', () => perform('formation', { front: picked.slice(), leader }));
-      const back = body.querySelector('#btn-formation-back');
-      if (back) back.addEventListener('click', () => { closeModal(true); stop(); if (bt.opts.onExit) bt.opts.onExit(); });
+    const s = bt.state, side = bt.me, team = s.teams[side];
+    const need = E.frontRequired(s, side);
+    if (!bt.fmDraft) {
+      const sug = E.suggestFormation(s, side, bt.opts && bt.opts.formation);
+      bt.fmDraft = { slots: sug.front.concat(sug.back), leader: sug.leader };
+    }
+    const fm = bt.fmDraft;
+    let swapMode = false, swapPick = null, suppressUntil = 0, drag = null;
+    const posOf = i => (fm.slots.indexOf(i) < need ? 'front' : 'back');
+    // 前衛と後衛の2体で、前衛に出る側が戦えるときだけ入れ替えられる
+    const canSwap = (a, b) => {
+      if (a === b || posOf(a) === posOf(b)) return false;
+      const toFront = posOf(a) === 'back' ? a : b;
+      return team[toFront].hp > 0;
     };
+    const swap = (a, b) => {
+      const ia = fm.slots.indexOf(a), ib = fm.slots.indexOf(b);
+      fm.slots[ia] = b; fm.slots[ib] = a;
+    };
+
+    const card = i => {
+      const u = team[i], ch = E.unitChar(u);
+      const lead = fm.leader === i, ko = u.hp <= 0;
+      const hp = u.hp < u.maxHp ? `${u.hp}/${u.maxHp}` : `${u.maxHp}`;
+      return `<button type="button" class="fm-card${lead ? ' leader' : ''}${ko ? ' ko' : ''}${swapPick === i ? ' picked' : ''}" data-idx="${i}" data-pos="${posOf(i)}" aria-pressed="${lead}"
+        aria-label="${esc(ch.name)} Lv${u.level || 1} HP${hp}${lead ? '（リーダー）' : ''}${ko ? '（戦闘不能）' : ''}">
+        <span class="fm-art">${portrait(ch, { zoom: true })}${elMark(ch)}${lead ? `<span class="fm-lead">${CROWN}リーダー</span>` : ''}${ko ? '<span class="fm-ko">戦闘不能</span>' : ''}</span>
+        <span class="fm-name">${esc(ch.name)}</span>
+        <span class="fm-stats"><span>Lv${u.level || 1}</span><span>HP ${hp}</span></span>${hpBar(u)}</button>`;
+    };
+
+    const draw = () => {
+      const front = fm.slots.slice(0, need), back = fm.slots.slice(need);
+      const lch = E.unitChar(team[fm.leader]);
+      $('#modal-body').innerHTML = `<div class="fm-sheet">
+        <header class="fm-head">
+          ${foeIsCpu() ? '<button type="button" class="fm-back" id="btn-formation-x" aria-label="戦闘をやめて戻る">‹</button>' : ''}
+          <div class="fm-title"><h3>出撃準備</h3>
+            <p class="fm-hint">${swapMode ? '入れ替える前衛と後衛を1体ずつタップ'
+              : '<span class="hint-touch">タップでリーダー選択／長押ししてドラッグで配置交換</span><span class="hint-mouse">クリックでリーダー選択／ドラッグで配置交換</span>'}</p></div>
+          <button type="button" class="fm-mode" id="btn-fm-swapmode" aria-pressed="${swapMode}">⇄ ${swapMode ? '入れ替え中' : 'タップで入れ替え'}</button>
+        </header>
+        <h4 class="fm-row-title">前衛<small>攻撃を受ける${need}体</small></h4>
+        ${need < CONFIG.FRONT_SIZE ? `<p class="fm-note">戦えるキャラが少ないため、前衛は${need}体です</p>` : ''}
+        <div class="fm-grid" data-row="front">${front.map(card).join('')}</div>
+        <div class="fm-divider" aria-hidden="true"><svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round"><path d="M5 5l10 10M19 5L9 15M13 17l4-4M11 17l-4-4M16 16l3 3M8 16l-3 3"/></svg></div>
+        <h4 class="fm-row-title">後衛<small>控えの${back.length}体</small></h4>
+        <div class="fm-grid" data-row="back">${back.map(card).join('')}</div>
+        <div class="fm-foot">
+          <div class="fm-leader" aria-live="polite">${CROWN}<div><b>リーダー：${esc(lch.name)}</b><span>「${esc(lch.leaderSkill.name)}」${esc(lch.leaderSkill.text)}</span></div></div>
+          <button type="button" class="fm-go" id="btn-formation-ok">この配置で出撃</button>
+          ${foeIsCpu() ? '<button type="button" class="fm-backlink" id="btn-formation-back">戻る</button>' : ''}
+        </div></div>`;
+      const sheet = $('#modal-body .fm-sheet');
+      sheet.addEventListener('click', onClick);
+      sheet.addEventListener('pointerdown', onDown);
+      sheet.addEventListener('contextmenu', e => { if (e.target.closest('.fm-card')) e.preventDefault(); });
+      sheet.querySelector('#btn-fm-swapmode').addEventListener('click', () => { swapMode = !swapMode; swapPick = null; draw(); });
+      sheet.querySelector('#btn-formation-ok').addEventListener('click', confirm);
+      sheet.querySelectorAll('#btn-formation-back, #btn-formation-x').forEach(b => b.addEventListener('click', () => {
+        endDrag(false); closeModal(true); stop(); if (bt.opts.onExit) bt.opts.onExit();
+      }));
+    };
+
+    function onClick(e) {
+      const c = e.target.closest('.fm-card');
+      if (!c) return;
+      if (Date.now() < suppressUntil) return; // ドラッグ直後のクリックではリーダーを変えない
+      const i = Number(c.dataset.idx);
+      if (swapMode) {
+        if (swapPick === null || swapPick === i) swapPick = swapPick === i ? null : i;
+        else if (canSwap(swapPick, i)) { swap(swapPick, i); swapPick = null; }
+        else { toast(posOf(swapPick) === posOf(i) ? '前衛と後衛のカードを1体ずつ選んでください' : '戦闘不能のキャラは前衛に出せません'); return; }
+      } else fm.leader = i;
+      draw();
+      const again = $(`#modal-body .fm-card[data-idx="${i}"]`);
+      if (again && e.detail === 0) again.focus(); // キーボード操作ではフォーカスを保つ
+    }
+
+    function onDown(e) {
+      const c = e.target.closest('.fm-card');
+      if (!c || swapMode || drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
+      drag = { card: c, idx: Number(c.dataset.idx), id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+        touch: e.pointerType !== 'mouse', active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
+      if (drag.touch) drag.timer = setTimeout(() => begin(), FM_HOLD_MS);
+      window.addEventListener('pointermove', onMove, { passive: false });
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onCancel);
+      window.addEventListener('touchmove', blockScroll, { passive: false });
+    }
+    function blockScroll(e) { if (drag && drag.active) e.preventDefault(); }
+    function begin() {
+      if (!drag || drag.active) return;
+      drag.active = true;
+      suppressUntil = Infinity;
+      const r = drag.card.getBoundingClientRect();
+      drag.dx = drag.x - r.left; drag.dy = drag.y - r.top;
+      const g = drag.card.cloneNode(true);
+      g.classList.add('fm-ghost');
+      g.removeAttribute('data-idx');
+      g.style.width = r.width + 'px';
+      document.body.appendChild(g);
+      drag.ghost = g;
+      drag.card.classList.add('dragging');
+      try { drag.card.setPointerCapture(drag.id); } catch (err) { /* 取れなくても window で追う */ }
+      if (drag.touch && navigator.vibrate) navigator.vibrate(12);
+      place();
+    }
+    function place() {
+      const d = drag;
+      d.ghost.style.transform = `translate(${d.x - d.dx}px, ${d.y - d.dy}px) scale(1.06) rotate(-2deg)`;
+      const el = document.elementFromPoint(d.x, d.y);
+      const t = el && el.closest('#modal-body .fm-card');
+      const ok = t && canSwap(d.idx, Number(t.dataset.idx)) ? t : null;
+      if (d.target && d.target !== ok) d.target.classList.remove('drop-target');
+      if (ok) ok.classList.add('drop-target');
+      d.target = ok;
+    }
+    function onMove(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag.x = e.clientX; drag.y = e.clientY;
+      const far = Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > FM_SLOP;
+      if (!drag.active) {
+        if (drag.touch) { if (far) endDrag(false); return; } // 長押しの前に動いた＝スクロール
+        if (!far) return;
+        begin();
+      }
+      e.preventDefault();
+      place();
+    }
+    function onUp(e) { if (drag && e.pointerId === drag.id) endDrag(true); }
+    function onCancel(e) { if (drag && e.pointerId === drag.id) endDrag(false); }
+    // drop=true なら交換先の上で離したときだけ入れ替える。それ以外は元の位置のまま
+    function endDrag(drop) {
+      const d = drag;
+      if (!d) return;
+      drag = null;
+      clearTimeout(d.timer);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+      window.removeEventListener('touchmove', blockScroll);
+      if (!d.active) return;
+      suppressUntil = Date.now() + 400;
+      if (d.ghost) d.ghost.remove();
+      if (drop && d.target) swap(d.idx, Number(d.target.dataset.idx));
+      draw();
+    }
+
+    function confirm() {
+      if (drag) return;
+      const front = fm.slots.slice(0, need);
+      if (bt.opts && bt.opts.onFormation) bt.opts.onFormation({ front: front.map(i => team[i].charId), leader: team[fm.leader].charId });
+      perform('formation', { front, leader: fm.leader });
+    }
+
     openModal('', { closable: false, kind: 'formation' });
     draw();
   }

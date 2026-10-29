@@ -38,13 +38,29 @@ async function startLocal(page, name, opts = {}) {
   await closeBonus(page, opts.claim);
 }
 
-async function formation(page, front, leader) {
-  await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)');
-  assert.equal(await page.isDisabled('#btn-formation-ok'), true);
-  for (const i of front) await page.click(`#modal .target-btn[data-target="${i}"]`);
-  assert.equal(await page.isDisabled('#btn-formation-ok'), true, 'リーダー未選択では決定できない');
-  await page.click(`#modal [data-leader="${leader}"]`);
+// 出撃準備：「タップで入れ替え」モードで前衛を並べ、カードをタップしてリーダーを選んで出撃
+const frontIdx = page => page.$$eval('#modal .fm-grid[data-row="front"] .fm-card', cs => cs.map(c => Number(c.dataset.idx)));
+async function arrange(page, front, leader) {
+  await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)', { timeout: 20000 });
+  let cur = await frontIdx(page);
+  if (front.some(i => cur.indexOf(i) < 0)) {
+    await page.click('#btn-fm-swapmode');
+    for (const i of front) {
+      cur = await frontIdx(page);
+      if (cur.indexOf(i) >= 0) continue;
+      const out = cur.find(k => front.indexOf(k) < 0);
+      await page.click(`#modal .fm-card[data-idx="${out}"]`);
+      await page.click(`#modal .fm-card[data-idx="${i}"]`);
+    }
+    await page.click('#btn-fm-swapmode');
+  }
+  await page.click(`#modal .fm-card[data-idx="${leader}"]`);
+  assert.deepEqual((await frontIdx(page)).slice().sort(), front.slice().sort());
+  assert.equal(await page.getAttribute(`#modal .fm-card[data-idx="${leader}"]`, 'aria-pressed'), 'true');
   await page.click('#btn-formation-ok');
+}
+async function formation(page, front, leader) {
+  await arrange(page, front, leader);
   await page.waitForFunction(() => { const s = window.RikuyouApp.getState(); return s && s.phase !== 'formation' && s.phase !== 'initiative'; }, null, { timeout: 15000 });
 }
 
@@ -112,10 +128,7 @@ async function joinRoom(page, code) {
   await page.click('#join-form button[type="submit"]');
 }
 async function pvpFormation(page, front, leader) {
-  await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)', { timeout: 20000 });
-  for (const i of front) await page.click(`#modal .target-btn[data-target="${i}"]`);
-  await page.click(`#modal [data-leader="${leader}"]`);
-  await page.click('#btn-formation-ok');
+  await arrange(page, front, leader);
 }
 // 2つの画面を交互に進めて、両方に結果画面が出るまで
 async function playPvp(a, b, limit = 3000) {
@@ -131,5 +144,5 @@ async function playPvp(a, b, limit = 3000) {
 
 module.exports = {
   VIEWPORTS, TAP_GUARD, watchPage, state, profile, noHorizontalScroll, closeBonus, startLocal,
-  formation, waitMyRoll, waitMyAction, step, autoplay, createRoom, joinRoom, pvpFormation, playPvp
+  formation, arrange, frontIdx, waitMyRoll, waitMyAction, step, autoplay, createRoom, joinRoom, pvpFormation, playPvp
 };

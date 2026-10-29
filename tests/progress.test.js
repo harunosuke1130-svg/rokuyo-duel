@@ -100,6 +100,9 @@ test('プロフィール：初期は6体所持・石300、管理用アカウン�
   assert.deepEqual(s.loadouts, { ryogen: [7, 1, 2, 3, 4, 5] }, 'Lv30なら上限内なので残し、Lv1でまだ使えない技を含む構成は捨てる');
   const lo = P.sanitize({ chars: { ryogen: { level: 13 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5] } }, { uid: 'u' });
   assert.deepEqual(lo.loadouts, {}, 'Lv13では上限超えなので捨てる');
+  const f = P.sanitize({ formation: { front: ['ryogen', 'nobody', 7, 'gessen'], leader: 'nobody' } }, { uid: 'u' });
+  assert.deepEqual(f.formation, { front: ['ryogen', 'gessen'], leader: null }, '前回の配置は知らないキャラを除いて保存');
+  assert.equal(P.sanitize({ formation: 'x' }, { uid: 'u' }).formation, null);
   const n = P.sanitize({ chars: { ryogen: { level: 2 } } }, { uid: 'u' });
   assert.equal(P.ownedIds(n).length, 1, '一般ユーザーは所持分だけ');
 });

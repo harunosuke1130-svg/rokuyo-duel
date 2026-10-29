@@ -319,11 +319,19 @@
         : (ctx.enemy.leader !== undefined && ctx.enemy.leader !== null ? ctx.enemy.leader : CPU.chooseLeader(state, 'cpu', rng))
     };
     B.start({
-      mode: 'cpu', state, cpuPlan, title: ctx.title, foeName: ctx.foeName,
+      mode: 'cpu', state, cpuPlan, title: ctx.title, foeName: ctx.foeName, ...formationOpts(),
       onFinish: res => (ctx.kind === 'dungeon' ? onDungeonFloorFinish(ctx, res) : onMatchFinish(ctx, res)),
       onExit: () => (ctx.kind === 'dungeon' ? showDungeon() : showMatch()),
       onShowResult: () => app.lastResult && app.lastResult()
     });
+  }
+
+  // 出撃準備：前回の配置を初期値にし、出撃した配置を保存する
+  function formationOpts() {
+    return {
+      formation: app.profile.formation || null,
+      onFormation: fm => { app.profile.formation = fm; save(); }
+    };
   }
 
   function rewardHtml(exp, stones, levelUps, note) {
@@ -615,7 +623,7 @@
     app.lobby.unwatch = null;
     if (unwatchLobby) { try { unwatchLobby(); } catch (e) { /* noop */ } }
     B.start({
-      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`,
+      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`, ...formationOpts(),
       onFinish: res => onPvpFinish(foeName, res),
       onExit: showLobby,
       onShowResult: () => app.lastResult && app.lastResult()

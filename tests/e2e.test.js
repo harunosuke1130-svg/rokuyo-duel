@@ -103,6 +103,145 @@ for (const kind of ['mobile', 'desktop']) {
   });
 }
 
+// 出撃準備：カードの中心座標
+const cardBox = async (page, i) => {
+  const b = await (await page.$(`#modal .fm-card[data-idx="${i}"]`)).boundingBox();
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+};
+const leaderIdx = page => page.$eval('#modal .fm-card.leader', c => Number(c.dataset.idx));
+
+test('desktop: 出撃準備（ドラッグで前後衛を交換・クリックでリーダー・ドラッグ後の誤クリック防止・戦闘に反映）', async () => {
+  const { ctx, page, errors } = await open('desktop');
+  await H.startLocal(page, '軍師', { claim: false });
+  const team = (await H.profile(page)).team;
+  await page.click('[data-go="match"]');
+  await page.click('[data-match="free"]');
+  await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)');
+  // 初期配置：前衛3体・後衛3体・リーダー1体（チームの並び順）
+  assert.deepEqual(await H.frontIdx(page), [0, 1, 2]);
+  assert.equal(await page.$$eval('#modal .fm-grid[data-row="back"] .fm-card', c => c.length), 3);
+  assert.equal(await page.$$eval('#modal .fm-card.leader', c => c.length), 1);
+  assert.equal(await leaderIdx(page), 0);
+  assert.equal(await page.isDisabled('#btn-formation-ok'), false, '最初から出撃できる');
+  const s0 = await H.state(page);
+  for (const i of [0, 3]) {
+    const u = s0.teams.player[i];
+    const t = await page.textContent(`#modal .fm-card[data-idx="${i}"]`);
+    assert.ok(t.includes(`Lv${u.level}`) && t.includes(`HP ${u.maxHp}`), '実際のレベルとHPを表示');
+    assert.ok(await page.$(`#modal .fm-card[data-idx="${i}"] .el-mark[data-el]`), '属性マーク');
+  }
+
+  const drag = async (from, to, check) => {
+    const a = await cardBox(page, from);
+    const b = typeof to === 'number' ? await cardBox(page, to) : to;
+    await page.mouse.move(a.x, a.y);
+    await page.mouse.down();
+    await page.mouse.move(a.x + 20, a.y + 20, { steps: 3 });
+    assert.ok(await page.$('.fm-ghost'), 'ドラッグ中はカードが浮く');
+    assert.ok(await page.$(`#modal .fm-card.dragging[data-idx="${from}"]`));
+    await page.mouse.move(b.x, b.y, { steps: 6 });
+    if (check) await check();
+    await page.mouse.up();
+    assert.equal(await page.$('.fm-ghost'), null);
+  };
+  // 前衛→後衛へドラッグ：2体が入れ替わる（交換先が強調される）
+  await drag(1, 4, async () => assert.ok(await page.$('#modal .fm-card.drop-target[data-idx="4"]'), '交換先を強調'));
+  assert.deepEqual(await H.frontIdx(page), [0, 4, 2]);
+  assert.equal(await leaderIdx(page), 0, 'ドラッグしてもリーダーは変わらない');
+  // 同じ列のカードの上・カード以外で離すと元の位置
+  await drag(0, 2, async () => assert.equal(await page.$('#modal .fm-card.drop-target'), null, '同じ列は交換先にならない'));
+  await drag(2, { x: 30, y: 30 });
+  assert.deepEqual(await H.frontIdx(page), [0, 4, 2]);
+  // 後衛→前衛へドラッグし、直後のクリックではリーダーが変わらない
+  await drag(5, 2);
+  await page.$eval('#modal .fm-card[data-idx="5"]', c => c.click());
+  assert.equal(await leaderIdx(page), 0, 'ドラッグ直後のクリックは無視');
+  assert.deepEqual(await H.frontIdx(page), [0, 4, 5]);
+  assert.equal(await page.$$eval('#modal .fm-card', c => new Set(c.map(x => x.dataset.idx)).size), 6, '重複・消失なし');
+  // 短いクリックで後衛のキャラをリーダーに。下部の表示もすぐ変わる
+  await page.waitForTimeout(450);
+  await page.click('#modal .fm-card[data-idx="1"]');
+  assert.equal(await leaderIdx(page), 1);
+  assert.ok((await page.textContent('#modal .fm-leader')).includes(await page.textContent('#modal .fm-card[data-idx="1"] .fm-name')), '下部のリーダー名');
+  assert.ok(await page.$('#modal .fm-card[data-idx="1"] .fm-lead .crown'), '王冠とリーダー表示');
+  // リーダーを前衛に入れ替えても、リーダー指定はそのキャラのまま
+  await drag(1, 0);
+  assert.deepEqual(await H.frontIdx(page), [1, 4, 5]);
+  assert.equal(await leaderIdx(page), 1);
+  // キーボード：Enter でリーダー、入れ替えモードで交換
+  await page.waitForTimeout(450);
+  await page.focus('#modal .fm-card[data-idx="3"]');
+  await page.keyboard.press('Enter');
+  assert.equal(await leaderIdx(page), 3);
+  await page.focus('#btn-fm-swapmode');
+  await page.keyboard.press('Enter');
+  await page.focus('#modal .fm-card[data-idx="4"]');
+  await page.keyboard.press('Enter');
+  await page.focus('#modal .fm-card[data-idx="0"]');
+  await page.keyboard.press('Enter');
+  assert.deepEqual(await H.frontIdx(page), [1, 0, 5]);
+  assert.equal(await leaderIdx(page), 3, '入れ替えモードではリーダーは変わらない');
+  await page.focus('#btn-fm-swapmode');
+  await page.keyboard.press('Enter');
+  // 出撃：画面で決めた配置が戦闘に反映され、次回の初期配置として保存される
+  await page.click('#btn-formation-ok');
+  await page.waitForFunction(() => { const s = window.RikuyouApp.getState(); return s && s.phase !== 'formation'; });
+  const s1 = await H.state(page);
+  assert.deepEqual(s1.front.player, [1, 0, 5]);
+  assert.equal(s1.leader.player, 3);
+  const p1 = await H.profile(page);
+  assert.deepEqual(p1.formation, { front: [team[1], team[0], team[5]], leader: team[3] });
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: 出撃準備（タッチは長押ししてからドラッグ・すぐ動かすとスクロール扱い）', async () => {
+  const { ctx, page, errors } = await open('mobile');
+  await H.startLocal(page, '軍師', { claim: false });
+  await page.click('[data-go="match"]');
+  await page.click('[data-match="free"]');
+  await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)');
+  assert.ok(await H.noHorizontalScroll(page));
+  assert.ok(await page.isVisible('#btn-formation-ok'), 'スマホ縦画面で出撃ボタンが見える');
+  // タッチの Pointer Events を順に送る（hold ミリ秒押してから動かす）
+  const touchDrag = (from, to, hold, thenClick) => page.evaluate(async ({ from, to, hold, thenClick }) => {
+    const card = i => document.querySelector(`#modal .fm-card[data-idx="${i}"]`);
+    const mid = el => { const r = el.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+    const a = mid(card(from)), b = to === null ? { x: a.x, y: a.y } : mid(card(to));
+    const send = (type, p, el) => el.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 7, pointerType: 'touch', isPrimary: true, clientX: p.x, clientY: p.y, button: 0 }));
+    send('pointerdown', a, card(from));
+    await new Promise(r => setTimeout(r, hold));
+    const lifted = !!document.querySelector('.fm-ghost');
+    send('pointermove', { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, document);
+    send('pointermove', b, document);
+    send('pointerup', b, document);
+    if (thenClick) card(from).click();
+    return lifted;
+  }, { from, to, hold, thenClick });
+  // すぐ動かした＝縦スクロール：入れ替えない
+  assert.equal(await touchDrag(0, 3, 0), false);
+  assert.deepEqual(await H.frontIdx(page), [0, 1, 2]);
+  // 長押ししてから動かす：入れ替える
+  assert.equal(await touchDrag(0, 3, 420), true, '長押しで持ち上がる');
+  assert.deepEqual(await H.frontIdx(page), [3, 1, 2]);
+  // 長押しして動かさずに離し、続けてクリックが来てもリーダーは変わらない
+  assert.equal(await leaderIdx(page), 0);
+  await touchDrag(1, null, 420, true);
+  assert.equal(await leaderIdx(page), 0);
+  assert.deepEqual(await H.frontIdx(page), [3, 1, 2]);
+  // 短いタップはリーダー選択
+  await page.waitForTimeout(450);
+  await page.tap('#modal .fm-card[data-idx="2"]');
+  assert.equal(await leaderIdx(page), 2);
+  await page.click('#btn-formation-ok');
+  await page.waitForFunction(() => { const s = window.RikuyouApp.getState(); return s && s.phase !== 'formation'; });
+  const s = await H.state(page);
+  assert.deepEqual(s.front.player, [3, 1, 2]);
+  assert.equal(s.leader.player, 2);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test('mobile: ガチャ（1回・10回・石不足）', async () => {
   const { ctx, page, errors } = await open('mobile');
   await H.startLocal(page, 'ガチャ係', { claim: false });
@@ -255,7 +394,10 @@ test('mobile: ダンジョン：1階の雑魚（1体）を倒すと、HPを引�
   s2.teams.player.forEach(u => assert.equal(u.hp, expected[u.charId], u.charId + 'のHPを引き継ぐ'));
   // 戦闘不能のキャラは配置で選べない
   const koIdx = s2.teams.player.findIndex(u => u.hp <= 0);
-  if (koIdx >= 0) assert.equal(await page.isDisabled(`#modal .target-btn[data-target="${koIdx}"]`), true);
+  if (koIdx >= 0) {
+    assert.equal(await page.getAttribute(`#modal .fm-card[data-idx="${koIdx}"]`, 'data-pos'), 'back', '戦闘不能は後衛に置かれる');
+    assert.ok((await page.getAttribute(`#modal .fm-card[data-idx="${koIdx}"]`, 'class')).includes('ko'));
+  }
   assert.equal(p1.dungeon.cleared.forest, undefined, '大ボスを倒すまで踏破にならない');
   assert.deepEqual(errors, []);
   await ctx.close();

@@ -208,6 +208,21 @@
     return Math.min(CONFIG.FRONT_SIZE, aliveIndexes(state, side).length);
   }
 
+  // 配置の初期案（戦闘前の準備画面用）：pref = { front: [キャラID], leader: キャラID }（前回の配置）のうち
+  // 今も有効な分を優先し、足りない前衛はチームの並び順で生存キャラから補う。back は残り全員（戦闘不能を含む）
+  function suggestFormation(state, side, pref) {
+    const team = state.teams[side];
+    const need = frontRequired(state, side);
+    const idxOf = id => team.findIndex(u => u.charId === id);
+    const front = [];
+    const add = i => { if (i >= 0 && isAlive(team[i]) && front.indexOf(i) < 0 && front.length < need) front.push(i); };
+    ((pref && Array.isArray(pref.front)) ? pref.front : []).forEach(id => add(idxOf(id)));
+    team.forEach((u, i) => add(i));
+    const back = team.map((u, i) => i).filter(i => front.indexOf(i) < 0);
+    const li = pref && pref.leader ? idxOf(pref.leader) : -1;
+    return { front, back, leader: li >= 0 ? li : 0 };
+  }
+
   function randomTeam(rng) {
     const ids = CHARACTERS.map(c => c.id);
     for (let i = ids.length - 1; i > 0; i--) {
@@ -669,7 +684,7 @@
     CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, SIDES,
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
-    validateTeam, randomTeam, createBattle, frontRequired, isBoss, BOSSES,
+    validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
     movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,

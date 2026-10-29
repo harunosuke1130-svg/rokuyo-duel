@@ -143,3 +143,17 @@ test('再戦（新しい戦闘）ではリーダー・構成・最大HPが初期
   assert.equal(n.teams.player[0].maxHp, 120);
   assert.deepEqual(n.teams.player[0].loadout, [0, 1, 2, 3, 4, 5]);
 });
+
+test('出撃準備の初期配置：前回の配置を優先し、無効な分はチームの並び順で補う', () => {
+  const s = E.createBattle(P, C);
+  assert.deepEqual(E.suggestFormation(s, 'player'), { front: [0, 1, 2], back: [3, 4, 5], leader: 0 }, '前回なし：並び順の先頭3体・先頭がリーダー');
+  assert.deepEqual(E.suggestFormation(s, 'player', { front: ['mukai', 'kohaku', 'gessen'], leader: 'yoiyami' }),
+    { front: [5, 3, 1], back: [0, 2, 4], leader: 4 }, '前回の配置を復元');
+  // チームにいないキャラ・戦闘不能のキャラは前衛にしない（ダンジョンの引き継ぎ）
+  s.teams.player[5].hp = 0;
+  const f = E.suggestFormation(s, 'player', { front: ['mukai', 'raimei', 'kohaku'], leader: 'raimei' });
+  assert.deepEqual(f.front, [3, 0, 1]);
+  assert.deepEqual(f.back, [2, 4, 5]);
+  assert.equal(f.leader, 0, 'チームにいないリーダーは先頭に');
+  assert.ok(E.chooseFormation(s, 'player', f.front, f.leader).ok, '初期配置はそのまま出撃できる');
+});
