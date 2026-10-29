@@ -24,6 +24,22 @@
     const ko = unit && unit.hp <= 0 ? ' ko' : '';
     return `<span class="emblem${size ? ' ' + size : ''}${ko}" style="--el:${el.color}" aria-hidden="true">${esc(ch.glyph)}</span>`;
   }
+  // 属性マーク（画像があればビルドで src/img/element/<属性>.* が背景に入る。無ければ属性名の1文字目）
+  const EL_GLYPH = { fire: '火', water: '水', nature: '森', holy: '光', dark: '闇' };
+  function elMark(ch) {
+    const el = ELEMENTS[ch.element] || { name: ch.element, color: '#888' };
+    return `<span class="el-mark" data-el="${esc(ch.element)}" style="--el:${el.color}" title="${esc(el.name)}"><i>${esc(EL_GLYPH[ch.element] || el.name.charAt(0))}</i></span>`;
+  }
+  // キャラの絵（画像があればビルドで src/img/chara/<キャラID>.* が背景に入る。無ければ紋章の文字）
+  function portrait(ch, opts) {
+    const o = opts || {};
+    const el = ELEMENTS[ch.element] || { color: '#888' };
+    return `<span class="portrait${o.dim ? ' dim' : ''}" data-char="${esc(ch.id)}" style="--el:${el.color}" aria-hidden="true"><i>${esc(ch.glyph)}</i></span>`;
+  }
+  // 石のアイコン
+  function gemIcon(cls) {
+    return `<svg class="gem${cls ? ' ' + cls : ''}" viewBox="0 0 20 28" aria-hidden="true"><path d="M10 1l8 9-8 17-8-17z" fill="#3f6fe0"/><path d="M10 1l8 9h-8z" fill="#9cc4ff"/><path d="M10 1L2 10h8z" fill="#6c9cf5"/><path d="M2 10h8v17z" fill="#2a4fb8"/><path d="M10 10h8l-8 17z" fill="#5585ec"/><path d="M10 1l8 9-8 17-8-17z" fill="none" stroke="#dbe8ff" stroke-width=".8" stroke-linejoin="round"/></svg>`;
+  }
   function elementTag(ch) {
     const el = ELEMENTS[ch.element] || { name: ch.element, color: '#888' };
     return `<span class="el-tag" style="--el:${el.color}">${esc(el.name)}</span>`;
@@ -123,7 +139,7 @@
 
   window.RikuyouUI = {
     E, CONFIG, FAST, DELAY, rng, $, esc,
-    emblem, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
+    emblem, elMark, portrait, gemIcon, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
     ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen
   };
 })();

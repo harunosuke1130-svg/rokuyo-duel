@@ -55,6 +55,20 @@ for (const kind of ['mobile', 'desktop']) {
     assert.equal(Object.keys(p.chars).length, 6);
     assert.equal(p.login.streak, 1);
     assert.equal(await page.$('#btn-bonus'), null, '同じ日は2回受け取れない');
+    assert.equal(await page.$$eval('#home-team .portrait-card', c => c.length), 6, 'ホームにチーム6体の絵');
+    assert.equal(await page.$$eval('#home-bonus .bonus-day.got', c => c.length), 1, '受け取った日に印');
+
+    // 下のタブから図鑑：全キャラが並び、未所持も詳細を見られる
+    await page.click('#tabbar [data-tab="zukan"]');
+    await page.waitForSelector('#screen-zukan:not(.hidden)');
+    assert.equal(await page.$$eval('.zukan-card', c => c.length), 8);
+    assert.equal(await page.$$eval('.zukan-card.missing', c => c.length), 2);
+    await page.click('.zukan-card.missing');
+    await page.waitForSelector('#modal[data-kind="zukan"]:not(.hidden)');
+    assert.equal(await page.$$eval('#modal .moves li', c => c.length), 9, '技の候補9個');
+    await page.click('#modal-x');
+    await page.click('#tabbar [data-tab="home"]');
+    await page.waitForSelector('#screen-home:not(.hidden)');
 
     // チーム画面：未所持は選べない・技のカスタムを保存
     await page.click('[data-go="team"]');
@@ -267,7 +281,8 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   assert.equal(Object.keys(p.chars).length, 8);
   assert.ok((await page.textContent('#home-profile')).includes('管理用アカウント'));
   // 普通に名前で入った人は管理用にならない
-  await page.click('[data-go="logout"]');
+  await page.click('#btn-settings');
+  await page.click('#modal [data-go="logout"]');
   await page.fill('#in-name', '一般');
   await page.click('#btn-local-start');
   await page.waitForSelector('#screen-home:not(.hidden)');

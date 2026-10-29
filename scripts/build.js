@@ -10,6 +10,10 @@
  *   docs/vendor/firebase/*          Firebase SDK（同じサイトから読み込む。CDN は使わない）
  *   docs/firebase-config.js         初回だけ雛形をコピー（以後は上書きしない＝設定を消さない）
  *   dist/artifact/rikuyou-duel.html claude.ai 公開用（本文のみ・この端末に保存）
+ *
+ * 画像：style.css の url("img/...") は data URI にして埋め込む。
+ *   src/img/chara/<キャラID>.webp（または .png / .jpg / .svg）を置くと、そのキャラの絵になる
+ *   src/img/element/<属性ID>.webp（fire / water / nature / holy / dark）を置くと、属性マークになる
  */
 'use strict';
 const fs = require('fs');
@@ -30,10 +34,36 @@ function read(name) {
   return fs.readFileSync(path.join(SRC, name), 'utf8');
 }
 
+// 画像は data URI にして埋め込む（単一HTMLを1ファイルのまま・外部通信なしで動かすため）
+const IMG_TYPES = { '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml' };
+function dataUri(rel) {
+  const file = path.join(SRC, rel);
+  const type = IMG_TYPES[path.extname(file).toLowerCase()];
+  if (!type || !fs.existsSync(file)) throw new Error('画像がありません: src/' + rel);
+  return 'data:' + type + ';base64,' + fs.readFileSync(file).toString('base64');
+}
+// src/img/chara/<キャラID>.* と src/img/element/<属性>.* を置くと、キャラの絵・属性マークとして使う
+function imageRules() {
+  const list = dir => {
+    const d = path.join(SRC, 'img', dir);
+    return fs.existsSync(d) ? fs.readdirSync(d).filter(f => IMG_TYPES[path.extname(f).toLowerCase()]).sort() : [];
+  };
+  const rules = [];
+  list('chara').forEach(f => {
+    const id = path.basename(f, path.extname(f));
+    rules.push(`.portrait[data-char="${id}"] { background: #1a120b url("img/chara/${f}") center top / cover no-repeat; }`, `.portrait[data-char="${id}"] i { display: none; }`);
+  });
+  list('element').forEach(f => {
+    const el = path.basename(f, path.extname(f));
+    rules.push(`.el-mark[data-el="${el}"] { background: url("img/element/${f}") center / cover no-repeat; }`, `.el-mark[data-el="${el}"] i { display: none; }`);
+  });
+  return rules.length ? '\n/* ---- src/img/chara・src/img/element から自動生成 ---- */\n' + rules.join('\n') + '\n' : '';
+}
+
 function buildHtml() {
   let html = read('index.html');
   html = html.replace(/<link rel="stylesheet" href="([^"]+)">/g, (m, file) => {
-    const css = read(file);
+    const css = (read(file) + imageRules()).replace(/url\("(img\/[^"]+)"\)/g, (u, rel) => `url("${dataUri(rel)}")`);
     if (/<\/style/i.test(css)) throw new Error(file + ' に </style が含まれています');
     return '<style>\n' + css + '</style>';
   });

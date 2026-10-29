@@ -3,7 +3,7 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<meta name="theme-color" content="#0b2226">
+<meta name="theme-color" content="#16100b">
 <title>六耀の決闘</title>
 <link rel="stylesheet" href="style.css">
 </head>
@@ -35,16 +35,43 @@
 
   <!-- ホーム -->
   <section id="screen-home" class="screen hidden">
-    <div class="panel profile-panel" id="home-profile"></div>
-    <div class="panel bonus-panel" id="home-bonus"></div>
-    <div class="menu-grid">
-      <button type="button" class="menu-btn" data-go="match"><span class="menu-icon" aria-hidden="true">戦</span><b>対戦（CPU）</b><span>CPUのチームと6対6。ランク戦とフリー対戦</span></button>
-      <button type="button" class="menu-btn" data-go="dungeon"><span class="menu-icon" aria-hidden="true">迷</span><b>ダンジョン</b><span>雑魚→中ボス→大ボスを6人で倒す</span></button>
-      <button type="button" class="menu-btn" data-go="lobby"><span class="menu-icon" aria-hidden="true">対</span><b>プレイヤー対戦</b><span>ルームを作るか、コードで参加</span></button>
-      <button type="button" class="menu-btn" data-go="gacha"><span class="menu-icon" aria-hidden="true">召</span><b>ガチャ</b><span>石でキャラクターを呼ぶ</span></button>
-      <button type="button" class="menu-btn" data-go="team"><span class="menu-icon" aria-hidden="true">編</span><b>チーム・キャラ</b><span>6体の編成・技のカスタム・レベル</span></button>
-      <button type="button" class="menu-btn subtle" data-go="logout"><span class="menu-icon" aria-hidden="true">退</span><b>ログアウト</b><span id="logout-sub">別のプレイヤーに切り替える</span></button>
+    <div class="home-hero">
+      <div class="hero-top">
+        <h2 class="hero-title"><span>六耀の決闘</span></h2>
+        <div class="hero-actions">
+          <span class="gem-chip" id="home-stones" aria-label="所持している石"></span>
+          <button type="button" class="icon-btn" id="btn-settings" aria-label="設定・遊び方・ログアウト"><svg viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="7.2" fill="none" stroke="currentColor" stroke-width="3.6" stroke-dasharray="2.9 2.75"/><circle cx="12" cy="12" r="5.6" fill="none" stroke="currentColor" stroke-width="2"/><circle cx="12" cy="12" r="2.2" fill="currentColor"/></svg></button>
+        </div>
+      </div>
+      <div class="name-plate" id="home-profile"></div>
     </div>
+    <div class="home-team" id="home-team"></div>
+    <button type="button" class="home-banner banner-dungeon" data-go="dungeon">
+      <span class="hb-label"><svg class="hb-icon" viewBox="0 0 24 24" aria-hidden="true"><circle cx="12" cy="12" r="8.5" fill="none" stroke="currentColor" stroke-width="1"/><path d="M12 1.5l2 8.5 8.5 2-8.5 2-2 8.5-2-8.5L1.5 12 10 10z" fill="currentColor"/><path d="M12 6l1 5 5 1-5 1-1 5-1-5-5-1 5-1z" fill="#2a1f15" opacity=".55"/></svg>ダンジョン</span>
+      <span class="hb-sub">雑魚 → 中ボス → 大ボスを6人で倒す</span>
+      <span class="hb-chev" aria-hidden="true">›</span>
+    </button>
+    <div class="home-tiles">
+      <button type="button" class="home-banner banner-match" data-go="match">
+        <span class="hb-label"><svg class="hb-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l11 11M20 4L9 15"/><path d="M13 17l4-4M11 17l-4-4"/><path d="M16 16l4 4M8 16l-4 4"/></svg>対戦</span>
+        <span class="hb-chev" aria-hidden="true">›</span>
+      </button>
+      <button type="button" class="home-banner banner-gacha" data-go="gacha">
+        <span class="hb-label"><svg class="hb-icon" viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linejoin="round"><rect x="2.5" y="5" width="11" height="15" rx="1.5" transform="rotate(-12 8 12.5)"/><rect x="9" y="3.5" width="12" height="16.5" rx="1.5" fill="#2a1f15"/><path d="M15 7.5l.9 3.3 3.1.9-3.1.9-.9 3.3-.9-3.3-3.1-.9 3.1-.9z" fill="currentColor" stroke="none"/></svg>ガチャ</span>
+        <span class="hb-chev" aria-hidden="true">›</span>
+      </button>
+    </div>
+    <div class="parchment bonus-panel" id="home-bonus"></div>
+  </section>
+
+  <!-- 図鑑 -->
+  <section id="screen-zukan" class="screen hidden">
+    <div class="panel intro">
+      <h2 class="heading">図鑑</h2>
+      <p>六耀の地の仲間たち。タップすると技・固有スキル・リーダースキルをすべて見られます。まだ仲間にしていないキャラはガチャで呼べます。</p>
+      <p class="count-line">所持：<b class="gold" id="zukan-count">0</b> / <span id="zukan-total">0</span></p>
+    </div>
+    <div id="zukan-grid" class="zukan-grid"></div>
   </section>
 
   <!-- チーム編成 -->
@@ -152,6 +179,14 @@
       <ol id="log" class="log"></ol>
     </div>
   </section>
+
+  <!-- 下のタブ（ホーム・編成・図鑑・対人戦） -->
+  <nav class="tabbar" id="tabbar" aria-label="メニュー">
+    <button type="button" class="tab-item" data-go="home" data-tab="home"><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M3 11.5L12 4l9 7.5" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"/><path d="M5.5 10v10h4.5v-5.5h4V20h4.5V10L12 5z" fill="currentColor"/></svg><span>ホーム</span></button>
+    <button type="button" class="tab-item" data-go="team" data-tab="team"><svg viewBox="0 0 24 24" aria-hidden="true" fill="currentColor"><circle cx="12" cy="7.5" r="3.3"/><path d="M5.5 20c0-4 2.9-6.6 6.5-6.6s6.5 2.6 6.5 6.6z"/><circle cx="5" cy="9" r="2.3" opacity=".7"/><path d="M.8 18.5c0-3 1.7-5 4.2-5 .9 0 1.7.2 2.3.7-1.3 1.2-2.1 2.6-2.4 4.3z" opacity=".7"/><circle cx="19" cy="9" r="2.3" opacity=".7"/><path d="M23.2 18.5c0-3-1.7-5-4.2-5-.9 0-1.7.2-2.3.7 1.3 1.2 2.1 2.6 2.4 4.3z" opacity=".7"/></svg><span>編成</span></button>
+    <button type="button" class="tab-item" data-go="zukan" data-tab="zukan"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linejoin="round"><path d="M12 6.5C9.5 4.8 6 4.3 2.5 4.8v13.5c3.5-.5 7 0 9.5 1.7 2.5-1.7 6-2.2 9.5-1.7V4.8C18 4.3 14.5 4.8 12 6.5z"/><path d="M12 6.5V20"/></svg><span>図鑑</span></button>
+    <button type="button" class="tab-item" data-go="lobby" data-tab="lobby"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M4 4l11 11M20 4L9 15"/><path d="M13 17l4-4M11 17l-4-4"/><path d="M16 16l4 4M8 16l-4 4"/></svg><span>対人戦</span></button>
+  </nav>
 </div>
 
 <!-- モーダル -->

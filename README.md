@@ -3,6 +3,7 @@
 数字を先に出し、その数字を見て前衛の技を1つ選んで戦うファンタジーカードバトルです。
 CPU戦（ダンジョン・フリー対戦）と、プレイヤー同士のリアルタイム対戦ができます。
 HTML・CSS・JavaScript だけで作られていて、オンライン機能には Firebase（無料枠で可）を使います。
+画面は「夕暮れの城下町」の絵を使ったファンタジー風（ホーム・下のタブ・図鑑）。画像はビルドで HTML に埋め込むので、単一HTMLは1ファイルのまま動きます。
 
 ## 遊ぶ
 
@@ -24,6 +25,8 @@ HTML・CSS・JavaScript だけで作られていて、オンライン機能に�
 - **ガチャ**：石100で1回、900で10回。全キャラ同じ確率。未所持は仲間に、所持済みは経験値300に。お金は使わない
 - **ログインボーナス**：1日1回、連続日数で 50・50・80・50・50・80・200 石（7日で一巡、日本時間0時に切り替わり）
 - **対人戦**：ルームを作ってコードを伝える／コードで参加／待機中のルームに参加。勝利20石・敗北5石（1日5回まで）
+- **ホーム**：町の絵・チーム6体・ダンジョン／対戦／ガチャのバナー・7日分のログインボーナス。右上の歯車から遊び方・ログアウト
+- **図鑑**：全キャラの技（候補9個）・固有スキル・リーダースキル。未所持のキャラも見られる
 - **管理用アカウント**：全キャラを所持。オンライン版は `adminEmails` のメールアドレス（確認済み）、この端末保存モードはログイン画面の「管理用アカウントで入る」＋管理用コード（`docs/firebase-config.js` にはコードのSHA-256だけを保存）
 - **はじめたとき**：石300、ランダムに6体所持
 
@@ -41,7 +44,8 @@ rikuyou-duel/
 │  ├─ backend.js     保存と通信（この端末 / Firebase）・対戦ルーム
 │  ├─ ui-core.js     画面の共通部品
 │  ├─ ui-battle.js   戦闘画面（CPU戦・対人戦のホスト／ゲスト）
-│  └─ ui-app.js      ログイン・ホーム・チーム・ダンジョン・ガチャ・ロビー
+│  ├─ ui-app.js      ログイン・ホーム・チーム・図鑑・ダンジョン・ガチャ・ロビー
+│  └─ img/           画像（ビルドで埋め込む）。chara/<キャラID>.webp・element/<属性ID>.webp を置くとキャラの絵・属性マークになる
 ├─ vendor/firebase/  Firebase SDK（Apache-2.0。CDN を使わず同じサイトから読み込む）
 ├─ config/firebase-config.example.js  オンライン設定の雛形
 ├─ firestore.rules   Firestore のセキュリティルール（Firebase コンソールに貼る）
@@ -67,6 +71,9 @@ rikuyou-duel/
 | CPU の判断 | `src/cpu.js` の `W` |
 | 管理用アカウント・Firebase の接続先 | `docs/firebase-config.js` |
 | 色・レイアウト | `src/style.css` の `:root` |
+| キャラの絵 | `src/img/chara/<キャラID>.webp`（例 `ryogen.webp`。縦長 約148:205、.png / .jpg / .svg も可） |
+| 属性マーク | `src/img/element/<属性ID>.webp`（`fire` / `water` / `nature` / `holy` / `dark`。正方形） |
+| ホームの背景・バナーの絵 | `src/img/home-town.webp`・`banner-dungeon.webp`・`banner-match.webp`・`banner-gacha.webp` |
 
 編集したら **`npm run build`**（`docs/firebase-config.js` は上書きしません）。
 

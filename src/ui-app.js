@@ -11,7 +11,7 @@
   const BK = window.RikuyouBackend;
   const CPU = window.RikuyouCPU;
   const D = window.RikuyouData;
-  const { E, CONFIG, rng, $, esc, emblem, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, openModal, closeModal, toast, showScreen } = U;
+  const { E, CONFIG, rng, $, esc, emblem, elMark, portrait, gemIcon, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, openModal, closeModal, toast, showScreen } = U;
 
   const app = {
     backend: null,
@@ -36,8 +36,11 @@
     const chip = $('#top-stones');
     const p = app.profile;
     chip.classList.toggle('hidden', !p);
-    if (p) chip.innerHTML = `石 <b>${p.stones}</b>`;
-    $('#btn-home').classList.toggle('hidden', !p || document.body.dataset.screen === 'home' || document.body.dataset.screen === 'battle');
+    if (p) chip.innerHTML = `${gemIcon()}<b>${p.stones}</b>`;
+    if (p) $('#home-stones').innerHTML = `${gemIcon()}<b>${p.stones}</b>`;
+    const screen = document.body.dataset.screen;
+    $('#btn-home').classList.toggle('hidden', !p || screen === 'home' || screen === 'battle');
+    document.querySelectorAll('#tabbar [data-tab]').forEach(t => t.classList.toggle('on', t.dataset.tab === screen));
   }
   function go(name) {
     showScreen(name);
@@ -140,28 +143,34 @@
     go('home');
     const p = app.profile;
     const owned = P.ownedIds(p).length;
-    $('#home-profile').innerHTML = `
-      <div class="profile-row">
-        <div><div class="profile-name">${esc(p.name)} ${p.isAdmin ? '<span class="badge leader">管理用アカウント</span>' : ''}</div>
-        <div class="muted">${esc(app.backend.label)}</div></div>
-        <div class="profile-stats">
-          <div><span>石</span><b>${p.stones}</b></div>
-          <div><span>所持キャラ</span><b>${owned} / ${P.ALL_IDS.length}</b></div>
-          <div><span>対人戦</span><b>${p.pvp.wins}勝 ${p.pvp.losses}敗</b></div>
-        </div>
-      </div>
-      ${P.teamError(p, p.team) ? '<p class="reason">チームが未完成です。「チーム・キャラ」で6体を選んで保存してください。</p>' : `<div class="team-strip">${p.team.map(id => { const ch = E.getChar(id); return `<span class="team-chip">${emblem(ch, null, 'small')}${esc(ch.name)} ${levelTag(P.levelOf(p, id))}</span>`; }).join('')}</div>`}`;
+    const lead = p.team.length ? E.getChar(p.team[0]) : null;
+    $('#home-profile').innerHTML = `${lead ? emblem(lead, null, 'small') : ''}<span class="np-name">${esc(p.name)}</span>${p.isAdmin ? '<span class="badge leader">管理用アカウント</span>' : ''}`;
+    $('#home-team').innerHTML = P.teamError(p, p.team)
+      ? `<button type="button" class="team-missing" data-go="team"><b>チームが未完成です</b><span>「編成」で6体を選んで保存してください</span></button>`
+      : p.team.map(id => {
+        const ch = E.getChar(id);
+        return `<button type="button" class="portrait-card" data-go="team" aria-label="${esc(ch.name)} Lv${P.levelOf(p, id)}（編成へ）">${portrait(ch)}${levelTag(P.levelOf(p, id))}${elMark(ch)}</button>`;
+      }).join('');
     renderBonus();
-    $('#logout-sub').textContent = app.backend.mode === 'local' ? '別のプレイヤーに切り替える' : 'このアカウントからログアウト';
     if (!app.bonusOffered && !P.loginStatus(p).claimed) { app.bonusOffered = true; showBonusModal(); }
   }
 
   function renderBonus() {
     const st = P.loginStatus(app.profile);
-    const cycle = D.ECONOMY.loginBonus.map((v, i) => `<span class="bonus-day${i + 1 < st.dayInCycle || (st.claimed && i + 1 === st.dayInCycle) ? ' got' : ''}${i + 1 === st.dayInCycle ? ' today' : ''}"><small>${i + 1}日目</small>${v}</span>`).join('');
-    $('#home-bonus').innerHTML = `<div class="bonus-head"><b>ログインボーナス</b><span class="muted">連続${st.claimed ? st.streak : st.streak}日目・日本時間の0時に切り替わり</span></div>
-      <div class="bonus-days">${cycle}</div>
-      ${st.claimed ? '<p class="muted">今日の分は受け取り済みです。また明日。</p>' : `<button type="button" class="btn btn-primary btn-block" id="btn-bonus">今日のボーナスを受け取る（石 +${st.amount}）</button>`}`;
+    const last = D.ECONOMY.loginBonus.length;
+    const days = D.ECONOMY.loginBonus.map((v, i) => {
+      const day = i + 1;
+      const got = day < st.dayInCycle || (st.claimed && day === st.dayInCycle);
+      const today = day === st.dayInCycle && !st.claimed;
+      const cls = 'bonus-day' + (got ? ' got' : '') + (today ? ' today' : '') + (day === last ? ' last' : '');
+      const inner = got ? '<span class="bd-check" aria-label="受け取り済み">✓</span>' : `${gemIcon()}<b>${v}</b>`;
+      const cell = today
+        ? `<button type="button" class="bd-cell" id="btn-bonus" aria-label="今日のボーナスを受け取る（石 +${v}）">${inner}</button>`
+        : `<span class="bd-cell">${inner}</span>`;
+      return `<li class="${cls}"><small>${day}日目</small>${cell}</li>`;
+    }).join('');
+    $('#home-bonus').innerHTML = `<div class="bonus-label"><svg viewBox="0 0 24 24" aria-hidden="true" fill="none" stroke="currentColor" stroke-width="1.7"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M3 10h18M8 3v4M16 3v4"/><path d="M7 13.5h2M11 13.5h2M15 13.5h2M7 17h2M11 17h2M15 17h2" stroke-width="2"/></svg><span><b>ログインボーナス</b><small>${st.claimed ? `連続${st.streak}日・また明日` : '今日の分をタップで受け取り'}</small></span></div>
+      <ol class="bonus-days">${days}</ol>`;
     const b = $('#btn-bonus');
     if (b) b.addEventListener('click', claimBonus);
   }
@@ -618,6 +627,58 @@
   }
 
   /* ---------- 遊び方 ---------- */
+  /* ---------- 設定（遊び方・ログアウト） ---------- */
+  function showSettings() {
+    const p = app.profile;
+    openModal(`<h3>設定</h3>
+      <div class="profile-stats">
+        <div><span>石</span><b>${p.stones}</b></div>
+        <div><span>所持キャラ</span><b>${P.ownedIds(p).length} / ${P.ALL_IDS.length}</b></div>
+        <div><span>対人戦</span><b>${p.pvp.wins}勝 ${p.pvp.losses}敗</b></div>
+      </div>
+      <p class="muted">${esc(p.name)}・${esc(app.backend.label)}</p>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost btn-block" id="btn-settings-help">遊び方</button>
+        <button type="button" class="btn btn-ghost btn-block" data-go="logout">ログアウト<small class="btn-sub">${app.backend.mode === 'local' ? '別のプレイヤーに切り替える' : 'このアカウントからログアウト'}</small></button>
+        <button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button>
+      </div>`, { kind: 'settings', bind: b => b.querySelector('#btn-settings-help').addEventListener('click', () => { closeModal(true); showHelp(); }) });
+  }
+
+  /* ---------- 図鑑 ---------- */
+  function showZukan() {
+    go('zukan');
+    const p = app.profile;
+    $('#zukan-count').textContent = P.ownedIds(p).length;
+    $('#zukan-total').textContent = E.CHARACTERS.length;
+    $('#zukan-grid').innerHTML = E.CHARACTERS.map(ch => {
+      const owned = P.owns(p, ch.id);
+      return `<button type="button" class="zukan-card${owned ? '' : ' missing'}" data-zukan="${ch.id}">
+        <span class="zk-art">${portrait(ch, { dim: !owned })}${elMark(ch)}${owned ? levelTag(P.levelOf(p, ch.id)) : '<span class="lv-tag">未所持</span>'}</span>
+        <b class="zk-name">${esc(ch.name)}</b><span class="zk-tags">${elementTag(ch)}${subTags(ch)}</span></button>`;
+    }).join('');
+  }
+  function showZukanEntry(id) {
+    const ch = E.getChar(id);
+    const p = app.profile;
+    const owned = P.owns(p, id);
+    const lv = owned ? P.levelOf(p, id) : 1;
+    const lo = (owned && p.loadouts[id]) || E.defaultLoadout(id);
+    const moves = ch.moves.map((m, k) => {
+      const slot = lo.indexOf(k);
+      return `<li class="${slot >= 0 ? 'hit' : ''}"><span class="num">${slot >= 0 ? slot + 1 : '・'}</span><span>${esc(m.name)}</span><span class="eff">${moveEffText(m)}</span></li>`;
+    }).join('');
+    openModal(`<div class="zk-detail">${portrait(ch, { dim: !owned })}<div>
+        <h3>${esc(ch.name)}</h3>
+        <div>${elementTag(ch)}${subTags(ch)}</div>
+        <p class="hptext">${owned ? `Lv${lv}・最大HP <b>${E.levelMaxHp(ch.maxHp, lv)}</b>（基礎${ch.maxHp}）` : `最大HP <b>${ch.maxHp}</b>（Lv1）・<span class="reason">未所持</span>`}</p>
+      </div></div>
+      <h4>技（候補${ch.moves.length}個・番号は${owned ? '今の' : '初期の'}出目）</h4>
+      <ul class="moves">${moves}</ul>
+      <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
+      ${leaderBox(ch)}
+      <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'zukan' });
+  }
+
   function showHelp() {
     const E2 = D.ECONOMY;
     openModal(`<h3>遊び方</h3>
@@ -660,15 +721,26 @@
   function bindAll() {
     $('#btn-help').addEventListener('click', showHelp);
     $('#btn-home').addEventListener('click', () => { if (app.profile) showHome(); });
-    document.querySelectorAll('[data-go]').forEach(b => b.addEventListener('click', () => {
+    $('#btn-settings').addEventListener('click', showSettings);
+    // ホームのメニュー・下のタブ・設定の中のボタン（data-go）
+    document.addEventListener('click', e => {
+      const b = e.target.closest('[data-go]');
+      if (!b || !app.profile) return;
       const g = b.dataset.go;
-      if (g === 'dungeon') showDungeon();
+      if (g === 'logout') { closeModal(true); app.profile = null; app.backend.signOut(); return; }
+      if (document.body.dataset.screen === 'lobby' && g !== 'lobby') leaveLobby();
+      if (g === 'home') showHome();
+      else if (g === 'dungeon') showDungeon();
       else if (g === 'match') showMatch();
       else if (g === 'lobby') showLobby();
       else if (g === 'gacha') showGacha();
       else if (g === 'team') showTeam();
-      else if (g === 'logout') { app.profile = null; app.backend.signOut(); }
-    }));
+      else if (g === 'zukan') showZukan();
+    });
+    $('#zukan-grid').addEventListener('click', e => {
+      const c = e.target.closest('[data-zukan]');
+      if (c) showZukanEntry(c.dataset.zukan);
+    });
     $('#team-grid').addEventListener('click', e => {
       const ed = e.target.closest('[data-edit]');
       if (ed) { e.stopPropagation(); showLoadoutEditor(ed.dataset.edit); return; }

@@ -77,7 +77,8 @@ test('アカウント登録→ログインボーナス→ログアウト→再�
   assert.equal(Object.keys(p.chars).length, 6);
   assert.equal(p.isAdmin, false);
   await waitSaved(page);
-  await page.click('[data-go="logout"]');
+  await page.click('#btn-settings');
+  await page.click('#modal [data-go="logout"]');
   await page.waitForSelector('#screen-login:not(.hidden)');
   // パスワード違いは日本語で案内
   await signIn(page, mail, 'wrongpass');

@@ -20,7 +20,7 @@ test('単一HTMLは外部ファイル・通信に依存しない（オンライ�
   assert.ok(!/<link[^>]+href=/i.test(html));
   // 'http://' + host はエミュレーター接続用の組み立て（Firebase モード専用）なので、実際のホスト名だけを探す
   assert.ok(!/https?:\/\/[a-z0-9]/i.test(html), 'http(s) の URL が含まれている');
-  assert.ok(!/@import|url\(/i.test(html), 'CSS の外部参照がある');
+  assert.ok(!/@import|url\((?!"data:)/i.test(html), 'CSS の外部参照がある（画像は data URI で埋め込む）');
   assert.ok(!/\bfetch\(|XMLHttpRequest|WebSocket/.test(html), '通信処理がある');
 });
 
