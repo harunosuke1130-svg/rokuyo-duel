@@ -307,6 +307,12 @@ test('desktop: 戦闘画面（盤面の右に操作欄・ドラッグで交代�
   assert.equal(s.swapUsed, true);
   assert.equal(s.teams.player[b0].cd, 2);
   assert.equal(s.leader.player, 0, 'リーダーは変わらない');
+  // マウスでも長押し（動かさずに離す）で技の一覧
+  await page.waitForTimeout(450);
+  const ec = await btBox(page, '#enemy-front .bt-card[data-idx] .bt-art');
+  await page.mouse.move(ec.x, ec.y); await page.mouse.down(); await page.waitForTimeout(450); await page.mouse.up();
+  await page.waitForSelector('#modal[data-kind="moves"]:not(.hidden)');
+  await page.click('#modal [data-close="1"].btn');
   // 2回目は交代できない
   await page.waitForTimeout(450);
   await mouseDrag(page, front(b0), back(f0));
@@ -362,6 +368,24 @@ test('mobile: 戦闘画面（長押ししてスワイプで交代・すぐ動か
   const back = `#ally-back .bt-card[data-idx="${b0}"]`, front = `#ally-front .bt-card[data-idx="${f0}"]`;
   await touch(back, front, 0);
   assert.equal((await H.state(page)).swapUsed, false, 'すぐ動かしたときは交代しない（スクロール扱い）');
+  // 長押しして動かさずに離す → 技の一覧（味方・敵どちらも）。交代はしない
+  const hold = sel => page.evaluate(async sel => {
+    const el = document.querySelector(sel);
+    const r = el.getBoundingClientRect(); const p = { x: r.left + r.width / 2, y: r.top + r.height / 3 };
+    const send = (type, t) => t.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 11, pointerType: 'touch', isPrimary: true, clientX: p.x, clientY: p.y }));
+    send('pointerdown', el); await new Promise(r => setTimeout(r, 450)); send('pointerup', document); el.click();
+  }, sel);
+  await hold(front);
+  await page.waitForSelector('#modal[data-kind="moves"]:not(.hidden)');
+  assert.equal(await page.$$eval('#modal .moves li', l => l.length), 6, '出目1〜6の技');
+  assert.ok(await page.$('#modal .moves li.hit'), '今の出目の技を強調');
+  await page.click('#modal [data-close="1"].btn');
+  assert.equal((await H.state(page)).swapUsed, false);
+  await page.waitForTimeout(450);
+  await hold('#enemy-front .bt-card[data-idx]');
+  await page.waitForSelector('#modal[data-kind="moves"]:not(.hidden)');
+  await page.click('#modal [data-close="1"].btn');
+  await page.waitForTimeout(450);
   // 長押ししてからスワイプ → 交代（後衛→前衛）
   await touch(back, front, 420);
   await H.waitMyAction(page);

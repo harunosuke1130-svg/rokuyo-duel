@@ -143,30 +143,48 @@
    * マウスは少し動かしたら、タッチは長押ししてから持ち上げる（長押し前に動いたらスクロールとして扱う）。
    * o: { selector, ghostClass, canStart(card) → 理由の文字列（動かせないとき）| null,
    *      canDrop(card, target) → bool, onDrop(card, target), enabled() → bool,
-   *      immediate() → true のあいだはタッチも長押しなしで動かし始める, ignore: ここから押した時はドラッグしない }
+   *      immediate() → true のあいだはタッチも長押しなしで動かし始める, ignore: ここから押した時はドラッグしない,
+   *      holdSelector / onHold(card)：長押しして動かさずに離したとき（技の表示など） }
    * 戻り値：suppressed()（ドラッグ直後のクリックを無視する）, busy(), destroy() */
   const DRAG_HOLD_MS = 320, DRAG_SLOP = 8;
   function cardDrag(root, o) {
+    // holdSelector：長押し（動かさずに離す）で onHold を呼ぶカード。ドラッグできないカード（敵など）も含められる
+    const holdSel = o.holdSelector || o.selector;
     let drag = null, suppressUntil = 0;
-    const onContext = e => { if (e.target.closest(o.selector)) e.preventDefault(); };
+    const onContext = e => { if (e.target.closest(holdSel)) e.preventDefault(); };
     root.addEventListener('pointerdown', onDown);
     root.addEventListener('contextmenu', onContext);
     function onDown(e) {
-      const c = e.target.closest(o.selector);
+      const c = e.target.closest(holdSel);
       if (!c || !root.contains(c) || drag || (e.pointerType === 'mouse' && e.button !== 0) || (o.enabled && !o.enabled())) return;
       if (o.ignore && e.target.closest(o.ignore)) return; // 技のボタンなどからはドラッグを始めない
       drag = { card: c, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+        draggable: c.matches(o.selector), held: false, hx: 0, hy: 0, blocked: null,
         touch: e.pointerType !== 'mouse' && !(o.immediate && o.immediate()), active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
-      if (drag.touch) drag.timer = setTimeout(begin, DRAG_HOLD_MS);
+      drag.timer = setTimeout(onHoldTimer, DRAG_HOLD_MS);
       window.addEventListener('pointermove', onMove, { passive: false });
       window.addEventListener('pointerup', onUp);
       window.addEventListener('pointercancel', onCancel);
       window.addEventListener('touchmove', blockScroll, { passive: false });
     }
-    function blockScroll(e) { if (drag && drag.active) e.preventDefault(); }
+    function blockScroll(e) { if (drag && (drag.active || drag.held)) e.preventDefault(); }
+    // 長押しになった：タッチでドラッグできるカードは持ち上げる。それ以外は「長押し中」の印だけ
+    function onHoldTimer() {
+      const d = drag;
+      if (!d || d.active) return;
+      d.held = true; d.hx = d.x; d.hy = d.y;
+      suppressUntil = Infinity;
+      d.card.classList.add('holding');
+      if (d.touch && navigator.vibrate) navigator.vibrate(12);
+      if (d.touch && d.draggable) {
+        d.blocked = o.canStart ? o.canStart(d.card) : null;
+        if (!d.blocked) begin();
+      }
+    }
     function begin() {
       if (!drag || drag.active) return;
-      const reason = o.canStart ? o.canStart(drag.card) : null;
+      if (!drag.draggable) return;
+      const reason = drag.blocked || (o.canStart ? o.canStart(drag.card) : null);
       if (reason) { end(false); suppressUntil = Date.now() + 400; toast(reason); return; }
       drag.active = true;
       suppressUntil = Infinity;
@@ -174,6 +192,7 @@
       drag.dx = drag.x - r.left; drag.dy = drag.y - r.top;
       const g = drag.card.cloneNode(true);
       g.classList.add('drag-ghost');
+      g.classList.remove('holding');
       if (o.ghostClass) g.classList.add(o.ghostClass);
       g.removeAttribute('data-idx');
       g.removeAttribute('id');
@@ -182,7 +201,6 @@
       drag.ghost = g;
       drag.card.classList.add('dragging');
       try { drag.card.setPointerCapture(drag.id); } catch (err) { /* 取れなくても window で追う */ }
-      if (drag.touch && navigator.vibrate) navigator.vibrate(12);
       place();
     }
     function place() {
@@ -200,8 +218,9 @@
       drag.x = e.clientX; drag.y = e.clientY;
       const far = Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > DRAG_SLOP;
       if (!drag.active) {
-        if (drag.touch) { if (far) end(false); return; } // 長押しの前に動いた＝スクロール
         if (!far) return;
+        if (drag.touch && !drag.held) { end(false); return; } // 長押しの前に動いた＝スクロール
+        if (!drag.draggable) { if (!drag.held) end(false); return; }
         begin();
         if (!drag) return;
       }
@@ -210,7 +229,7 @@
     }
     function onUp(e) { if (drag && e.pointerId === drag.id) end(true); }
     function onCancel(e) { if (drag && e.pointerId === drag.id) end(false); }
-    // 交換先の上で離したときだけ onDrop。それ以外（キャンセル・対象外）は何もしない＝元の位置のまま
+    // 交換先の上で離したときだけ onDrop。長押しして動かさずに離したら onHold。それ以外は何もしない＝元の位置のまま
     function end(drop) {
       const d = drag;
       if (!d) return;
@@ -220,12 +239,15 @@
       window.removeEventListener('pointerup', onUp);
       window.removeEventListener('pointercancel', onCancel);
       window.removeEventListener('touchmove', blockScroll);
-      if (!d.active) return;
+      d.card.classList.remove('holding');
+      if (!d.active && !d.held) return;
       suppressUntil = Date.now() + 400;
       if (d.ghost) d.ghost.remove();
       d.card.classList.remove('dragging');
       if (d.target) d.target.classList.remove('drop-target');
+      const still = Math.hypot(d.x - (d.held ? d.hx : d.x0), d.y - (d.held ? d.hy : d.y0)) <= DRAG_SLOP * 2;
       if (drop && d.target) o.onDrop(d.card, d.target);
+      else if (drop && d.held && still && o.onHold) o.onHold(d.card);
     }
     return {
       suppressed: () => Date.now() < suppressUntil,

@@ -436,7 +436,7 @@
     else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロを押して数字を出す'; }
     else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = '数字を出しています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
-    else { phase = '技を選ぶ'; sub = '前衛の技を1つ選ぶ（スキルは絵を押す）'; }
+    else { phase = '技を選ぶ'; sub = '前衛の技を1つ選ぶ（スキルは絵を押す・長押しで技一覧）'; }
     $('#phase-text').textContent = phase;
     $('#phase-sub').textContent = sub;
     $('#screen-battle').classList.toggle('my-turn', s.turnSide === bt.me && (s.phase === 'roll' || s.phase === 'action'));
@@ -768,6 +768,21 @@
     return t.filter((x, i) => x && t.indexOf(x) === i).join('・');
   }
 
+  // 長押し：そのキャラの通常技（出目1〜6）。今の出目と、前衛なら出目の技の効果も
+  function showMovesPeek(side, idx) {
+    const s = bt.state;
+    if (!s) return;
+    const u = s.teams[side][idx];
+    const ch = E.unitChar(u);
+    const acting = side === bt.me && myActing(s) && E.isFront(s, side, idx);
+    const p = acting ? E.previewMove(s, side, idx) : null;
+    openModal(`<h3>${esc(ch.name)}${starsHtml(ch)} の通常技</h3>
+      <p class="muted">出目1〜6に対応する技です。攻撃は敵前衛全員、回復は味方前衛全員に入ります${(u.level || 1) > 1 && !E.isBoss(u.charId) ? `（レベルで攻撃+${E.levelAtkBonus(u.level)}）` : ''}。</p>
+      ${movesList(ch, s.dice && (side === bt.me ? s.turnSide === bt.me : s.turnSide === side) ? s.dice : null, u.loadout)}
+      ${p ? `<div class="effect-box"><b>今の出目 ${s.dice}「${esc(p.move.name)}」</b>${previewChips(p)}</div>` : ''}
+      <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'moves' });
+  }
+
   // キャラの詳細＝固有スキルの確認画面。味方で使えるときだけ「このスキルを使う」。交代の代わりの操作もここから
   function showDetailModal(side, idx) {
     const draw = () => {
@@ -844,6 +859,8 @@
     const layout = $('#screen-battle .bt-layout');
     const dragger = U.cardDrag(layout, {
       selector: '#screen-battle .bt-card.mine:not(.ko)', ghostClass: 'bt-ghost', ignore: '[data-move]',
+      holdSelector: '#screen-battle .bt-card[data-idx]',
+      onHold: c => showMovesPeek(c.dataset.side, Number(c.dataset.idx)),
       enabled: () => !!bt.state && bt.active,
       canStart: () => {
         const s = bt.state;

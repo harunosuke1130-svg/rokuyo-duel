@@ -1188,3 +1188,5 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 @media (min-width: 960px) and (orientation: landscape) {
   .bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 300px); }
 }
+/* 長押し中（技の表示・ドラッグの準備） */
+.bt-card.holding { transform: scale(.97); filter: brightness(1.08); transition: transform .2s; }
