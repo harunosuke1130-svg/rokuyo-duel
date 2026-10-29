@@ -62,10 +62,12 @@ function imageRules() {
       `.el-mark[data-el="${el}"] { background: var(--el-img) center / 74% no-repeat, radial-gradient(circle at 40% 35%, #fbf4e2, #dccaa0 80%); }`, `.el-mark[data-el="${el}"] i { display: none; }`,
       `.el-ico[data-el="${el}"] { display: inline-block; background: var(--el-img) center / contain no-repeat; }`);
   });
-  // src/img/battle/<背景ID>.* を置くと、その戦闘の背景になる（forest / sea / tower / arena）
+  // src/img/battle/<背景ID>.* を置くと、その戦闘の背景になる（forest / sea / tower / arena）。
+  // <背景ID>-portrait.* と <背景ID>-landscape.* を置くと、縦画面・横画面で切り替える。専用の背景はぼかさない
   list('battle').forEach(f => {
-    const bg = path.basename(f, path.extname(f));
-    rules.push(`#screen-battle[data-bg="${bg}"] { --bt-img: url("img/battle/${f}"); }`);
+    const m = path.basename(f, path.extname(f)).match(/^(.+?)(?:-(portrait|landscape))?$/);
+    const rule = `#screen-battle[data-bg="${m[1]}"] { --bt-img: url("img/battle/${f}"); --bt-blur: 0px; }`;
+    rules.push(m[2] ? `@media (orientation: ${m[2]}) { ${rule} }` : rule);
   });
   return rules.length ? '\n/* ---- src/img/chara・element・battle から自動生成 ---- */\n' + rules.join('\n') + '\n' : '';
 }

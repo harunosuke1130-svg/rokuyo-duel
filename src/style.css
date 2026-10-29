@@ -840,13 +840,12 @@ body[data-screen="battle"] .topbar { display: none; }
   background:
     linear-gradient(180deg, rgba(10, 8, 5, .62), rgba(10, 8, 5, .38) 35%, rgba(10, 8, 5, .45) 65%, rgba(10, 8, 5, .72)),
     var(--bt-img, linear-gradient(180deg, #2a2016, #120d08)) center / cover no-repeat;
-  filter: blur(1.5px) saturate(.95);
+  filter: blur(var(--bt-blur, 1.5px)) saturate(.95);
 }
 /* 背景（ダンジョンごと）。src/img/battle/<ID>.webp を置くとビルドで差し替わる */
 #screen-battle[data-bg="forest"] { --bt-img: var(--img-dungeon); }
 #screen-battle[data-bg="arena"] { --bt-img: var(--img-match); }
 #screen-battle[data-bg="tower"] { --bt-img: var(--img-gacha); }
-#screen-battle[data-bg="sea"] { --bt-img: radial-gradient(ellipse 90% 60% at 50% 10%, #3a7fa8, #12364f 55%, #06151f); }
 
 .bt-layout {
   display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px;
@@ -1180,3 +1179,12 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 .pv-range { margin-right: 6px; }
 .fm-name { display: flex; flex-direction: column; }
 .fm-name .stars { margin: 1px 0 0; font-size: 12px; line-height: 1; }
+
+/* ダンジョンの敵（1体）：上部中央に大きく、絵を切り取らずに見せる */
+.bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 72%); }
+.bt-front-row[data-count="1"] .bt-art { aspect-ratio: 1 / 1.12; }
+.bt-front-row[data-count="1"] .bt-art .portrait { background-position: center 12%; }
+.bt-front-row[data-count="1"] .bt-name { font-size: 16px; }
+@media (min-width: 960px) and (orientation: landscape) {
+  .bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 300px); }
+}

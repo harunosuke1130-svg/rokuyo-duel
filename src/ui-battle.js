@@ -387,7 +387,7 @@
     const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${st === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
     return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${u.hp <= 0 ? ' ko' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
-      <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: true })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${u.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(u) : ''}</span>
+      <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: !E.isBoss(u.charId) })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${u.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(u) : ''}</span>
       ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}${starsHtml(ch)}</span><span class="bt-hpline">${hpNum(u)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(u)}</span>`
         : `${hpBar(u)}<span class="bt-backline">${starsHtml(ch)}${u.hp > 0 && u.cd > 0 && !hidden ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : ''}</span>`}
       ${withMove ? `<span class="bt-move">${moveArea(i)}</span>` : ''}
