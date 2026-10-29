@@ -706,3 +706,7 @@ body[data-screen="home"] .topbar { display: none; }
 .zk-detail .portrait i { font-size: 40px; }
 body[data-screen="home"] #toast, body[data-screen="team"] #toast, body[data-screen="zukan"] #toast, body[data-screen="lobby"] #toast,
 body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-screen="dungeon"] #toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+.slot-btn.locked-move { opacity: .55; cursor: default; }
+.slot-btn.locked-move .eff { font-size: 12px; }
+.unlock-note { margin: 8px 0 0; color: var(--gold2); font-weight: 700; font-size: 13.5px; }
+.moves small { font-weight: 400; font-size: 11px; margin-left: 4px; }

@@ -113,19 +113,27 @@
     const moves = getChar(charId).moves;
     return loadout.reduce((sum, k) => sum + (moves[k] ? movePower(moves[k]) : 0), 0);
   }
-  // 技力の上限 = 初期構成の技力 + CONFIG.LOADOUT_POWER_MARGIN
-  function loadoutBudget(charId) {
-    return loadoutPower(charId, defaultLoadout(charId)) + CONFIG.LOADOUT_POWER_MARGIN;
+  // 技力の上限 = 初期構成の技力 + CONFIG.LOADOUT_POWER_MARGIN + レベルによる上昇
+  function loadoutBudget(charId, level) {
+    return loadoutPower(charId, defaultLoadout(charId)) + CONFIG.LOADOUT_POWER_MARGIN + CONFIG.LEVEL.powerPerLevel * (clampLevel(level) - 1);
   }
-  // 構成として正しくない理由（正しければ null）
-  function loadoutError(charId, loadout) {
+  // 技の候補 k 番目（0から）が使えるようになるレベル（初期構成の6個は最初から）
+  function moveUnlockLevel(k) {
+    if (k < CONFIG.LOADOUT_SIZE) return 1;
+    const list = CONFIG.LEVEL.moveUnlock;
+    return list[Math.min(k - CONFIG.LOADOUT_SIZE, list.length - 1)];
+  }
+  // 構成として正しくない理由（正しければ null）。level 省略時はLv1として判定
+  function loadoutError(charId, loadout, level) {
     const c = getChar(charId);
     if (!c) return '不明なキャラクターです';
     if (!Array.isArray(loadout) || loadout.length !== CONFIG.LOADOUT_SIZE) return `技を${CONFIG.LOADOUT_SIZE}個選んでください`;
     if (!loadout.every(k => Number.isInteger(k) && k >= 0 && k < c.moves.length)) return '存在しない技が含まれています';
     if (new Set(loadout).size !== loadout.length) return '同じ技は2回入れられません';
+    const locked = loadout.find(k => moveUnlockLevel(k) > clampLevel(level));
+    if (locked !== undefined) return `「${c.moves[locked].name}」はLv${moveUnlockLevel(locked)}で使えるようになります`;
     const power = loadoutPower(charId, loadout);
-    const budget = loadoutBudget(charId);
+    const budget = loadoutBudget(charId, level);
     if (power > budget) return `技力の合計が上限を超えています（${power} / ${budget}）`;
     return null;
   }
@@ -179,7 +187,7 @@
     const c = getChar(charId);
     if (!c) throw new Error('不明なキャラクター: ' + charId);
     const lo = loadout || defaultLoadout(charId);
-    const err = loadoutError(charId, lo);
+    const err = loadoutError(charId, lo, level);
     if (err) throw new Error(c.name + '：' + err);
     const lv = clampLevel(level);
     const hp = levelMaxHp(c.maxHp, lv);
@@ -662,7 +670,7 @@
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, isBoss, BOSSES,
-    movePower, defaultLoadout, loadoutPower, loadoutBudget, loadoutError, unitMove,
+    movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus,

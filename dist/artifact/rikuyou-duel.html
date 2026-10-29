@@ -709,6 +709,10 @@ body[data-screen="home"] .topbar { display: none; }
 .zk-detail .portrait i { font-size: 40px; }
 body[data-screen="home"] #toast, body[data-screen="team"] #toast, body[data-screen="zukan"] #toast, body[data-screen="lobby"] #toast,
 body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-screen="dungeon"] #toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+.slot-btn.locked-move { opacity: .55; cursor: default; }
+.slot-btn.locked-move .eff { font-size: 12px; }
+.unlock-note { margin: 8px 0 0; color: var(--gold2); font-weight: 700; font-size: 13.5px; }
+.moves small { font-weight: 400; font-size: 11px; margin-left: 4px; }
 </style>
 <div id="app">
   <header class="topbar">
@@ -916,13 +920,15 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
     TEAM_SIZE: 6,              // 編成する人数
     FRONT_SIZE: 3,             // 前衛の枠数（残りは後衛）
     LOADOUT_SIZE: 6,           // 出目に割り当てる技の数（1〜6）
-    LOADOUT_POWER_MARGIN: 5,   // 技の入れ替えで、初期構成の技力（攻撃＋回復の合計）をどれだけ超えてよいか
+    LOADOUT_POWER_MARGIN: 5,   // 技の入れ替えで、初期構成の技力（攻撃＋回復の合計）をどれだけ超えてよいか（Lv1のとき）
     LEVEL: {
       max: 30,                 // 最大レベル
       hpPercentPerLevel: 4,    // 1レベルごとの最大HP上昇（基礎値に対する%）
       atkPerLevel: 1,          // 1レベルごとの通常技の攻撃加算（攻撃0の技は除く）
       expBase: 100,            // Lv1→2 に必要な経験値
-      expStep: 50              // 以降1レベルごとに必要経験値が増える量
+      expStep: 50,             // 以降1レベルごとに必要経験値が増える量
+      moveUnlock: [3, 6, 10],  // 技の候補の7・8・9個目が使えるようになるレベル（1〜6個目は最初から）
+      powerPerLevel: 1         // 1レベルごとに技力の上限が上がる量
     },
     DICE_SIDES: 6,             // 出目の最大値（1〜6）
     ADVANTAGE_MULTIPLIER: 1.05, // 属性有利の倍率（ここ1か所で変更）
@@ -1356,19 +1362,27 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
     const moves = getChar(charId).moves;
     return loadout.reduce((sum, k) => sum + (moves[k] ? movePower(moves[k]) : 0), 0);
   }
-  // 技力の上限 = 初期構成の技力 + CONFIG.LOADOUT_POWER_MARGIN
-  function loadoutBudget(charId) {
-    return loadoutPower(charId, defaultLoadout(charId)) + CONFIG.LOADOUT_POWER_MARGIN;
+  // 技力の上限 = 初期構成の技力 + CONFIG.LOADOUT_POWER_MARGIN + レベルによる上昇
+  function loadoutBudget(charId, level) {
+    return loadoutPower(charId, defaultLoadout(charId)) + CONFIG.LOADOUT_POWER_MARGIN + CONFIG.LEVEL.powerPerLevel * (clampLevel(level) - 1);
   }
-  // 構成として正しくない理由（正しければ null）
-  function loadoutError(charId, loadout) {
+  // 技の候補 k 番目（0から）が使えるようになるレベル（初期構成の6個は最初から）
+  function moveUnlockLevel(k) {
+    if (k < CONFIG.LOADOUT_SIZE) return 1;
+    const list = CONFIG.LEVEL.moveUnlock;
+    return list[Math.min(k - CONFIG.LOADOUT_SIZE, list.length - 1)];
+  }
+  // 構成として正しくない理由（正しければ null）。level 省略時はLv1として判定
+  function loadoutError(charId, loadout, level) {
     const c = getChar(charId);
     if (!c) return '不明なキャラクターです';
     if (!Array.isArray(loadout) || loadout.length !== CONFIG.LOADOUT_SIZE) return `技を${CONFIG.LOADOUT_SIZE}個選んでください`;
     if (!loadout.every(k => Number.isInteger(k) && k >= 0 && k < c.moves.length)) return '存在しない技が含まれています';
     if (new Set(loadout).size !== loadout.length) return '同じ技は2回入れられません';
+    const locked = loadout.find(k => moveUnlockLevel(k) > clampLevel(level));
+    if (locked !== undefined) return `「${c.moves[locked].name}」はLv${moveUnlockLevel(locked)}で使えるようになります`;
     const power = loadoutPower(charId, loadout);
-    const budget = loadoutBudget(charId);
+    const budget = loadoutBudget(charId, level);
     if (power > budget) return `技力の合計が上限を超えています（${power} / ${budget}）`;
     return null;
   }
@@ -1422,7 +1436,7 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
     const c = getChar(charId);
     if (!c) throw new Error('不明なキャラクター: ' + charId);
     const lo = loadout || defaultLoadout(charId);
-    const err = loadoutError(charId, lo);
+    const err = loadoutError(charId, lo, level);
     if (err) throw new Error(c.name + '：' + err);
     const lv = clampLevel(level);
     const hp = levelMaxHp(c.maxHp, lv);
@@ -1905,7 +1919,7 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, isBoss, BOSSES,
-    movePower, defaultLoadout, loadoutPower, loadoutBudget, loadoutError, unitMove,
+    movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus,
@@ -2188,7 +2202,8 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
     p.chars = chars;
     const lo = {};
     Object.keys(raw.loadouts || {}).forEach(id => {
-      if (Engine.getChar(id) && !Engine.loadoutError(id, raw.loadouts[id])) lo[id] = raw.loadouts[id].slice();
+      const lv = chars[id] ? chars[id].level : 1;
+      if (Engine.getChar(id) && !Engine.loadoutError(id, raw.loadouts[id], lv)) lo[id] = raw.loadouts[id].slice();
     });
     p.loadouts = lo;
     p.team = Array.isArray(raw.team) ? raw.team.filter((id, i, a) => chars[id] && a.indexOf(id) === i).slice(0, CONFIG.TEAM_SIZE) : [];
@@ -2229,7 +2244,10 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
   }
   function loadoutsFor(p, ids) {
     const out = {};
-    ids.forEach(id => { out[id] = p.loadouts[id] || Engine.defaultLoadout(id); });
+    ids.forEach(id => {
+      const lo = p.loadouts[id];
+      out[id] = lo && !Engine.loadoutError(id, lo, levelOf(p, id)) ? lo : Engine.defaultLoadout(id);
+    });
     return out;
   }
 
@@ -2248,7 +2266,7 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
   }
   function setLoadout(p, id, loadout) {
     if (!owns(p, id)) return { ok: false, error: '持っていないキャラです' };
-    const err = Engine.loadoutError(id, loadout);
+    const err = Engine.loadoutError(id, loadout, levelOf(p, id));
     if (err) return { ok: false, error: err };
     if (loadout.join() === Engine.defaultLoadout(id).join()) delete p.loadouts[id];
     else p.loadouts[id] = loadout.slice();
@@ -3917,8 +3935,10 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
           <p class="muted">ガチャで仲間にできます。</p>${leaderBox(ch)}</div>`;
       }
       const c = p.chars[ch.id];
-      const lo = p.loadouts[ch.id] || E.defaultLoadout(ch.id);
-      const custom = !!p.loadouts[ch.id];
+      const lo = P.loadoutsFor(p, [ch.id])[ch.id];
+      const custom = lo.join() !== E.defaultLoadout(ch.id).join();
+      const usable = ch.moves.filter((m, k) => E.moveUnlockLevel(k) <= c.level).length;
+      const nextUnlock = ch.moves.map((m, k) => E.moveUnlockLevel(k)).filter(l => l > c.level).sort((a, b) => a - b)[0];
       const maxed = c.level >= CONFIG.LEVEL.max;
       return `<div class="pick-card${sel ? ' selected' : ''}" data-pick="${ch.id}" role="button" tabindex="0" aria-pressed="${sel}">
         <span class="pick-mark">${sel ? '選択中 ' + (app.picked.indexOf(ch.id) + 1) : '未選択'}</span>
@@ -3926,7 +3946,7 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
         <div>${elementTag(ch)}${subTags(ch)}</div>
         <div class="hptext">最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</div></div></div>
         <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
-        <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(ch.id, lo)} / ${E.loadoutBudget(ch.id)}・候補${ch.moves.length}個</span></div>
+        <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(ch.id, lo)} / ${E.loadoutBudget(ch.id, c.level)}・使える技${usable}/${ch.moves.length}${nextUnlock ? `（次はLv${nextUnlock}）` : ''}</span></div>
         ${movesList(ch, null, lo)}
         <button type="button" class="btn btn-small btn-ghost btn-block btn-edit" data-edit="${ch.id}">技の入れ替え・並べ替え</button>
         <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
@@ -3947,21 +3967,25 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
 
   function showLoadoutEditor(charId) {
     const ch = E.getChar(charId);
-    let draft = (app.profile.loadouts[charId] || E.defaultLoadout(charId)).slice();
+    const lv = P.levelOf(app.profile, charId);
+    let draft = P.loadoutsFor(app.profile, [charId])[charId].slice();
     let sel = null;
     const draw = () => {
-      const err = E.loadoutError(charId, draft);
+      const err = E.loadoutError(charId, draft, lv);
       const power = E.loadoutPower(charId, draft);
-      const budget = E.loadoutBudget(charId);
+      const budget = E.loadoutBudget(charId, lv);
       const unused = ch.moves.map((m, k) => k).filter(k => draft.indexOf(k) < 0);
+      const open = unused.filter(k => E.moveUnlockLevel(k) <= lv);
+      const locked = unused.filter(k => E.moveUnlockLevel(k) > lv);
       $('#modal-body').innerHTML = `<h3>技のカスタム：${esc(ch.name)}</h3>
-        <p class="muted">枠（出目）を押して選び、<b>別の枠</b>を押すと順番を入れ替え、<b>控えの技</b>を押すとその枠の技と交換します。技力（攻撃＋回復）の合計は上限まで。</p>
-        <div class="power-meter${power > budget ? ' over' : ''}">技力 <b>${power}</b> / 上限 ${budget}
+        <p class="muted">枠（出目）を押して選び、<b>別の枠</b>を押すと順番を入れ替え、<b>控えの技</b>を押すとその枠の技と交換します。技力（攻撃＋回復）の合計は上限まで。<b>レベルが上がると上限が上がり、控えの技も解放されます。</b></p>
+        <div class="power-meter${power > budget ? ' over' : ''}">技力 <b>${power}</b> / 上限 ${budget}<span class="muted">（Lv${lv}${lv > 1 ? `・レベルで+${budget - E.loadoutBudget(charId, 1)}` : ''}）</span>
           <div class="hpbar"><i style="width:${Math.min(100, power / budget * 100)}%"></i></div></div>
         <h4>出目1〜6の技</h4>
         <div class="slot-list">${draft.map((k, d) => `<button type="button" class="slot-btn${sel === d ? ' selected' : ''}" data-slot="${d}"><span class="num">${d + 1}</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">${moveEffText(ch.moves[k])}</span></button>`).join('')}</div>
-        <h4>控えの技（${unused.length}個）</h4>
-        <div class="slot-list">${unused.map(k => `<button type="button" class="slot-btn pool" data-pool="${k}"${sel === null ? ' aria-disabled="true"' : ''}><span class="num">控</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">${moveEffText(ch.moves[k])}</span></button>`).join('')}</div>
+        <h4>控えの技（${open.length}個）</h4>
+        <div class="slot-list">${open.map(k => `<button type="button" class="slot-btn pool" data-pool="${k}"${sel === null ? ' aria-disabled="true"' : ''}><span class="num">控</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">${moveEffText(ch.moves[k])}</span></button>`).join('') || '<p class="muted">ありません</p>'}</div>
+        ${locked.length ? `<h4>まだ使えない技</h4><div class="slot-list">${locked.map(k => `<div class="slot-btn pool locked-move"><span class="num">鍵</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">Lv${E.moveUnlockLevel(k)}で解放・${moveEffText(ch.moves[k])}</span></div>`).join('')}</div>` : ''}
         ${sel !== null ? `<p class="muted">選択中：出目${sel + 1}「${esc(ch.moves[draft[sel]].name)}」</p>` : ''}
         <div class="modal-actions">
           ${err ? `<div class="reason">保存できません：${esc(err)}</div>` : ''}
@@ -4036,7 +4060,18 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
       ${stones ? `<div class="big-reward">石 +${stones}${note ? ` <small>${esc(note)}</small>` : ''}</div>` : ''}
       <div>チームの6体がそれぞれ経験値 <b>+${exp}</b></div>
       ${ups.length ? `<div class="levelups">${ups.map(u => `<span class="team-chip">${esc(E.getChar(u.id).name)} <b>Lv${u.from}→${u.to}</b></span>`).join('')}</div>` : ''}
+      ${ups.length ? `<p class="muted">レベルアップで技力の上限も上がりました。</p>` : ''}
+      ${unlockedHtml(ups)}
     </div>`;
+  }
+  // レベルアップで新しく使えるようになった技
+  function unlockedHtml(ups) {
+    const list = [];
+    ups.forEach(u => {
+      const ch = E.getChar(u.id);
+      ch.moves.forEach((m, k) => { const l = E.moveUnlockLevel(k); if (l > u.from && l <= u.to) list.push(`${ch.name}「${m.name}」`); });
+    });
+    return list.length ? `<p class="unlock-note">新しい技が使えるようになりました：${list.map(esc).join('、')}<br><span class="muted">「編成」の「技の入れ替え・並べ替え」で入れられます</span></p>` : '';
   }
 
   function resultModal(won, title, round, body, buttons) {
@@ -4372,10 +4407,12 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
     const p = app.profile;
     const owned = P.owns(p, id);
     const lv = owned ? P.levelOf(p, id) : 1;
-    const lo = (owned && p.loadouts[id]) || E.defaultLoadout(id);
+    const lo = owned ? P.loadoutsFor(p, [id])[id] : E.defaultLoadout(id);
     const moves = ch.moves.map((m, k) => {
       const slot = lo.indexOf(k);
-      return `<li class="${slot >= 0 ? 'hit' : ''}"><span class="num">${slot >= 0 ? slot + 1 : '・'}</span><span>${esc(m.name)}</span><span class="eff">${moveEffText(m)}</span></li>`;
+      const unlock = E.moveUnlockLevel(k);
+      const lockNote = unlock > 1 ? ` <small class="${unlock > lv ? 'reason' : 'muted'}">Lv${unlock}〜</small>` : '';
+      return `<li class="${slot >= 0 ? 'hit' : ''}"><span class="num">${slot >= 0 ? slot + 1 : '・'}</span><span>${esc(m.name)}${lockNote}</span><span class="eff">${moveEffText(m)}</span></li>`;
     }).join('');
     openModal(`<div class="zk-detail">${portrait(ch, { dim: !owned })}<div>
         <h3>${esc(ch.name)}</h3>
@@ -4383,6 +4420,7 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
         <p class="hptext">${owned ? `Lv${lv}・最大HP <b>${E.levelMaxHp(ch.maxHp, lv)}</b>（基礎${ch.maxHp}）` : `最大HP <b>${ch.maxHp}</b>（Lv1）・<span class="reason">未所持</span>`}</p>
       </div></div>
       <h4>技（候補${ch.moves.length}個・番号は${owned ? '今の' : '初期の'}出目）</h4>
+      <p class="muted">技力の上限 ${E.loadoutBudget(id, lv)}（Lv${lv}）。「Lv○〜」の技はそのレベルから入れ替えに使えます。</p>
       <ul class="moves">${moves}</ul>
       <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
       ${leaderBox(ch)}
@@ -4410,7 +4448,7 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
       <ul class="help-list">
         <li><b>レベル</b>：1レベルごとに最大HP+${CONFIG.LEVEL.hpPercentPerLevel}%、通常技の攻撃+${CONFIG.LEVEL.atkPerLevel}（攻撃0の技は除く）。最大Lv${CONFIG.LEVEL.max}。</li>
         <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>
-        <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。</li>
+        <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。7・8・9個目の技はLv${CONFIG.LEVEL.moveUnlock.join('・')}で解放、技力の上限は1レベルごとに+${CONFIG.LEVEL.powerPerLevel}。</li>
         <li><b>リーダースキル</b>：リーダーにしたキャラの効果が戦闘中ずっと有効です。</li>
       </ul>
       <h4>石の集め方</h4>

@@ -92,12 +92,14 @@ test('プロフィール：初期は6体所持・石300、管理用アカウン�
   const a = P.newProfile({ uid: 'adm', name: '管理', isAdmin: true });
   assert.equal(P.ownedIds(a).length, 8);
   // 保存データからの読み込み：管理用は不足分を補う・不正値は直す
-  const s = P.sanitize({ name: 'x', stones: -5, chars: { ryogen: { level: 99, exp: 'a' }, nobody: { level: 3 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5] } }, { uid: 'adm', isAdmin: true });
+  const s = P.sanitize({ name: 'x', stones: -5, chars: { ryogen: { level: 99, exp: 'a' }, nobody: { level: 3 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5], gessen: [0, 1, 2, 3, 4, 6] } }, { uid: 'adm', isAdmin: true });
   assert.equal(s.stones, 0);
   assert.equal(s.chars.ryogen.level, D.CONFIG.LEVEL.max);
   assert.equal(s.chars.nobody, undefined);
   assert.equal(P.ownedIds(s).length, 8);
-  assert.deepEqual(s.loadouts, {}, '上限超えの技構成は捨てる');
+  assert.deepEqual(s.loadouts, { ryogen: [7, 1, 2, 3, 4, 5] }, 'Lv30なら上限内なので残し、Lv1でまだ使えない技を含む構成は捨てる');
+  const lo = P.sanitize({ chars: { ryogen: { level: 13 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5] } }, { uid: 'u' });
+  assert.deepEqual(lo.loadouts, {}, 'Lv13では上限超えなので捨てる');
   const n = P.sanitize({ chars: { ryogen: { level: 2 } } }, { uid: 'u' });
   assert.equal(P.ownedIds(n).length, 1, '一般ユーザーは所持分だけ');
 });

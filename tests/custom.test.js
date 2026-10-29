@@ -26,13 +26,29 @@ test('技の構成：8個以上から6個を選び、順番を入れ替えられ
   // 燎原の初期構成：火花8・斬り払い14・紅蓮の一閃32・息を整える回20・炎の輪22・燃え尽きる刃38 ＝ 技力134
   assert.equal(E.loadoutBudget('ryogen'), 134 + E.CONFIG.LOADOUT_POWER_MARGIN);
   assert.equal(E.loadoutError('ryogen', [5, 4, 3, 2, 1, 0]), null, '並べ替えだけなら常に可');
-  assert.equal(E.loadoutError('ryogen', [0, 1, 2, 3, 4, 7]), null, '燃え尽きる刃38 → 灰燼の突き26');
-  assert.equal(E.loadoutError('ryogen', [0, 1, 2, 6, 4, 5]), null, '息を整える20 → 焔の構え(18+6)：技力138 は上限139以内');
-  assert.match(E.loadoutError('ryogen', [7, 1, 2, 3, 4, 5]), /上限/, '火花8 → 灰燼の突き26：技力152 は上限超え');
+  assert.equal(E.loadoutError('ryogen', [0, 1, 2, 3, 4, 7], 6), null, '燃え尽きる刃38 → 灰燼の突き26（Lv6）');
+  assert.equal(E.loadoutError('ryogen', [0, 1, 2, 6, 4, 5], 3), null, '息を整える20 → 焔の構え(18+6)：技力138 は上限141以内（Lv3）');
+  assert.match(E.loadoutError('ryogen', [7, 1, 2, 3, 4, 5], 6), /上限/, '火花8 → 灰燼の突き26：技力152 は上限144超え（Lv6）');
   assert.match(E.loadoutError('ryogen', [0, 0, 1, 2, 3, 4]), /同じ技/);
   assert.match(E.loadoutError('ryogen', [0, 1, 2, 3, 4]), /6個/);
   assert.match(E.loadoutError('ryogen', [0, 1, 2, 3, 4, 99]), /存在しない/);
-  assert.throws(() => E.createBattle(P, C, { loadouts: { player: { ryogen: [7, 1, 2, 3, 4, 5] } } }), /上限/);
+  assert.throws(() => E.createBattle(P, C, { loadouts: { player: { ryogen: [7, 1, 2, 3, 4, 5] } }, levels: { player: { ryogen: 6 } } }), /上限/);
+});
+
+test('レベルで技が解放され、技力の上限が上がる', () => {
+  const L = E.CONFIG.LEVEL;
+  assert.deepEqual([0, 5, 6, 7, 8].map(E.moveUnlockLevel), [1, 1, L.moveUnlock[0], L.moveUnlock[1], L.moveUnlock[2]]);
+  assert.equal(E.loadoutBudget('ryogen', 10), E.loadoutBudget('ryogen') + 9 * L.powerPerLevel);
+  assert.equal(E.loadoutBudget('ryogen', 999), E.loadoutBudget('ryogen', L.max), '上限は最大レベルまで');
+  // 焔の構え（7個目）は Lv3 から
+  assert.match(E.loadoutError('ryogen', [0, 1, 2, 6, 4, 5], 2), /Lv3で使えるようになります/);
+  assert.equal(E.loadoutError('ryogen', [0, 1, 2, 6, 4, 5], 3), null);
+  // 火花8 → 灰燼の突き26（技力152）：上限139＋(Lv−1)。Lv14 で152に届く
+  assert.match(E.loadoutError('ryogen', [7, 1, 2, 3, 4, 5], 13), /上限/);
+  assert.equal(E.loadoutError('ryogen', [7, 1, 2, 3, 4, 5], 14), null);
+  assert.throws(() => E.createBattle(P, C, { loadouts: { player: { ryogen: [0, 1, 2, 6, 4, 5] } } }), /Lv3/, 'Lv1では戦闘に使えない');
+  const s = E.createBattle(P, C, { loadouts: { player: { ryogen: [7, 1, 2, 3, 4, 5] } }, levels: { player: { ryogen: 14 } } });
+  assert.equal(E.unitMove(s.teams.player[0], 1).name, '灰燼の突き');
 });
 
 test('並べ替えた構成で、出目と技の対応が変わる（CPUは初期構成）', () => {

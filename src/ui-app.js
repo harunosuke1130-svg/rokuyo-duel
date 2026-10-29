@@ -207,8 +207,10 @@
           <p class="muted">ガチャで仲間にできます。</p>${leaderBox(ch)}</div>`;
       }
       const c = p.chars[ch.id];
-      const lo = p.loadouts[ch.id] || E.defaultLoadout(ch.id);
-      const custom = !!p.loadouts[ch.id];
+      const lo = P.loadoutsFor(p, [ch.id])[ch.id];
+      const custom = lo.join() !== E.defaultLoadout(ch.id).join();
+      const usable = ch.moves.filter((m, k) => E.moveUnlockLevel(k) <= c.level).length;
+      const nextUnlock = ch.moves.map((m, k) => E.moveUnlockLevel(k)).filter(l => l > c.level).sort((a, b) => a - b)[0];
       const maxed = c.level >= CONFIG.LEVEL.max;
       return `<div class="pick-card${sel ? ' selected' : ''}" data-pick="${ch.id}" role="button" tabindex="0" aria-pressed="${sel}">
         <span class="pick-mark">${sel ? '選択中 ' + (app.picked.indexOf(ch.id) + 1) : '未選択'}</span>
@@ -216,7 +218,7 @@
         <div>${elementTag(ch)}${subTags(ch)}</div>
         <div class="hptext">最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</div></div></div>
         <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
-        <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(ch.id, lo)} / ${E.loadoutBudget(ch.id)}・候補${ch.moves.length}個</span></div>
+        <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(ch.id, lo)} / ${E.loadoutBudget(ch.id, c.level)}・使える技${usable}/${ch.moves.length}${nextUnlock ? `（次はLv${nextUnlock}）` : ''}</span></div>
         ${movesList(ch, null, lo)}
         <button type="button" class="btn btn-small btn-ghost btn-block btn-edit" data-edit="${ch.id}">技の入れ替え・並べ替え</button>
         <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
@@ -237,21 +239,25 @@
 
   function showLoadoutEditor(charId) {
     const ch = E.getChar(charId);
-    let draft = (app.profile.loadouts[charId] || E.defaultLoadout(charId)).slice();
+    const lv = P.levelOf(app.profile, charId);
+    let draft = P.loadoutsFor(app.profile, [charId])[charId].slice();
     let sel = null;
     const draw = () => {
-      const err = E.loadoutError(charId, draft);
+      const err = E.loadoutError(charId, draft, lv);
       const power = E.loadoutPower(charId, draft);
-      const budget = E.loadoutBudget(charId);
+      const budget = E.loadoutBudget(charId, lv);
       const unused = ch.moves.map((m, k) => k).filter(k => draft.indexOf(k) < 0);
+      const open = unused.filter(k => E.moveUnlockLevel(k) <= lv);
+      const locked = unused.filter(k => E.moveUnlockLevel(k) > lv);
       $('#modal-body').innerHTML = `<h3>技のカスタム：${esc(ch.name)}</h3>
-        <p class="muted">枠（出目）を押して選び、<b>別の枠</b>を押すと順番を入れ替え、<b>控えの技</b>を押すとその枠の技と交換します。技力（攻撃＋回復）の合計は上限まで。</p>
-        <div class="power-meter${power > budget ? ' over' : ''}">技力 <b>${power}</b> / 上限 ${budget}
+        <p class="muted">枠（出目）を押して選び、<b>別の枠</b>を押すと順番を入れ替え、<b>控えの技</b>を押すとその枠の技と交換します。技力（攻撃＋回復）の合計は上限まで。<b>レベルが上がると上限が上がり、控えの技も解放されます。</b></p>
+        <div class="power-meter${power > budget ? ' over' : ''}">技力 <b>${power}</b> / 上限 ${budget}<span class="muted">（Lv${lv}${lv > 1 ? `・レベルで+${budget - E.loadoutBudget(charId, 1)}` : ''}）</span>
           <div class="hpbar"><i style="width:${Math.min(100, power / budget * 100)}%"></i></div></div>
         <h4>出目1〜6の技</h4>
         <div class="slot-list">${draft.map((k, d) => `<button type="button" class="slot-btn${sel === d ? ' selected' : ''}" data-slot="${d}"><span class="num">${d + 1}</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">${moveEffText(ch.moves[k])}</span></button>`).join('')}</div>
-        <h4>控えの技（${unused.length}個）</h4>
-        <div class="slot-list">${unused.map(k => `<button type="button" class="slot-btn pool" data-pool="${k}"${sel === null ? ' aria-disabled="true"' : ''}><span class="num">控</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">${moveEffText(ch.moves[k])}</span></button>`).join('')}</div>
+        <h4>控えの技（${open.length}個）</h4>
+        <div class="slot-list">${open.map(k => `<button type="button" class="slot-btn pool" data-pool="${k}"${sel === null ? ' aria-disabled="true"' : ''}><span class="num">控</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">${moveEffText(ch.moves[k])}</span></button>`).join('') || '<p class="muted">ありません</p>'}</div>
+        ${locked.length ? `<h4>まだ使えない技</h4><div class="slot-list">${locked.map(k => `<div class="slot-btn pool locked-move"><span class="num">鍵</span><span class="s-name">${esc(ch.moves[k].name)}</span><span class="eff">Lv${E.moveUnlockLevel(k)}で解放・${moveEffText(ch.moves[k])}</span></div>`).join('')}</div>` : ''}
         ${sel !== null ? `<p class="muted">選択中：出目${sel + 1}「${esc(ch.moves[draft[sel]].name)}」</p>` : ''}
         <div class="modal-actions">
           ${err ? `<div class="reason">保存できません：${esc(err)}</div>` : ''}
@@ -326,7 +332,18 @@
       ${stones ? `<div class="big-reward">石 +${stones}${note ? ` <small>${esc(note)}</small>` : ''}</div>` : ''}
       <div>チームの6体がそれぞれ経験値 <b>+${exp}</b></div>
       ${ups.length ? `<div class="levelups">${ups.map(u => `<span class="team-chip">${esc(E.getChar(u.id).name)} <b>Lv${u.from}→${u.to}</b></span>`).join('')}</div>` : ''}
+      ${ups.length ? `<p class="muted">レベルアップで技力の上限も上がりました。</p>` : ''}
+      ${unlockedHtml(ups)}
     </div>`;
+  }
+  // レベルアップで新しく使えるようになった技
+  function unlockedHtml(ups) {
+    const list = [];
+    ups.forEach(u => {
+      const ch = E.getChar(u.id);
+      ch.moves.forEach((m, k) => { const l = E.moveUnlockLevel(k); if (l > u.from && l <= u.to) list.push(`${ch.name}「${m.name}」`); });
+    });
+    return list.length ? `<p class="unlock-note">新しい技が使えるようになりました：${list.map(esc).join('、')}<br><span class="muted">「編成」の「技の入れ替え・並べ替え」で入れられます</span></p>` : '';
   }
 
   function resultModal(won, title, round, body, buttons) {
@@ -662,10 +679,12 @@
     const p = app.profile;
     const owned = P.owns(p, id);
     const lv = owned ? P.levelOf(p, id) : 1;
-    const lo = (owned && p.loadouts[id]) || E.defaultLoadout(id);
+    const lo = owned ? P.loadoutsFor(p, [id])[id] : E.defaultLoadout(id);
     const moves = ch.moves.map((m, k) => {
       const slot = lo.indexOf(k);
-      return `<li class="${slot >= 0 ? 'hit' : ''}"><span class="num">${slot >= 0 ? slot + 1 : '・'}</span><span>${esc(m.name)}</span><span class="eff">${moveEffText(m)}</span></li>`;
+      const unlock = E.moveUnlockLevel(k);
+      const lockNote = unlock > 1 ? ` <small class="${unlock > lv ? 'reason' : 'muted'}">Lv${unlock}〜</small>` : '';
+      return `<li class="${slot >= 0 ? 'hit' : ''}"><span class="num">${slot >= 0 ? slot + 1 : '・'}</span><span>${esc(m.name)}${lockNote}</span><span class="eff">${moveEffText(m)}</span></li>`;
     }).join('');
     openModal(`<div class="zk-detail">${portrait(ch, { dim: !owned })}<div>
         <h3>${esc(ch.name)}</h3>
@@ -673,6 +692,7 @@
         <p class="hptext">${owned ? `Lv${lv}・最大HP <b>${E.levelMaxHp(ch.maxHp, lv)}</b>（基礎${ch.maxHp}）` : `最大HP <b>${ch.maxHp}</b>（Lv1）・<span class="reason">未所持</span>`}</p>
       </div></div>
       <h4>技（候補${ch.moves.length}個・番号は${owned ? '今の' : '初期の'}出目）</h4>
+      <p class="muted">技力の上限 ${E.loadoutBudget(id, lv)}（Lv${lv}）。「Lv○〜」の技はそのレベルから入れ替えに使えます。</p>
       <ul class="moves">${moves}</ul>
       <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
       ${leaderBox(ch)}
@@ -700,7 +720,7 @@
       <ul class="help-list">
         <li><b>レベル</b>：1レベルごとに最大HP+${CONFIG.LEVEL.hpPercentPerLevel}%、通常技の攻撃+${CONFIG.LEVEL.atkPerLevel}（攻撃0の技は除く）。最大Lv${CONFIG.LEVEL.max}。</li>
         <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>
-        <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。</li>
+        <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。7・8・9個目の技はLv${CONFIG.LEVEL.moveUnlock.join('・')}で解放、技力の上限は1レベルごとに+${CONFIG.LEVEL.powerPerLevel}。</li>
         <li><b>リーダースキル</b>：リーダーにしたキャラの効果が戦闘中ずっと有効です。</li>
       </ul>
       <h4>石の集め方</h4>

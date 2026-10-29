@@ -80,7 +80,8 @@
     p.chars = chars;
     const lo = {};
     Object.keys(raw.loadouts || {}).forEach(id => {
-      if (Engine.getChar(id) && !Engine.loadoutError(id, raw.loadouts[id])) lo[id] = raw.loadouts[id].slice();
+      const lv = chars[id] ? chars[id].level : 1;
+      if (Engine.getChar(id) && !Engine.loadoutError(id, raw.loadouts[id], lv)) lo[id] = raw.loadouts[id].slice();
     });
     p.loadouts = lo;
     p.team = Array.isArray(raw.team) ? raw.team.filter((id, i, a) => chars[id] && a.indexOf(id) === i).slice(0, CONFIG.TEAM_SIZE) : [];
@@ -121,7 +122,10 @@
   }
   function loadoutsFor(p, ids) {
     const out = {};
-    ids.forEach(id => { out[id] = p.loadouts[id] || Engine.defaultLoadout(id); });
+    ids.forEach(id => {
+      const lo = p.loadouts[id];
+      out[id] = lo && !Engine.loadoutError(id, lo, levelOf(p, id)) ? lo : Engine.defaultLoadout(id);
+    });
     return out;
   }
 
@@ -140,7 +144,7 @@
   }
   function setLoadout(p, id, loadout) {
     if (!owns(p, id)) return { ok: false, error: '持っていないキャラです' };
-    const err = Engine.loadoutError(id, loadout);
+    const err = Engine.loadoutError(id, loadout, levelOf(p, id));
     if (err) return { ok: false, error: err };
     if (loadout.join() === Engine.defaultLoadout(id).join()) delete p.loadouts[id];
     else p.loadouts[id] = loadout.slice();
