@@ -44,6 +44,21 @@
 - 戦闘中の交代回数・スキル後の交代制限などのルールは変更なし。
 - 実機（iPhone・iPad・Android）でのタッチ操作は未確認。テストは Playwright で Pointer Events を送って確認。
 
+## v6.4：戦闘画面・ログイン画面の作り直し
+
+- **戦闘画面**（`#screen-battle` の `.bt-layout`。CSS グリッドで配置）
+  - スマホ縦：上から 敵・後衛（小）→ 敵・前衛（大）→ 出目と今すること → 味方・前衛（絵・HP）と出目の通常技（前衛の下に3つ） → 味方・後衛（小）→ 直近の行動 → 下部固定の操作欄（交代・固有スキル・履歴）。
+  - PC横（幅960px以上かつ横長）：中央に盤面、右に出目・行動ボタン・直近の行動・戦闘履歴（`.bt-side`。スマホでは display: contents で縦に並べ直す）。
+  - ダンジョンの敵1体は上部中央に大きく（`.bt-front-row[data-count="1"]`）。
+  - 背景は `#screen-battle[data-bg]`（forest / sea / tower / arena）。`src/img/battle/<ID>.webp` を置くとビルドで差し替わる。今は森・塔・対戦はバナー絵、海はCSSのグラデーション。
+  - 交代：味方の前衛⇄後衛をドラッグ（`U.cardDrag`。マウスは少し動かす、タッチは長押ししてから）。判定は `E.swapBlockReason`、実行は `perform('swap')` なので、対人戦はホスト計算のまま。できないときは理由をトーストで表示。「交代」ボタンの2段階選択（キーボード可）も残す。
+  - HPが25%以下は赤枠と「ピンチ」表示。固有スキルは「固有スキル」ボタンの一覧（後衛も可）、長い説明はカードの詳細、ログは「履歴」（PCは常時表示）。降参はメニュー（☰）。
+  - カードのタップは詳細表示のみ（リーダーは変えない）。ドラッグ直後のクリックは無視。
+- **ログイン画面**：上に「六耀の決闘」のタイトルと歓迎の絵（`src/img/login-welcome.webp`：参考画像の文字・ボタンの無い部分だけを切り出し）、下に操作欄。PCは左に絵・右に操作欄。
+  - この端末保存モード：保存済みプレイヤーがいれば「おかえりなさい」と一番新しいプレイヤーの「○○で続ける」、ほかのプレイヤーも選べる。いなければ「ようこそ」。オンラインは「ログイン（続きから）／新しくはじめる」。
+- **共通**：ドラッグ処理を `ui-core.js` の `cardDrag` にまとめ、出撃準備と戦闘で共有。
+- 実機（iPhone・iPad・Android）でのタッチ操作・Safari のバー／セーフエリアは未確認（Playwright でのエミュレーションのみ）。
+
 ## 構成と責任
 
 | ファイル | 役割 |
@@ -54,7 +69,7 @@
 | `profile.js` | 成長の純粋関数（`newProfile/sanitize/addExp/drawGacha/claimLogin/applyDungeonResult/applyPvpResult/setTeam/setLoadout`） |
 | `backend.js` | `LocalBackend` / `FirebaseBackend`（同じAPI：認証・プロフィール・ルーム） |
 | `ui-core.js` | 共通部品・モーダル・トースト・画面切り替え |
-| `ui-battle.js` | 戦闘画面。`mode`＝`cpu` / `pvp-host` / `pvp-guest`、自分の陣営 `me`（ゲストは `'cpu'`） |
+| `ui-battle.js` | 戦闘画面・出撃準備。`mode`＝`cpu` / `pvp-host` / `pvp-guest`、自分の陣営 `me`（ゲストは `'cpu'`）。背景は `opts.bg` |
 | `ui-app.js` | ログイン・ホーム・チーム・ダンジョン・ガチャ・ロビー・結果と報酬 |
 
 ## 対人戦の仕組み（ホストが計算）

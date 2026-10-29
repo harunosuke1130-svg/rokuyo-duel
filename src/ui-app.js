@@ -86,15 +86,22 @@
     $('#login-error').textContent = '';
     const local = app.backend.mode === 'local';
     $('#login-mode').textContent = local
-      ? 'この端末のブラウザに保存して遊びます（オフライン）。プレイヤー対戦は同じ端末の別タブ同士で遊べます。'
-      : 'アカウントに保存して遊びます。どの端末からでも続きができ、離れたプレイヤーと対戦できます。';
+      ? 'データはこの端末に保存されます（オフライン）'
+      : 'データはアカウントに保存されます（どの端末からでも続きができます）';
     if (local) {
       const players = app.backend.localPlayers();
+      // 一番新しく作ったプレイヤーを「続ける」の先頭に。ほかのプレイヤーも選べる
+      const main = players[players.length - 1];
+      const others = players.slice(0, -1).reverse();
+      $('#login-greet').textContent = players.length ? 'おかえりなさい' : 'ようこそ';
       $('#login-body').innerHTML = `
-        ${players.length ? `<h4>この端末のプレイヤー</h4><div class="target-list">${players.map(p => `<button type="button" class="target-btn" data-local="${esc(p.uid)}"><span class="t-main"><b>${esc(p.name)}</b> で続ける</span></button>`).join('')}</div>` : ''}
-        <h4>新しくはじめる</h4>
-        <label class="field"><span>プレイヤー名</span><input id="in-name" maxlength="16" autocomplete="nickname" placeholder="例：はるの"></label>
-        <button type="button" class="btn btn-primary btn-block" id="btn-local-start">はじめる</button>
+        ${main ? `<button type="button" class="lg-continue" data-local="${esc(main.uid)}"><span class="lg-quill" aria-hidden="true">✒</span><span class="lg-cname"><b>${esc(main.name)}</b> で続ける</span><span class="lg-chev" aria-hidden="true">›</span></button>
+          ${others.length ? `<div class="lg-others"><span>ほかのプレイヤー</span>${others.map(p => `<button type="button" class="lg-chip" data-local="${esc(p.uid)}">${esc(p.name)} で続ける</button>`).join('')}</div>` : ''}` : ''}
+        <div class="lg-new">
+          <div class="lg-divider"><span>新しくはじめる</span></div>
+          <label class="field lg-field"><span>プレイヤー名</span><input id="in-name" maxlength="16" autocomplete="nickname" placeholder="名前を入力（例：はるの）"></label>
+          <button type="button" class="lg-start" id="btn-local-start">はじめる</button>
+        </div>
         ${app.backend.adminCodeEnabled && app.backend.adminCodeEnabled() ? `<details class="admin-login"><summary>管理用アカウントで入る</summary>
           <p class="muted">管理用コードを持っている人だけが使えます。全キャラクターを持った状態で遊べます（この端末に保存）。</p>
           <label class="field"><span>名前</span><input id="in-admin-name" maxlength="16" autocomplete="off" placeholder="例：管理人"></label>
@@ -102,18 +109,20 @@
           <button type="button" class="btn btn-ghost btn-block" id="btn-admin-start">管理用アカウントではじめる</button></details>` : ''}`;
       $('#login-body').querySelectorAll('[data-local]').forEach(b => b.addEventListener('click', () => doAuth(() => app.backend.signIn({ uid: b.dataset.local }))));
       $('#btn-local-start').addEventListener('click', () => doAuth(() => app.backend.signIn({ name: $('#in-name').value })));
+      $('#in-name').addEventListener('keydown', e => { if (e.key === 'Enter') $('#btn-local-start').click(); });
       const ab = $('#btn-admin-start');
       if (ab) ab.addEventListener('click', () => doAuth(() => app.backend.signIn({ name: $('#in-admin-name').value || '管理人', adminCode: $('#in-admin-code').value })));
     } else {
       let signup = false;
       const draw = () => {
+        $('#login-greet').textContent = signup ? 'ようこそ' : 'おかえりなさい';
         $('#login-body').innerHTML = `
-          <div class="tabs"><button type="button" class="tab${signup ? '' : ' on'}" data-tab="in">ログイン</button><button type="button" class="tab${signup ? ' on' : ''}" data-tab="up">新規登録</button></div>
+          <div class="tabs lg-tabs"><button type="button" class="tab${signup ? '' : ' on'}" data-tab="in">ログイン（続きから）</button><button type="button" class="tab${signup ? ' on' : ''}" data-tab="up">新しくはじめる</button></div>
           <form id="auth-form" class="auth-form">
-            ${signup ? '<label class="field"><span>プレイヤー名（表示名）</span><input id="in-name" maxlength="16" autocomplete="nickname" required></label>' : ''}
-            <label class="field"><span>メールアドレス</span><input id="in-email" type="email" autocomplete="email" required></label>
-            <label class="field"><span>パスワード（6文字以上）</span><input id="in-pass" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" minlength="6" required></label>
-            <button type="submit" class="btn btn-primary btn-block" id="btn-auth">${signup ? '登録してはじめる' : 'ログイン'}</button>
+            ${signup ? '<label class="field lg-field"><span>プレイヤー名（表示名）</span><input id="in-name" maxlength="16" autocomplete="nickname" required></label>' : ''}
+            <label class="field lg-field"><span>メールアドレス</span><input id="in-email" type="email" autocomplete="email" required></label>
+            <label class="field lg-field"><span>パスワード（6文字以上）</span><input id="in-pass" type="password" autocomplete="${signup ? 'new-password' : 'current-password'}" minlength="6" required></label>
+            <button type="submit" class="${signup ? 'lg-start' : 'lg-continue lg-continue-form'}" id="btn-auth">${signup ? '登録してはじめる' : 'ログインして続ける'}</button>
           </form>`;
         $('#login-body').querySelectorAll('[data-tab]').forEach(t => t.addEventListener('click', () => { signup = t.dataset.tab === 'up'; $('#login-error').textContent = ''; draw(); }));
         $('#auth-form').addEventListener('submit', e => {
@@ -320,6 +329,7 @@
     };
     B.start({
       mode: 'cpu', state, cpuPlan, title: ctx.title, foeName: ctx.foeName, ...formationOpts(),
+      bg: ctx.kind === 'dungeon' ? ctx.dungeonId : 'arena',
       onFinish: res => (ctx.kind === 'dungeon' ? onDungeonFloorFinish(ctx, res) : onMatchFinish(ctx, res)),
       onExit: () => (ctx.kind === 'dungeon' ? showDungeon() : showMatch()),
       onShowResult: () => app.lastResult && app.lastResult()
@@ -623,7 +633,7 @@
     app.lobby.unwatch = null;
     if (unwatchLobby) { try { unwatchLobby(); } catch (e) { /* noop */ } }
     B.start({
-      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`, ...formationOpts(),
+      mode, state, code, backend: app.backend, foeName, title: `プレイヤー対戦（ルーム ${code}）`, ...formationOpts(), bg: 'arena',
       onFinish: res => onPvpFinish(foeName, res),
       onExit: showLobby,
       onShowResult: () => app.lastResult && app.lastResult()
@@ -748,6 +758,7 @@
   /* ---------- イベント登録 ---------- */
   function bindAll() {
     $('#btn-help').addEventListener('click', showHelp);
+    $('#btn-login-help').addEventListener('click', showHelp);
     $('#btn-home').addEventListener('click', () => { if (app.profile) showHome(); });
     $('#btn-settings').addEventListener('click', showSettings);
     // ホームのメニュー・下のタブ・設定の中のボタン（data-go）

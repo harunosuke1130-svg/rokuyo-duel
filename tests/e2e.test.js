@@ -242,6 +242,173 @@ test('mobile: 出撃準備（タッチは長押ししてからドラッグ・す
   await ctx.close();
 });
 
+// 戦闘画面：カードの中心
+const btBox = async (page, sel) => {
+  const b = await (await page.$(sel)).boundingBox();
+  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+};
+const mouseDrag = async (page, fromSel, to, check) => {
+  const a = await btBox(page, fromSel);
+  const b = typeof to === 'string' ? await btBox(page, to) : to;
+  await page.mouse.move(a.x, a.y);
+  await page.mouse.down();
+  await page.mouse.move(a.x + 15, a.y - 15, { steps: 3 });
+  await page.mouse.move(b.x, b.y, { steps: 6 });
+  if (check) await check();
+  await page.mouse.up();
+};
+
+test('desktop: 戦闘画面（盤面の右に操作欄・ドラッグで交代・交代できない時・誤発動防止）', async () => {
+  const { ctx, page, errors } = await open('desktop', 'fast=1&seed=12');
+  await H.startLocal(page, '軍師', { claim: false });
+  await page.click('[data-go="match"]');
+  await page.click('[data-match="free"]');
+  await H.formation(page, [0, 1, 2], 0);
+  // PC：盤面と操作欄（出目・行動・戦闘履歴）が横に並ぶ
+  const board = await (await page.$('.bt-ally')).boundingBox();
+  const side = await (await page.$('.bt-side')).boundingBox();
+  assert.ok(side.x >= board.x + board.width - 1, '操作欄は盤面の右');
+  assert.ok(await page.isVisible('.bt-log-panel'), 'PCは戦闘履歴を常に表示');
+  assert.ok(await H.noHorizontalScroll(page));
+  await H.waitMyRoll(page);
+  let s = await H.state(page);
+  const f0 = s.front.player[0];
+  const b0 = s.teams.player.findIndex((u, i) => u.hp > 0 && s.front.player.indexOf(i) < 0);
+  const front = i => `#ally-front .bt-card[data-idx="${i}"]`, back = i => `#ally-back .bt-card[data-idx="${i}"]`;
+  // 数字を出す前は交代できない（理由を表示・状態は変わらない）
+  await mouseDrag(page, front(f0), back(b0));
+  assert.ok((await page.textContent('#toast')).includes('交代できません'));
+  assert.equal(await page.$('.drag-ghost'), null);
+  assert.deepEqual((await H.state(page)).front.player, s.front.player);
+  await page.click('#btn-roll');
+  await H.waitMyAction(page);
+  await page.waitForTimeout(450);
+  s = await H.state(page);
+  assert.equal(await page.$$eval('#move-options .mo-btn', b => b.length), s.front.player.filter(i => s.teams.player[i].hp > 0).length, '前衛の技を同時に表示');
+  // 対象外・同じ列で離す → 元のまま（交代回数も使わない）
+  await mouseDrag(page, front(f0), { x: 20, y: 20 });
+  await mouseDrag(page, front(f0), front(s.front.player[1]), async () => assert.equal(await page.$('.bt-card.drop-target'), null));
+  // 技ボタンの上で離しても技は出ない
+  await mouseDrag(page, back(b0), `#move-options [data-move="${f0}"]`);
+  await page.waitForTimeout(100);
+  assert.equal(await page.isHidden('#modal'), true, 'ドラッグ終了で技の確認が開かない');
+  s = await H.state(page);
+  assert.equal(s.swapUsed, false);
+  assert.ok(s.front.player.indexOf(f0) >= 0);
+  // 後衛を前衛に重ねて離す → 交代（HP・CDはキャラのまま）
+  await page.evaluate(i => { const st = window.RikuyouApp.getState(); st.teams.player[i].cd = 2; }, b0);
+  await mouseDrag(page, back(b0), front(f0), async () => {
+    assert.ok(await page.$('.drag-ghost'), 'カードがポインターに追従');
+    assert.ok(await page.$(`${front(f0)}.drop-target`), '交換先を強調');
+  });
+  await page.$eval(`#screen-battle .bt-card[data-idx="${b0}"]`, c => c.click());
+  assert.equal(await page.isHidden('#modal'), true, 'ドラッグ直後のクリックで詳細が開かない');
+  await H.waitMyAction(page);
+  s = await H.state(page);
+  assert.ok(s.front.player.indexOf(b0) >= 0 && s.front.player.indexOf(f0) < 0, '交代した');
+  assert.equal(s.swapUsed, true);
+  assert.equal(s.teams.player[b0].cd, 2);
+  assert.equal(s.leader.player, 0, 'リーダーは変わらない');
+  // 2回目は交代できない
+  await page.waitForTimeout(450);
+  await mouseDrag(page, front(b0), back(f0));
+  assert.ok((await page.textContent('#toast')).includes('交代できません'));
+  assert.deepEqual((await H.state(page)).front.player, s.front.player);
+  // 技はボタン→確認で1回だけ
+  await page.waitForTimeout(450);
+  await page.click(`#move-options [data-move="${b0}"]`);
+  await page.waitForSelector('#btn-confirm-move');
+  await page.click('#btn-confirm-move');
+  await page.waitForFunction(() => { const st = window.RikuyouApp.getState(); return st.turnSide === 'cpu' || st.phase !== 'action'; });
+  // 相手のターン中はドラッグしても交代できない
+  if ((await H.state(page)).turnSide === 'cpu' && (await H.state(page)).phase !== 'over') {
+    const sc = await H.state(page);
+    const fi = sc.front.player.find(i => sc.teams.player[i].hp > 0);
+    const bi = sc.teams.player.findIndex((u, i) => u.hp > 0 && sc.front.player.indexOf(i) < 0);
+    if (fi !== undefined && bi >= 0) {
+      await page.waitForTimeout(450);
+      await mouseDrag(page, front(fi), back(bi));
+      assert.equal(await page.$('.drag-ghost'), null);
+    }
+  }
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: 戦闘画面（長押ししてスワイプで交代・すぐ動かすとスクロール扱い）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'fast=1&seed=12');
+  await H.startLocal(page, '軍師', { claim: false });
+  await page.click('[data-go="match"]');
+  await page.click('[data-match="free"]');
+  await H.formation(page, [0, 1, 2], 0);
+  await H.waitMyRoll(page);
+  await page.click('#btn-roll');
+  await H.waitMyAction(page);
+  assert.ok(await H.noHorizontalScroll(page));
+  assert.ok(await page.isVisible('#btn-swap') && await page.isVisible('#btn-skill-menu') && await page.isVisible('#btn-log'), '下部の操作欄');
+  let s = await H.state(page);
+  const f0 = s.front.player[0];
+  const b0 = s.teams.player.findIndex((u, i) => u.hp > 0 && s.front.player.indexOf(i) < 0);
+  const touch = (from, to, hold) => page.evaluate(async ({ from, to, hold }) => {
+    const el = sel => document.querySelector(sel);
+    const mid = e => { const r = e.getBoundingClientRect(); return { x: r.left + r.width / 2, y: r.top + r.height / 2 }; };
+    const a = mid(el(from)), b = mid(el(to));
+    const send = (type, p, t) => t.dispatchEvent(new PointerEvent(type, { bubbles: true, cancelable: true, pointerId: 9, pointerType: 'touch', isPrimary: true, clientX: p.x, clientY: p.y }));
+    send('pointerdown', a, el(from));
+    await new Promise(r => setTimeout(r, hold));
+    send('pointermove', { x: (a.x + b.x) / 2, y: (a.y + b.y) / 2 }, document);
+    send('pointermove', b, document);
+    send('pointerup', b, document);
+  }, { from, to, hold });
+  await page.evaluate(() => window.scrollTo(0, 0));
+  const back = `#ally-back .bt-card[data-idx="${b0}"]`, front = `#ally-front .bt-card[data-idx="${f0}"]`;
+  await touch(back, front, 0);
+  assert.equal((await H.state(page)).swapUsed, false, 'すぐ動かしたときは交代しない');
+  await touch(back, front, 420);
+  await H.waitMyAction(page);
+  s = await H.state(page);
+  assert.ok(s.front.player.indexOf(b0) >= 0 && s.swapUsed, '長押ししてスワイプで交代');
+  // 履歴は「履歴」ボタンから
+  await page.waitForTimeout(450);
+  await page.click('#btn-log');
+  await page.waitForSelector('#modal[data-kind="log"]:not(.hidden)');
+  assert.ok((await page.textContent('#modal')).includes('味方の交代'));
+  await page.click('#modal [data-close="1"].btn');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: ログイン画面（初回はようこそ・保存済みは「○○で続ける」・ほかのプレイヤーも選べる）', async () => {
+  const { ctx, page, errors } = await open('mobile');
+  await page.waitForSelector('#screen-login:not(.hidden)');
+  assert.equal(await page.textContent('#login-greet'), 'ようこそ');
+  assert.equal(await page.$('.lg-continue'), null);
+  assert.ok((await page.textContent('#login-mode')).includes('この端末に保存'));
+  assert.ok(await H.noHorizontalScroll(page));
+  await H.startLocal(page, 'はるの');
+  const logout = async () => { await page.click('#btn-settings'); await page.click('#modal [data-go="logout"]'); await page.waitForSelector('#screen-login:not(.hidden)'); };
+  await logout();
+  assert.equal(await page.textContent('#login-greet'), 'おかえりなさい');
+  assert.ok((await page.textContent('.lg-continue')).includes('はるの で続ける'));
+  await page.fill('#in-name', 'なつ');
+  await page.click('#btn-local-start');
+  await page.waitForSelector('#screen-home:not(.hidden)');
+  await H.closeBonus(page, false);
+  await logout();
+  assert.ok((await page.textContent('.lg-continue')).includes('なつ'));
+  assert.ok((await page.textContent('.lg-others')).includes('はるの'));
+  await page.click('.lg-chip');
+  await page.waitForSelector('#screen-home:not(.hidden)');
+  await H.closeBonus(page, false);
+  assert.ok((await page.textContent('#home-profile')).includes('はるの'), '選んだプレイヤーで続ける');
+  // 遊び方を開ける
+  await logout();
+  await page.click('#btn-login-help');
+  await page.waitForSelector('#modal[data-kind="help"]:not(.hidden)');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 test('mobile: ガチャ（1回・10回・石不足）', async () => {
   const { ctx, page, errors } = await open('mobile');
   await H.startLocal(page, 'ガチャ係', { claim: false });

@@ -130,6 +130,99 @@
     });
   }
 
+  /* ---------- カードのドラッグ（Pointer Events。HTML標準のドラッグ＆ドロップは使わない） ----------
+   * マウスは少し動かしたら、タッチは長押ししてから持ち上げる（長押し前に動いたらスクロールとして扱う）。
+   * o: { selector, ghostClass, canStart(card) → 理由の文字列（動かせないとき）| null,
+   *      canDrop(card, target) → bool, onDrop(card, target), enabled() → bool }
+   * 戻り値：suppressed()（ドラッグ直後のクリックを無視する）, busy(), destroy() */
+  const DRAG_HOLD_MS = 320, DRAG_SLOP = 8;
+  function cardDrag(root, o) {
+    let drag = null, suppressUntil = 0;
+    const onContext = e => { if (e.target.closest(o.selector)) e.preventDefault(); };
+    root.addEventListener('pointerdown', onDown);
+    root.addEventListener('contextmenu', onContext);
+    function onDown(e) {
+      const c = e.target.closest(o.selector);
+      if (!c || !root.contains(c) || drag || (e.pointerType === 'mouse' && e.button !== 0) || (o.enabled && !o.enabled())) return;
+      drag = { card: c, id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
+        touch: e.pointerType !== 'mouse', active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
+      if (drag.touch) drag.timer = setTimeout(begin, DRAG_HOLD_MS);
+      window.addEventListener('pointermove', onMove, { passive: false });
+      window.addEventListener('pointerup', onUp);
+      window.addEventListener('pointercancel', onCancel);
+      window.addEventListener('touchmove', blockScroll, { passive: false });
+    }
+    function blockScroll(e) { if (drag && drag.active) e.preventDefault(); }
+    function begin() {
+      if (!drag || drag.active) return;
+      const reason = o.canStart ? o.canStart(drag.card) : null;
+      if (reason) { end(false); suppressUntil = Date.now() + 400; toast(reason); return; }
+      drag.active = true;
+      suppressUntil = Infinity;
+      const r = drag.card.getBoundingClientRect();
+      drag.dx = drag.x - r.left; drag.dy = drag.y - r.top;
+      const g = drag.card.cloneNode(true);
+      g.classList.add('drag-ghost');
+      if (o.ghostClass) g.classList.add(o.ghostClass);
+      g.removeAttribute('data-idx');
+      g.removeAttribute('id');
+      g.style.width = r.width + 'px';
+      document.body.appendChild(g);
+      drag.ghost = g;
+      drag.card.classList.add('dragging');
+      try { drag.card.setPointerCapture(drag.id); } catch (err) { /* 取れなくても window で追う */ }
+      if (drag.touch && navigator.vibrate) navigator.vibrate(12);
+      place();
+    }
+    function place() {
+      const d = drag;
+      d.ghost.style.transform = `translate(${d.x - d.dx}px, ${d.y - d.dy}px) scale(1.06) rotate(-2deg)`;
+      const el = document.elementFromPoint(d.x, d.y);
+      const t = el && el.closest(o.selector);
+      const ok = t && root.contains(t) && t !== d.card && o.canDrop(d.card, t) ? t : null;
+      if (d.target && d.target !== ok) d.target.classList.remove('drop-target');
+      if (ok) ok.classList.add('drop-target');
+      d.target = ok;
+    }
+    function onMove(e) {
+      if (!drag || e.pointerId !== drag.id) return;
+      drag.x = e.clientX; drag.y = e.clientY;
+      const far = Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > DRAG_SLOP;
+      if (!drag.active) {
+        if (drag.touch) { if (far) end(false); return; } // 長押しの前に動いた＝スクロール
+        if (!far) return;
+        begin();
+        if (!drag) return;
+      }
+      e.preventDefault();
+      place();
+    }
+    function onUp(e) { if (drag && e.pointerId === drag.id) end(true); }
+    function onCancel(e) { if (drag && e.pointerId === drag.id) end(false); }
+    // 交換先の上で離したときだけ onDrop。それ以外（キャンセル・対象外）は何もしない＝元の位置のまま
+    function end(drop) {
+      const d = drag;
+      if (!d) return;
+      drag = null;
+      clearTimeout(d.timer);
+      window.removeEventListener('pointermove', onMove);
+      window.removeEventListener('pointerup', onUp);
+      window.removeEventListener('pointercancel', onCancel);
+      window.removeEventListener('touchmove', blockScroll);
+      if (!d.active) return;
+      suppressUntil = Date.now() + 400;
+      if (d.ghost) d.ghost.remove();
+      d.card.classList.remove('dragging');
+      if (d.target) d.target.classList.remove('drop-target');
+      if (drop && d.target) o.onDrop(d.card, d.target);
+    }
+    return {
+      suppressed: () => Date.now() < suppressUntil,
+      busy: () => !!drag,
+      destroy() { end(false); root.removeEventListener('pointerdown', onDown); root.removeEventListener('contextmenu', onContext); }
+    };
+  }
+
   function showScreen(name) {
     document.querySelectorAll('.screen').forEach(el => el.classList.toggle('hidden', el.id !== 'screen-' + name));
     document.body.dataset.screen = name;
@@ -140,6 +233,6 @@
   window.RikuyouUI = {
     E, CONFIG, FAST, DELAY, rng, $, esc,
     emblem, elMark, portrait, gemIcon, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
-    ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen
+    ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen, cardDrag
   };
 })();

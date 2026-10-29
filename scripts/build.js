@@ -62,7 +62,12 @@ function imageRules() {
       `.el-mark[data-el="${el}"] { background: var(--el-img) center / 74% no-repeat, radial-gradient(circle at 40% 35%, #fbf4e2, #dccaa0 80%); }`, `.el-mark[data-el="${el}"] i { display: none; }`,
       `.el-ico[data-el="${el}"] { display: inline-block; background: var(--el-img) center / contain no-repeat; }`);
   });
-  return rules.length ? '\n/* ---- src/img/chara・src/img/element から自動生成 ---- */\n' + rules.join('\n') + '\n' : '';
+  // src/img/battle/<背景ID>.* を置くと、その戦闘の背景になる（forest / sea / tower / arena）
+  list('battle').forEach(f => {
+    const bg = path.basename(f, path.extname(f));
+    rules.push(`#screen-battle[data-bg="${bg}"] { --bt-img: url("img/battle/${f}"); }`);
+  });
+  return rules.length ? '\n/* ---- src/img/chara・element・battle から自動生成 ---- */\n' + rules.join('\n') + '\n' : '';
 }
 
 function buildHtml() {

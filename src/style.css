@@ -1,5 +1,9 @@
 /* 六耀の決闘 — 画面デザイン（外部フォントなし。画像 img/*.webp はビルドで埋め込む） */
 :root {
+  /* 画像は1回だけ埋め込み、ホームのバナーと戦闘の背景で共有する */
+  --img-dungeon: url("img/banner-dungeon.webp");
+  --img-match: url("img/banner-match.webp");
+  --img-gacha: url("img/banner-gacha.webp");
   color-scheme: dark;
   --bg: #16100b;
   --bg2: #1f1710;
@@ -651,9 +655,9 @@ body[data-screen="home"] { background: #2a1d14; }
 .home-banner > * { position: relative; }
 .home-banner:active { transform: scale(.985); }
 .home-banner:focus-visible, .portrait-card:focus-visible, .tab-item:focus-visible, .icon-btn:focus-visible, .zukan-card:focus-visible, .bd-cell:focus-visible { outline: 2px solid var(--gold2); outline-offset: 2px; }
-.banner-dungeon { aspect-ratio: 964 / 265; margin-bottom: 8px; background-image: url("img/banner-dungeon.webp"); }
-.banner-match { background-image: url("img/banner-match.webp"); }
-.banner-gacha { background-image: url("img/banner-gacha.webp"); }
+.banner-dungeon { aspect-ratio: 964 / 265; margin-bottom: 8px; background-image: var(--img-dungeon); }
+.banner-match { background-image: var(--img-match); }
+.banner-gacha { background-image: var(--img-gacha); }
 .home-tiles { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 8px; margin-bottom: 10px; }
 .home-tiles .home-banner { aspect-ratio: 476 / 235; }
 .hb-label {
@@ -801,7 +805,7 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
 .fm-card.picked { outline: 3px dashed #3d5a80; outline-offset: 2px; }
 .fm-card.dragging { opacity: .35; transform: scale(.97); }
 .fm-card.drop-target { transform: scale(1.04); box-shadow: 0 0 0 3px #c9932c, 0 0 18px rgba(255, 190, 80, .95); }
-.fm-ghost {
+.drag-ghost, .fm-ghost {
   position: fixed !important; left: 0; top: 0; z-index: 100; margin: 0; pointer-events: none; cursor: grabbing;
   box-shadow: 0 16px 30px rgba(0, 0, 0, .5) !important; transition: none !important; will-change: transform;
 }
@@ -824,3 +828,278 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
 }
 .fm-go:active { transform: scale(.985); }
 .fm-backlink { display: block; margin: 4px auto 0; min-height: 40px; padding: 4px 20px; border: 0; background: none; cursor: pointer; font-family: var(--mincho); font-size: 14px; color: #8e2c1e; text-decoration: underline; text-underline-offset: 4px; }
+
+/* ======================================================================
+ * 戦闘画面：スマホは縦1列（上に敵・中央に出目・下に味方・最下部に操作）、PCは盤面＋右の操作欄
+ * ==================================================================== */
+body[data-screen="battle"] { background: #14100b; }
+body[data-screen="battle"] .topbar { display: none; }
+#screen-battle { position: relative; max-width: 620px; margin: 0 auto; }
+#screen-battle::before {
+  content: ""; position: fixed; inset: -12px; z-index: -1; pointer-events: none;
+  background:
+    linear-gradient(180deg, rgba(10, 8, 5, .62), rgba(10, 8, 5, .38) 35%, rgba(10, 8, 5, .45) 65%, rgba(10, 8, 5, .72)),
+    var(--bt-img, linear-gradient(180deg, #2a2016, #120d08)) center / cover no-repeat;
+  filter: blur(1.5px) saturate(.95);
+}
+/* 背景（ダンジョンごと）。src/img/battle/<ID>.webp を置くとビルドで差し替わる */
+#screen-battle[data-bg="forest"] { --bt-img: var(--img-dungeon); }
+#screen-battle[data-bg="arena"] { --bt-img: var(--img-match); }
+#screen-battle[data-bg="tower"] { --bt-img: var(--img-gacha); }
+#screen-battle[data-bg="sea"] { --bt-img: radial-gradient(ellipse 90% 60% at 50% 10%, #3a7fa8, #12364f 55%, #06151f); }
+
+.bt-layout {
+  display: grid; grid-template-columns: minmax(0, 1fr); gap: 4px;
+  grid-template-areas: "head" "conn" "enemy" "center" "flags" "ally" "last" "actions";
+}
+.bt-head { grid-area: head; display: flex; align-items: center; gap: 8px; padding: calc(4px + env(safe-area-inset-top, 0px)) 2px 2px; }
+.bt-title { flex: 1; min-width: 0; font-family: var(--mincho); font-weight: 700; font-size: 16px; color: var(--gold2); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-shadow: 0 1px 3px #000; }
+.bt-round { flex: none; font-family: var(--mincho); font-size: 15px; color: #f6e7c4; text-shadow: 0 1px 3px #000; }
+.bt-round b { font-size: 18px; color: var(--gold2); }
+.bt-menu-btn { flex: none; width: 42px; height: 40px; border-radius: 8px; border: 1px solid rgba(214, 178, 94, .6); background: rgba(16, 12, 8, .75); color: #f1e8d6; display: grid; place-items: center; cursor: pointer; padding: 0; }
+.bt-menu-btn svg { width: 22px; height: 22px; }
+#screen-battle .conn-info { grid-area: conn; margin: 0; }
+.bt-enemy { grid-area: enemy; }
+.bt-ally { grid-area: ally; }
+.bt-side { display: contents; }
+.bt-center { grid-area: center; }
+.bt-flags { grid-area: flags; }
+#screen-battle .last-action { grid-area: last; }
+.bt-actions { grid-area: actions; }
+.bt-log-panel { display: none; }
+
+/* 見出しの帯 */
+.bt-label {
+  display: flex; align-items: center; justify-content: center; gap: 8px; width: fit-content; max-width: 100%; margin: 3px auto 4px; padding: 1px 22px;
+  font-family: var(--mincho); font-size: 13.5px; font-weight: 700; color: #f6e7c4; letter-spacing: .08em;
+  background: linear-gradient(90deg, transparent, rgba(18, 12, 6, .88) 14%, rgba(18, 12, 6, .88) 86%, transparent);
+  border-top: 1px solid var(--lc, rgba(214, 178, 94, .6)); border-bottom: 1px solid var(--lc, rgba(214, 178, 94, .6));
+}
+.bt-label-enemy { --lc: rgba(214, 96, 76, .75); }
+.bt-label-ally { --lc: rgba(100, 150, 230, .75); }
+.bt-drag-hint { font-family: var(--gothic); font-size: 11px; font-weight: 400; letter-spacing: 0; color: #d8cfb8; }
+.bt-drag-hint:empty { display: none; }
+
+/* 並び */
+.bt-front-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; }
+.bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 54%); justify-content: center; }
+.bt-front-row[data-count="2"] { grid-template-columns: repeat(2, minmax(0, 38%)); justify-content: center; }
+.bt-back-row { display: grid; grid-template-columns: repeat(3, minmax(0, 66px)); justify-content: center; gap: 12px; }
+
+/* カード（絵＋紙の名札）。.unit-card の古い見た目を上書きする */
+.bt-card.unit-card {
+  position: relative; display: flex; flex-direction: column; gap: 2px; min-width: 0; padding: 3px; margin: 0;
+  border-radius: 4px; border: 1px solid #b89a66; background: linear-gradient(180deg, #fbf6ea, #efe4c9);
+  color: var(--ink); text-align: center; cursor: pointer; opacity: 1;
+  box-shadow: 0 3px 8px rgba(0, 0, 0, .55);
+  touch-action: pan-y; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none; -webkit-tap-highlight-color: transparent;
+  transition: transform .15s, box-shadow .15s, opacity .15s;
+}
+.bt-card.unit-card:hover { border-color: #d1b06c; }
+.bt-card.unit-card:focus-visible { outline: 3px solid #8fb4ff; outline-offset: 2px; }
+.bt-card.empty-slot { display: grid; place-items: center; min-height: 120px; color: #6b5536; border-style: dashed; cursor: default; font-size: 12px; }
+.bt-art { position: relative; display: block; aspect-ratio: 1 / .7; overflow: hidden; border-radius: 2px; border: 1px solid #a88a58; }
+.bt-enemy .bt-front-row .bt-art { aspect-ratio: 1 / .6; }
+.bt-front-row[data-count="1"] .bt-art { aspect-ratio: 1 / .62; }
+.bt-card.back .bt-art { aspect-ratio: 1 / 1; }
+.bt-art .portrait { position: absolute; inset: 0; }
+.bt-art .el-mark { position: absolute; right: 3px; top: 3px; width: 22px; height: 22px; }
+.bt-card.back .bt-art .el-mark { width: 18px; height: 18px; }
+.bt-tags { position: absolute; left: 2px; top: 2px; display: flex; flex-direction: column; align-items: flex-start; gap: 2px; }
+.bt-tag { display: inline-flex; align-items: center; gap: 2px; padding: 0 5px; border-radius: 3px; font-size: 10px; font-weight: 700; line-height: 16px; color: #fff; background: rgba(0, 0, 0, .68); }
+.bt-tag.lead { color: #f6dc8c; }
+.bt-tag.lead svg { width: 14px; height: 11px; }
+.bt-tag i { font-style: normal; }
+.bt-card.back .bt-tag.lead i { display: none; }
+.bt-tag.barrier { background: #7a5a18; color: #ffe8a8; }
+.bt-tag.boss { background: #6a2030; color: #ffd0d8; }
+.bt-ko { position: absolute; left: 0; right: 0; top: 40%; padding: 2px; font-size: 11px; font-weight: 700; color: #fff; background: rgba(90, 30, 25, .88); }
+.bt-card.ko .portrait { filter: grayscale(1) brightness(.6); }
+.bt-card.ko { border-color: #8a7a62; }
+.bt-hidden { position: absolute; inset: 0; display: grid; place-items: center; background: rgba(30, 22, 12, .7); color: #f1e8d6; font-size: 12px; font-weight: 700; }
+.bt-info { display: flex; flex-direction: column; gap: 1px; padding: 2px 2px 1px; }
+.bt-name { font-family: var(--mincho); font-weight: 700; font-size: 13px; line-height: 1.25; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #2e2010; }
+.bt-hpline { display: flex; align-items: baseline; justify-content: center; gap: 4px; flex-wrap: wrap; font-size: 12px; color: #4a3820; font-variant-numeric: tabular-nums; }
+.bt-hp b { font-size: 15px; color: #2e2010; }
+.bt-pinch { font-size: 10px; font-weight: 700; color: #fff; background: #b8432f; border-radius: 3px; padding: 0 4px; line-height: 16px; }
+.bt-cd { font-size: 10.5px; color: #4a3820; white-space: nowrap; }
+.bt-cd.ok { color: #2d6b3a; font-weight: 700; }
+.bt-card.back .bt-hp { position: absolute; left: 0; right: 0; bottom: 0; padding: 0 2px; background: rgba(0, 0, 0, .62); color: #fff; font-size: 11px; line-height: 17px; font-variant-numeric: tabular-nums; }
+.bt-card.back .bt-hp b { font-size: 12.5px; color: #fff; }
+.bt-backcd { display: block; line-height: 1.2; }
+.bt-card .hpbar { height: 6px; background: #d9cdb0; border-color: rgba(90, 60, 25, .25); }
+.bt-card .hpbar > i { background: #4f8a5b; }
+.bt-enemy .bt-card .hpbar > i { background: #c74a3a; }
+.bt-card .hpbar.mid > i { background: #d19a2a; }
+.bt-card .hpbar.low > i { background: #c0392b; }
+.bt-card.hp-low { border-color: #c0392b; box-shadow: 0 0 0 1px #c0392b, 0 3px 8px rgba(0, 0, 0, .55); }
+.bt-card.dragging { opacity: .35; transform: scale(.97); }
+.bt-card.drop-target { transform: scale(1.05); box-shadow: 0 0 0 3px #e0a93a, 0 0 18px rgba(255, 190, 80, .95); }
+.bt-leader { margin: 4px auto 0; max-width: 100%; text-align: center; font-size: 11.5px; color: #e9e2cf; text-shadow: 0 1px 2px #000; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt-leader b { color: #f6dc8c; margin-right: 4px; }
+.bt-leader span { display: none; }
+.bt-leader:empty { display: none; }
+
+/* 中央：出目と今すること */
+.bt-center {
+  display: grid; grid-template-columns: auto minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 4px 10px; margin: 2px -2px;
+  background: linear-gradient(90deg, rgba(14, 20, 32, .25), rgba(14, 20, 32, .9) 10%, rgba(14, 20, 32, .9) 90%, rgba(14, 20, 32, .25));
+  border-top: 1px solid rgba(214, 178, 94, .65); border-bottom: 1px solid rgba(214, 178, 94, .65);
+}
+#screen-battle .dice { width: 48px; height: 48px; font-size: 32px; border-radius: 10px; border-width: 2px; }
+.bt-phase { display: flex; flex-direction: column; min-width: 0; text-align: center; }
+#screen-battle .phase-text { margin: 0; min-height: 0; font-size: 20px; color: #e6eeff; text-shadow: 0 1px 4px #000; }
+#screen-battle.my-turn .phase-text { color: #ffe7a0; }
+.bt-phase-sub { font-size: 12px; color: #d2d9e8; line-height: 1.35; }
+#screen-battle .btn-roll { min-height: 48px; padding: 6px 12px; font-size: 15px; }
+#screen-battle .btn-roll.ready { box-shadow: 0 0 0 2px rgba(255, 230, 160, .5), 0 0 16px rgba(255, 200, 90, .7); }
+.bt-flags { display: flex; flex-wrap: wrap; justify-content: center; gap: 2px 10px; font-size: 11.5px; color: #ffd98a; text-shadow: 0 1px 2px #000; }
+.bt-flags span:empty { display: none; }
+#fatigue-info { color: #ffb4a8; }
+
+/* 通常技（出目の技を前衛の下に） */
+#screen-battle .move-options { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 6px; margin-top: 6px; }
+#screen-battle .mo-card { padding: 0; border: 0; background: none; border-radius: 0; display: block; }
+.mo-wait { grid-column: 1 / -1; padding: 9px 8px; text-align: center; font-size: 13px; color: #ece4cf; background: rgba(10, 8, 5, .62); border-radius: 4px; }
+.mo-btn {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; width: 100%; min-height: 56px; padding: 3px 3px;
+  border-radius: 5px; border: 1px solid rgba(0, 0, 0, .55); color: #fff7e6; font-family: inherit; cursor: pointer;
+  box-shadow: inset 0 0 0 1px rgba(255, 220, 170, .35), 0 3px 6px rgba(0, 0, 0, .5);
+}
+.mo-btn:active:not(:disabled) { transform: scale(.97); }
+.mo-btn:disabled { opacity: .5; }
+.mo-btn:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+.mo-btn.atk { background: linear-gradient(180deg, #b84a32, #7c2516); }
+.mo-btn.heal { background: linear-gradient(180deg, #3f8d52, #22562f); }
+.mo-btn.both { background: linear-gradient(135deg, #a8452f 0 50%, #3a8250 50% 100%); }
+.mo-btn.none { background: linear-gradient(180deg, #5d5a55, #3a3833); }
+.mo-kind { font-size: 10.5px; opacity: .92; }
+.mo-main { font-family: var(--mincho); font-size: 18px; line-height: 1.15; white-space: nowrap; }
+.mo-btn .mo-name { font-size: 10.5px; opacity: .9; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bt-range-note { margin: 4px 0 0; text-align: center; font-size: 11.5px; color: #efe6d0; text-shadow: 0 1px 2px #000; }
+
+/* 直近の行動と操作欄 */
+#screen-battle .last-action { margin: 0; min-height: 0; padding: 5px 10px; font-size: 13px; color: #f1e8d6; background: rgba(12, 10, 8, .8); border: 1px solid rgba(214, 178, 94, .35); border-radius: 4px; }
+.bt-actions {
+  position: sticky; bottom: 0; z-index: 5; display: grid; grid-template-columns: 1fr 1.35fr .85fr; gap: 6px;
+  padding: 6px 0 calc(6px + env(safe-area-inset-bottom, 0px));
+  background: linear-gradient(180deg, transparent, rgba(12, 9, 6, .9) 28%);
+}
+.bt-act {
+  display: flex; align-items: center; justify-content: center; gap: 8px; min-height: 50px; padding: 4px 8px; border-radius: 6px; cursor: pointer;
+  border: 1px solid rgba(214, 178, 94, .6); background: linear-gradient(180deg, #2c3448, #161b27); color: #eef2fa;
+  font-family: var(--mincho); font-size: 16px; font-weight: 700; box-shadow: 0 3px 8px rgba(0, 0, 0, .45);
+}
+.bt-act svg { width: 22px; height: 22px; flex: none; }
+.bt-act-skill svg { color: #a9c8ff; }
+.bt-act:disabled { opacity: .45; cursor: not-allowed; }
+.bt-act:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+.log-full { max-height: 60vh; }
+.target-btn.skill-pick.unavailable { opacity: .65; }
+.bt-ghost { width: auto; }
+
+/* PC・横長の画面：中央に盤面、右に出目・操作・戦闘履歴 */
+@media (min-width: 960px) and (orientation: landscape) {
+  #screen-battle { max-width: 1240px; }
+  .bt-layout { grid-template-columns: minmax(0, 1fr) 340px; grid-template-areas: "head head" "conn conn" "enemy side" "ally side"; column-gap: 18px; row-gap: 6px; align-items: start; }
+  .bt-side { display: flex; flex-direction: column; gap: 8px; grid-area: side; position: sticky; top: 8px; max-height: calc(100vh - 16px); }
+  .bt-center { grid-template-columns: auto minmax(0, 1fr); margin: 0; border: 1px solid rgba(214, 178, 94, .65); border-radius: 6px; background: rgba(14, 20, 32, .9); }
+  .bt-center .btn-roll { grid-column: 1 / -1; }
+  .bt-actions { position: static; grid-template-columns: 1fr 1fr; background: none; padding: 0; }
+  .bt-act-log { display: none; }
+  .bt-log-panel { display: flex; flex-direction: column; min-height: 160px; flex: 1; padding: 8px 10px; border-radius: 6px; background: rgba(12, 10, 8, .82); border: 1px solid rgba(214, 178, 94, .35); }
+  .bt-log-head { display: flex; justify-content: space-between; font-family: var(--mincho); font-weight: 700; color: var(--gold2); margin-bottom: 4px; }
+  .bt-log-panel .log { max-height: none; flex: 1; min-height: 0; }
+  .bt-front-row, #screen-battle .move-options { max-width: 560px; margin-left: auto; margin-right: auto; width: 100%; }
+  .bt-back-row { grid-template-columns: repeat(3, minmax(0, 84px)); }
+  .bt-leader span { display: inline; margin-left: 4px; color: #cfc6b0; }
+}
+
+/* ======================================================================
+ * ログイン：明るい城下町で迎える（スマホは上に絵・下に操作、PCは左に絵・右に操作）
+ * ==================================================================== */
+body[data-screen="login"] { background: #cfe6f5; color: var(--ink); }
+body[data-screen="login"] .topbar { display: none; }
+body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right: 0; padding-bottom: 0; }
+#screen-login {
+  min-height: 100vh; min-height: 100dvh;
+  background:
+    radial-gradient(ellipse 80% 40% at 50% 0%, rgba(255, 255, 255, .7), transparent 70%),
+    linear-gradient(180deg, #a9d4f2 0%, #d8ecf8 45%, #f6efdc 100%);
+}
+.lg-wrap { max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; min-height: 100vh; min-height: 100dvh; }
+.lg-hero { position: relative; padding-top: env(safe-area-inset-top, 0px); }
+.lg-title { position: relative; z-index: 1; display: flex; flex-direction: column; align-items: center; padding: 10px 12px 0; text-align: center; }
+.lg-crest { width: 44px; height: 44px; margin-bottom: -6px; filter: drop-shadow(0 1px 2px rgba(255, 255, 255, .8)); }
+.lg-name {
+  margin: 0; font-family: var(--mincho); font-weight: 800; font-size: clamp(40px, 12vw, 60px); letter-spacing: .06em; line-height: 1.1;
+  color: #3a2410; background: linear-gradient(180deg, #5a3a1a 0%, #2c1a0a 55%, #1f4f7a 100%); -webkit-background-clip: text; background-clip: text; -webkit-text-fill-color: transparent;
+  filter: drop-shadow(0 2px 0 rgba(255, 248, 230, .9)) drop-shadow(0 0 10px rgba(255, 255, 255, .8));
+}
+.lg-catch { margin: 4px 0 0; padding: 0 16px 2px; font-family: var(--mincho); font-size: 14px; letter-spacing: .3em; color: #3a2a18; border-bottom: 1px solid rgba(140, 100, 50, .5); }
+.lg-art {
+  aspect-ratio: 941 / 597; margin-top: -6px;
+  background: url("img/login-welcome.webp") center top / cover no-repeat;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 14%, #000 82%, transparent 100%);
+  mask-image: linear-gradient(180deg, transparent 0, #000 14%, #000 82%, transparent 100%);
+}
+.lg-panel {
+  position: relative; margin: -18px 12px calc(12px + env(safe-area-inset-bottom, 0px)); padding: 14px 16px 10px; border-radius: 6px;
+  background: linear-gradient(180deg, #fffaf0, #f6ecd6); color: var(--ink);
+  border: 1px solid #c9ad74; box-shadow: 0 0 0 4px rgba(255, 250, 238, .85), 0 0 0 5px rgba(184, 145, 61, .55), 0 8px 24px rgba(80, 60, 30, .25);
+}
+.lg-panel::before, .lg-panel::after {
+  content: ""; position: absolute; top: 18px; width: 54px; height: 22px; opacity: .85;
+  background:
+    radial-gradient(circle at 8px 11px, #fff 0 4px, transparent 4.5px), radial-gradient(circle at 8px 11px, #f2c94c 0 1.6px, transparent 2px),
+    radial-gradient(circle at 26px 8px, #fff 0 3.5px, transparent 4px), radial-gradient(circle at 42px 13px, #9ec1ef 0 3.5px, transparent 4px),
+    radial-gradient(ellipse 9px 4px at 18px 16px, #8fb56a 0 100%, transparent), radial-gradient(ellipse 9px 4px at 35px 17px, #8fb56a 0 100%, transparent);
+}
+.lg-panel::before { left: 14px; }
+.lg-panel::after { right: 14px; transform: scaleX(-1); }
+.lg-greet { margin: 0 0 10px; text-align: center; font-family: var(--mincho); font-size: 26px; letter-spacing: .12em; color: #3a2410; }
+.lg-continue {
+  display: flex; align-items: center; gap: 10px; width: 100%; min-height: 58px; padding: 6px 16px; border-radius: 8px; cursor: pointer;
+  border: 1px solid #0f3f3b; background: linear-gradient(180deg, #2a7f78, #155550); color: #fdf7e6; font-family: var(--mincho); font-size: 19px; text-align: left;
+  box-shadow: inset 0 0 0 2px rgba(240, 220, 160, .45), 0 4px 10px rgba(15, 63, 59, .35);
+}
+.lg-continue:active { transform: scale(.985); }
+.lg-quill { flex: none; font-size: 18px; color: #e7d9a8; }
+.lg-cname { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.lg-cname b { font-size: 21px; }
+.lg-chev { flex: none; font-size: 28px; line-height: 1; font-family: var(--gothic); }
+.lg-continue-form { justify-content: center; text-align: center; margin-top: 8px; }
+.lg-others { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; margin-top: 8px; font-size: 12px; color: #6b5536; }
+.lg-chip { min-height: 38px; padding: 4px 12px; border-radius: 999px; border: 1px solid #2a7f78; background: #fff; color: #155550; font-size: 13px; font-weight: 700; cursor: pointer; font-family: inherit; }
+.lg-new { margin-top: 12px; }
+.lg-divider { display: flex; align-items: center; gap: 10px; margin: 2px 0 6px; font-family: var(--mincho); font-size: 15px; font-weight: 700; color: #3a2410; }
+.lg-divider::before, .lg-divider::after { content: ""; flex: 1; height: 1px; background: linear-gradient(90deg, transparent, rgba(140, 100, 50, .55), transparent); }
+.lg-field { margin: 4px 0 8px; color: #4a3820; font-weight: 700; }
+.lg-field input { background: #fffdf7; color: var(--ink); border: 1px solid #c9ad74; }
+.lg-field input::placeholder { color: #a8957a; }
+.lg-field input:focus { outline: 2px solid #2a7f78; }
+.lg-start {
+  display: block; width: 100%; min-height: 54px; border-radius: 8px; cursor: pointer;
+  border: 1px solid #7a2a1a; background: linear-gradient(180deg, #c9573c, #9c3522); color: #fff6e6; font-family: var(--mincho); font-size: 20px; letter-spacing: .2em;
+  box-shadow: inset 0 0 0 2px rgba(255, 220, 180, .35), 0 4px 10px rgba(122, 42, 26, .3);
+}
+.lg-start:active { transform: scale(.985); }
+.lg-tabs .tab { background: #fff; color: #6b5536; border-color: #c9ad74; }
+.lg-tabs .tab.on { background: #2a7f78; color: #fff; border-color: #155550; }
+#screen-login .reason { color: #a3301c; margin: 6px 0 0; }
+#screen-login .reason:empty { display: none; }
+#screen-login .admin-login { border-color: #c9ad74; }
+#screen-login .admin-login summary { color: #6b4a22; }
+#screen-login .muted { color: #6b5536; }
+.lg-foot { display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 4px 12px; margin: 12px 0 2px; font-size: 12px; color: #6b5536; }
+.lg-help { display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 2px 6px; border: 0; background: none; color: #1f5f9a; font-size: 13px; font-weight: 700; text-decoration: underline; text-underline-offset: 3px; cursor: pointer; font-family: inherit; }
+.lg-help svg { width: 18px; height: 18px; }
+
+/* PC・横長：左に歓迎の絵、右に操作欄 */
+@media (min-width: 900px) and (orientation: landscape) {
+  .lg-wrap { max-width: 1240px; flex-direction: row; align-items: center; gap: 28px; padding: 24px 32px; }
+  .lg-hero { flex: 1.35; min-width: 0; }
+  .lg-art { border-radius: 10px; -webkit-mask-image: none; mask-image: none; margin-top: 10px; box-shadow: 0 10px 30px rgba(60, 80, 110, .25); }
+  .lg-panel { flex: 1; max-width: 460px; margin: 0; }
+}
+@media (max-width: 380px) { .lg-panel::before, .lg-panel::after { display: none; } }

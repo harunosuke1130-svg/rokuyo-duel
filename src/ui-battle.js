@@ -92,8 +92,9 @@
     bt.code = opts.code || null;
     bt.pushSeq = 0; bt.lastSeq = 0; bt.intentSeq = 0; bt.handledIntent = 0; bt.waiting = false; bt.room = null;
     $('#battle-title').textContent = opts.title || '決闘';
-    $('#ally-title').textContent = 'あなたのチーム';
-    $('#enemy-title').textContent = foeIsCpu() ? (opts.foeName || '敵チーム') : `${opts.foeName || '相手'}のチーム`;
+    $('#ally-title').textContent = '味方';
+    $('#enemy-title').textContent = $('#enemy-title2').textContent = foeIsCpu() ? '敵' : '相手';
+    $('#screen-battle').dataset.bg = opts.bg || 'arena'; // 背景（ダンジョンごと）。操作部分の位置は共通
     U.showScreen('battle');
     if (bt.mode !== 'cpu') startRoomLink();
     if (isHost()) pushState(null); // 対戦開始時の状態をゲストに渡す
@@ -350,24 +351,29 @@
     return html;
   }
 
+  // HPの状態：色だけでなく文字（ピンチ）でも示す
+  const hpState = u => (u.hp <= 0 ? 'ko' : u.hp / u.maxHp <= 0.25 ? 'low' : u.hp / u.maxHp <= 0.5 ? 'mid' : '');
+  const hpNum = u => `<span class="bt-hp"><b>${u.hp}</b>/${u.maxHp}</span>`;
+
   function unitCard(side, i, kind) {
     const s = bt.state;
     const u = s.teams[side][i];
     const ch = E.unitChar(u);
     const hidden = side === bt.foe && s.phase === 'formation';
-    const front = kind === 'front';
-    let skillBtn = '';
-    if (side === bt.me && u.hp > 0) {
-      const reason = E.skillBlockReason(s, bt.me, i);
-      const ok = !reason && !bt.locked && !bt.waiting;
-      skillBtn = `<button type="button" class="btn btn-small btn-skill${ok ? ' usable' : ' unavailable'}" data-skill="${i}">${esc(ch.skill.name)}${u.cd > 0 ? `（残${u.cd}）` : ''}</button>`;
-    }
-    return `<div class="unit-card ${front ? 'fcard' : 'bcard'}${u.hp <= 0 ? ' ko' : ''}${front ? ' front' : ''}" data-side="${side}" data-idx="${i}" role="button" tabindex="0" aria-label="${esc(ch.name)}の詳細">
-      <div class="uc-head">${emblem(ch, u, front ? '' : 'small')}<div class="uc-name">${esc(ch.name)} ${levelTag(u.level || 1)}</div></div>
-      <div class="uc-badges">${hidden ? '<span class="badge bench">配置前</span>' : statusBadges(s, side, i)}</div>
-      <div class="uc-hp">${hpBar(u)}${hpText(u)}</div>
-      <div class="uc-tags">${elementTag(ch)}${subTags(ch)}</div>
-      ${skillBtn ? `<div class="uc-skill">${skillBtn}</div>` : ''}
+    const mine = side === bt.me;
+    const st = hpState(u);
+    const lead = !hidden && s.leader && s.leader[side] === i;
+    const tags = [];
+    if (lead) tags.push('<span class="bt-tag lead" title="リーダー"><svg viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15L1 4l6 5 5-8 5 8 6-5-1 11z" fill="currentColor"/></svg><i>リーダー</i></span>');
+    if (E.isBoss(u.charId)) tags.push(`<span class="bt-tag boss">${esc(ch.rank || 'ボス')}</span>`);
+    if (u.barrier && u.hp > 0) tags.push('<span class="bt-tag barrier">結界</span>');
+    const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
+    const label = `${ch.name} HP${u.hp}/${u.maxHp}${st === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
+    return `<div class="bt-card unit-card ${kind}${mine ? ' mine' : ''}${st ? ' hp-' + st : ''}${u.hp <= 0 ? ' ko' : ''}" data-side="${side}" data-idx="${i}" data-pos="${kind}" role="button" tabindex="0" aria-label="${esc(label)}（詳細）">
+      <span class="bt-art">${portrait(ch, { zoom: true })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${u.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(u) : ''}</span>
+      ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}</span><span class="bt-hpline">${hpNum(u)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(u)}</span>`
+        : `${hpBar(u)}${cd ? `<span class="bt-backcd">${cd}</span>` : ''}`}
+      ${hidden ? '<span class="bt-hidden">配置前</span>' : ''}
     </div>`;
   }
 
@@ -380,33 +386,50 @@
     // ボス戦など、チームが3体未満の側には空き枠を出さない
     const slots = Math.min(CONFIG.FRONT_SIZE, s.teams[side].length);
     const empty = Array.from({ length: Math.max(0, slots - frontIds.length) },
-      () => `<div class="unit-card fcard empty-slot">${s.phase === 'formation' ? '配置前' : '空き枠'}</div>`).join('');
-    $('#' + pre + '-front').innerHTML = frontIds.map(i => unitCard(side, i, 'front')).join('') + empty;
+      () => `<div class="bt-card front empty-slot">${s.phase === 'formation' ? '配置前' : '空き枠'}</div>`).join('');
+    const fr = $('#' + pre + '-front');
+    fr.innerHTML = frontIds.map(i => unitCard(side, i, 'front')).join('') + empty;
+    fr.dataset.count = String(slots);
     $('#' + pre + '-back').innerHTML = backIds.map(i => unitCard(side, i, 'back')).join('');
-    $('#' + pre + '-alive').textContent = `生存 ${E.aliveIndexes(s, side).length} / ${s.teams[side].length}`;
     // 後衛がいない側（ボス）は「後衛」の見出しを隠す
     $('#' + pre + '-back').previousElementSibling.classList.toggle('hidden', !backIds.length);
+    $('#' + pre + '-back').classList.toggle('hidden', !backIds.length);
     const l = s.leader[side];
     const hideLeader = side === bt.foe && s.phase === 'formation';
     const lc = l === null || l === undefined || hideLeader ? null : E.unitChar(s.teams[side][l]);
     $('#' + pre + '-leader').innerHTML = lc
-      ? `<span class="badge leader">リーダー</span> ${esc(lc.name)}「${esc(lc.leaderSkill.name)}」<span class="muted">${esc(lc.leaderSkill.text)}</span>`
-      : (s.teams[side].some(u => E.isBoss(u.charId)) ? '<span class="muted">ダンジョンの敵（リーダーなし）</span>' : '<span class="muted">リーダー：配置時に決定</span>');
+      ? `<b>リーダー</b> ${esc(lc.name)}「${esc(lc.leaderSkill.name)}」<span>${esc(lc.leaderSkill.text)}</span>`
+      : (s.teams[side].some(u => E.isBoss(u.charId)) ? '<span>ダンジョンの敵（リーダーなし）</span>' : '');
   }
 
+  // 前衛の並びに合わせて、出目の通常技を3つ並べる（倒れた枠は空ける）
   function renderMoveOptions() {
     const s = bt.state;
     const box = $('#move-options');
-    if (!myActing(s) || bt.waiting) { box.innerHTML = ''; return; }
-    const front = E.frontAlive(s, bt.me);
-    box.innerHTML = `<div class="mo-title">出目 ${s.dice} の通常技（前衛から1つだけ選ぶ）</div>` + front.map(i => {
+    const slots = s.front[bt.me] || [];
+    const note = $('#range-note');
+    if (!myActing(s) || bt.waiting) {
+      let msg = '';
+      if (s.phase === 'roll' && s.turnSide === bt.me && !bt.waiting) msg = '数字を出すと、前衛3体の技が表示されます';
+      else if (s.phase === 'roll' || s.phase === 'action') msg = s.turnSide === bt.me ? (s.moveUsed ? '' : '処理中…') : `${whoName(bt.foe)}のターン`;
+      box.innerHTML = msg ? `<div class="mo-wait">${esc(msg)}</div>` : '';
+      note.classList.add('hidden');
+      return;
+    }
+    note.classList.remove('hidden');
+    box.innerHTML = slots.map(i => {
       const u = s.teams[bt.me][i];
+      if (u.hp <= 0) return '<div class="mo-empty" aria-hidden="true"></div>';
       const ch = E.unitChar(u);
       const p = E.previewMove(s, bt.me, i);
+      const atk = p.move.atk > 0, heal = p.move.heal > 0;
+      const healVal = p.heals.length ? p.heals[0].amount : p.healBase;
+      const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
+      const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: '効果なし' }[kind];
+      const main = kind === 'both' ? `攻${p.boosted}＋回${healVal}` : kind === 'atk' ? `攻撃 ${p.boosted}` : kind === 'heal' ? `回復 ${healVal}` : '—';
       return `<div class="mo-card" data-move-card="${i}">
-        <div class="mo-head">${emblem(ch, u, 'small')}<div class="mo-name"><span class="muted">${esc(ch.name)}</span><br><b>${s.dice}「${esc(p.move.name)}」</b></div></div>
-        ${previewChips(p)}
-        <button type="button" class="btn btn-primary btn-block btn-pick-move" data-move="${i}"${bt.locked ? ' disabled' : ''}>この技を選ぶ</button>
+        <button type="button" class="mo-btn ${kind} btn-pick-move" data-move="${i}"${bt.locked ? ' disabled' : ''} aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
+          <span class="mo-kind">${head}</span><b class="mo-main">${esc(main)}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>
       </div>`;
     }).join('');
   }
@@ -414,20 +437,23 @@
   function renderCenter() {
     const s = bt.state;
     const pct = E.healPercent(Math.max(1, s.round));
-    $('#round-info').innerHTML = s.round > 0 ? `第<b>${s.round}</b>巡・${whoName(s.turnSide)}のターン` : '戦闘準備中';
-    $('#fatigue-info').innerHTML = `回復倍率 <b>${pct}%</b>${pct < 100 ? '（回復疲労）' : ''}`;
+    $('#round-info').innerHTML = s.round > 0 ? `第<b>${s.round}</b>巡` : '準備中';
+    $('#fatigue-info').innerHTML = pct < 100 ? `回復疲労：回復${pct}%` : '';
     const foe = whoName(bt.foe);
-    let phase = '';
-    if (s.phase === 'formation') phase = s.front[bt.me].length ? `${foe}が配置を決めています…` : '前衛3体とリーダーを選んでください';
-    else if (s.phase === 'initiative') phase = '先攻・後攻をサイコロで決めています…';
-    else if (s.phase === 'over') phase = s.winner === bt.me ? '決着：あなたの勝利' : '決着：あなたの敗北';
-    else if (s.phase === 'replace') phase = s.pendingReplace.side === bt.me ? '前衛が倒れました。後衛から補充してください' : `${foe}が前衛を補充しています…`;
-    else if (s.turnSide === bt.foe) phase = s.phase === 'roll' ? `${foe}のターン：数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`;
-    else if (bt.waiting) phase = '相手の端末に送信中…';
-    else if (s.phase === 'roll') phase = 'あなたのターン：「数字を出す」を押してください';
-    else if (bt.diceAnim) phase = '数字を出しています…';
-    else phase = `出目 ${s.dice}：下の候補から前衛の技を1つ選んでください（交代・スキルは任意）`;
+    let phase = '', sub = '';
+    if (s.phase === 'formation') { phase = '戦闘準備'; sub = s.front[bt.me].length ? `${foe}が配置を決めています…` : '前衛とリーダーを決めてください'; }
+    else if (s.phase === 'initiative') { phase = '先攻・後攻'; sub = 'サイコロで決めています…'; }
+    else if (s.phase === 'over') { phase = s.winner === bt.me ? '勝利！' : '敗北…'; sub = '決着しました'; }
+    else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : `${foe}のターン`; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
+    else if (s.turnSide === bt.foe) { phase = `${foe}のターン`; sub = s.phase === 'roll' ? '数字を出しています…' : `出目 ${s.dice}：行動を考えています…`; }
+    else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
+    else if (s.phase === 'roll') { phase = 'あなたのターン'; sub = '「数字を出す」を押してください'; }
+    else if (bt.diceAnim) { phase = 'あなたのターン'; sub = '数字を出しています…'; }
+    else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
+    else { phase = 'あなたのターン'; sub = '使う技を選んでください'; }
     $('#phase-text').textContent = phase;
+    $('#phase-sub').textContent = sub;
+    $('#screen-battle').classList.toggle('my-turn', s.turnSide === bt.me && (s.phase === 'roll' || s.phase === 'action'));
 
     const dice = $('#dice');
     if (!bt.diceAnim) {
@@ -441,14 +467,20 @@
       btn.textContent = '結果を見る';
     } else {
       btn.disabled = bt.locked || bt.waiting || s.turnSide !== bt.me || s.phase !== 'roll';
-      btn.textContent = (s.turnSide === bt.me && s.phase === 'action') ? '数字は確定済み' : '数字を出す';
+      btn.textContent = (s.turnSide === bt.me && s.phase === 'action') ? '出目確定' : '数字を出す';
     }
+    btn.classList.toggle('ready', !btn.disabled);
     const swapBtn = $('#btn-swap');
-    const swapReason = E.swapBlockReason(s, bt.me);
-    swapBtn.disabled = bt.locked || bt.waiting || !!swapReason;
-    swapBtn.textContent = s.swapUsed && s.turnSide === bt.me ? '交代済み（1ターン1回）' : '前衛と後衛を交代';
-    swapBtn.classList.toggle('hidden', s.phase === 'over' || s.phase === 'formation' || s.phase === 'initiative');
-    $('#btn-surrender').classList.toggle('hidden', s.phase === 'over');
+    const swapReason = bt.locked || bt.waiting ? '処理中' : E.swapBlockReason(s, bt.me);
+    swapBtn.disabled = !!swapReason;
+    swapBtn.querySelector('span').textContent = s.swapUsed && s.turnSide === bt.me ? '交代済み' : '交代';
+    const active = !(s.phase === 'over' || s.phase === 'formation' || s.phase === 'initiative');
+    $('#btn-skill-menu').disabled = !active;
+    // 交代できるか・できない理由を短く出す
+    const hint = $('#drag-hint');
+    if (!active) hint.textContent = '';
+    else if (!swapReason) hint.textContent = '長押しで後衛と交代できます';
+    else hint.textContent = s.turnSide === bt.me && s.phase !== 'roll' ? `交代：${swapReason}` : '';
 
     const flags = [];
     if (s.phase === 'action' || s.phase === 'replace') {
@@ -461,18 +493,21 @@
     if (s.initiative && s.round <= 1) flags.push(`先攻：${whoName(s.firstSide)}（${s.initiative[bt.me]} 対 ${s.initiative[bt.foe]}）`);
     $('#turn-flags').textContent = flags.join('・');
 
-    $('#last-action').innerHTML = bt.lastLogs.length
-      ? bt.lastLogs.map(l => `<div class="lk-${l.kind}">${esc(l.text)}</div>`).join('')
+    const last = bt.lastLogs.filter(l => l.kind !== 'turn').slice(-2);
+    $('#last-action').innerHTML = last.length
+      ? last.map(l => `<div class="lk-${l.kind}">${esc(l.text)}</div>`).join('')
       : '<div class="muted">直近の行動がここに表示されます</div>';
   }
 
+  const logHtml = () => bt.state.log.slice().reverse().map(l => `<li class="lk-${l.kind}">${esc(l.text)}</li>`).join('');
   function renderLog() {
-    $('#log').innerHTML = bt.state.log.slice().reverse().map(l => `<li class="lk-${l.kind}">${esc(l.text)}</li>`).join('');
+    $('#log').innerHTML = logHtml();
   }
 
   function render() {
     if (!bt.state) {
-      $('#phase-text').textContent = '相手の準備を待っています…';
+      $('#phase-text').textContent = '準備中';
+      $('#phase-sub').textContent = '相手の準備を待っています…';
       return;
     }
     renderSide(bt.foe);
@@ -482,6 +517,47 @@
     renderLog();
     renderConnection();
     if (U.ui.modal && U.ui.modal.refresh) U.ui.modal.refresh();
+  }
+
+  /* ---------- 履歴・固有スキル・メニュー ---------- */
+  function showLogModal() {
+    openModal('', { kind: 'log', refresh: () => { const l = $('#modal-body .log'); if (l) l.innerHTML = logHtml(); } });
+    $('#modal-body').innerHTML = `<h3>戦闘履歴</h3><p class="muted">新しい順</p><ol class="log log-full">${logHtml()}</ol>
+      <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`;
+  }
+  // 固有スキル：6体のスキルと使える状態（後衛も使える）
+  function showSkillList() {
+    const draw = () => {
+      const s = bt.state;
+      const team = s.teams[bt.me];
+      $('#modal-body').innerHTML = `<h3>固有スキル</h3>
+        <p class="muted">前衛・後衛どちらのキャラも使えます。チーム全体で1ターン1回、通常技の前に使います。</p>
+        <div class="target-list">${team.map((u, i) => {
+          if (u.hp <= 0) return '';
+          const ch = E.unitChar(u);
+          const reason = bt.locked || bt.waiting ? '処理中です' : E.skillBlockReason(s, bt.me, i);
+          return `<button type="button" class="target-btn skill-pick${reason ? ' unavailable' : ''}" data-skill="${i}">${emblem(ch, u, 'small')}
+            <span class="t-main"><b>${esc(ch.skill.name)}</b> <span class="muted">${esc(ch.name)}・${E.isFront(s, bt.me, i) ? '前衛' : '後衛'}</span><br>
+            <span class="muted">${esc(ch.skill.text)}</span>${reason ? `<br><span class="reason">${esc(reason)}</span>` : ''}</span></button>`;
+        }).join('')}</div>
+        <div class="modal-actions"><button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button></div>`;
+      $('#modal-body').querySelectorAll('[data-skill]').forEach(b => b.addEventListener('click', () => showSkillModal(Number(b.dataset.skill))));
+    };
+    openModal('', { kind: 'skill-list', refresh: draw });
+    draw();
+  }
+  function showBattleMenu() {
+    const over = bt.state && bt.state.phase === 'over';
+    openModal(`<h3>メニュー</h3>
+      <div class="modal-actions">
+        <button type="button" class="btn btn-ghost btn-block" id="btn-menu-log">戦闘履歴</button>
+        ${over ? '' : `<button type="button" class="btn btn-ghost btn-block btn-danger" id="btn-surrender">${bt.mode !== 'cpu' ? '降参して退出' : '戦闘をやめる'}</button>`}
+        <button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button>
+      </div>`, { kind: 'menu', bind: b => {
+      b.querySelector('#btn-menu-log').addEventListener('click', showLogModal);
+      const sr = b.querySelector('#btn-surrender');
+      if (sr) sr.addEventListener('click', showSurrenderConfirm);
+    } });
   }
 
   /* ---------- 演出 ---------- */
@@ -576,8 +652,6 @@
    * 短いタップ（クリック・Enter）でリーダー、ドラッグで前衛⇄後衛の入れ替え。
    * タッチは長押ししてから動かす（すぐ動かした場合は縦スクロールとして扱う）。
    * ドラッグできない環境向けに「タップで入れ替え」モードも用意する。 */
-  const FM_HOLD_MS = 320;   // タッチの長押し判定
-  const FM_SLOP = 8;        // これ以上動いたらドラッグ（マウス）／スクロール（長押し前のタッチ）
   const CROWN = '<svg class="crown" viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15L1 4l6 5 5-8 5 8 6-5-1 11z" fill="#d9ad45" stroke="#7a5418" stroke-width="1.2" stroke-linejoin="round"/><rect x="2" y="15" width="20" height="2.4" rx="1" fill="#b98a2c"/></svg>';
 
   function showFormationModal() {
@@ -588,7 +662,7 @@
       bt.fmDraft = { slots: sug.front.concat(sug.back), leader: sug.leader };
     }
     const fm = bt.fmDraft;
-    let swapMode = false, swapPick = null, suppressUntil = 0, drag = null;
+    let swapMode = false, swapPick = null;
     const posOf = i => (fm.slots.indexOf(i) < need ? 'front' : 'back');
     // 前衛と後衛の2体で、前衛に出る側が戦えるときだけ入れ替えられる
     const canSwap = (a, b) => {
@@ -636,19 +710,17 @@
         </div></div>`;
       const sheet = $('#modal-body .fm-sheet');
       sheet.addEventListener('click', onClick);
-      sheet.addEventListener('pointerdown', onDown);
-      sheet.addEventListener('contextmenu', e => { if (e.target.closest('.fm-card')) e.preventDefault(); });
       sheet.querySelector('#btn-fm-swapmode').addEventListener('click', () => { swapMode = !swapMode; swapPick = null; draw(); });
       sheet.querySelector('#btn-formation-ok').addEventListener('click', confirm);
       sheet.querySelectorAll('#btn-formation-back, #btn-formation-x').forEach(b => b.addEventListener('click', () => {
-        endDrag(false); closeModal(true); stop(); if (bt.opts.onExit) bt.opts.onExit();
+        closeModal(true); stop(); if (bt.opts.onExit) bt.opts.onExit();
       }));
     };
 
     function onClick(e) {
       const c = e.target.closest('.fm-card');
       if (!c) return;
-      if (Date.now() < suppressUntil) return; // ドラッグ直後のクリックではリーダーを変えない
+      if (dragger.suppressed()) return; // ドラッグ直後のクリックではリーダーを変えない
       const i = Number(c.dataset.idx);
       if (swapMode) {
         if (swapPick === null || swapPick === i) swapPick = swapPick === i ? null : i;
@@ -660,84 +732,21 @@
       if (again && e.detail === 0) again.focus(); // キーボード操作ではフォーカスを保つ
     }
 
-    function onDown(e) {
-      const c = e.target.closest('.fm-card');
-      if (!c || swapMode || drag || (e.pointerType === 'mouse' && e.button !== 0)) return;
-      drag = { card: c, idx: Number(c.dataset.idx), id: e.pointerId, x0: e.clientX, y0: e.clientY, x: e.clientX, y: e.clientY,
-        touch: e.pointerType !== 'mouse', active: false, timer: null, ghost: null, target: null, dx: 0, dy: 0 };
-      if (drag.touch) drag.timer = setTimeout(() => begin(), FM_HOLD_MS);
-      window.addEventListener('pointermove', onMove, { passive: false });
-      window.addEventListener('pointerup', onUp);
-      window.addEventListener('pointercancel', onCancel);
-      window.addEventListener('touchmove', blockScroll, { passive: false });
-    }
-    function blockScroll(e) { if (drag && drag.active) e.preventDefault(); }
-    function begin() {
-      if (!drag || drag.active) return;
-      drag.active = true;
-      suppressUntil = Infinity;
-      const r = drag.card.getBoundingClientRect();
-      drag.dx = drag.x - r.left; drag.dy = drag.y - r.top;
-      const g = drag.card.cloneNode(true);
-      g.classList.add('fm-ghost');
-      g.removeAttribute('data-idx');
-      g.style.width = r.width + 'px';
-      document.body.appendChild(g);
-      drag.ghost = g;
-      drag.card.classList.add('dragging');
-      try { drag.card.setPointerCapture(drag.id); } catch (err) { /* 取れなくても window で追う */ }
-      if (drag.touch && navigator.vibrate) navigator.vibrate(12);
-      place();
-    }
-    function place() {
-      const d = drag;
-      d.ghost.style.transform = `translate(${d.x - d.dx}px, ${d.y - d.dy}px) scale(1.06) rotate(-2deg)`;
-      const el = document.elementFromPoint(d.x, d.y);
-      const t = el && el.closest('#modal-body .fm-card');
-      const ok = t && canSwap(d.idx, Number(t.dataset.idx)) ? t : null;
-      if (d.target && d.target !== ok) d.target.classList.remove('drop-target');
-      if (ok) ok.classList.add('drop-target');
-      d.target = ok;
-    }
-    function onMove(e) {
-      if (!drag || e.pointerId !== drag.id) return;
-      drag.x = e.clientX; drag.y = e.clientY;
-      const far = Math.hypot(drag.x - drag.x0, drag.y - drag.y0) > FM_SLOP;
-      if (!drag.active) {
-        if (drag.touch) { if (far) endDrag(false); return; } // 長押しの前に動いた＝スクロール
-        if (!far) return;
-        begin();
-      }
-      e.preventDefault();
-      place();
-    }
-    function onUp(e) { if (drag && e.pointerId === drag.id) endDrag(true); }
-    function onCancel(e) { if (drag && e.pointerId === drag.id) endDrag(false); }
-    // drop=true なら交換先の上で離したときだけ入れ替える。それ以外は元の位置のまま
-    function endDrag(drop) {
-      const d = drag;
-      if (!d) return;
-      drag = null;
-      clearTimeout(d.timer);
-      window.removeEventListener('pointermove', onMove);
-      window.removeEventListener('pointerup', onUp);
-      window.removeEventListener('pointercancel', onCancel);
-      window.removeEventListener('touchmove', blockScroll);
-      if (!d.active) return;
-      suppressUntil = Date.now() + 400;
-      if (d.ghost) d.ghost.remove();
-      if (drop && d.target) swap(d.idx, Number(d.target.dataset.idx));
-      draw();
-    }
-
     function confirm() {
-      if (drag) return;
+      if (dragger.busy()) return;
       const front = fm.slots.slice(0, need);
       if (bt.opts && bt.opts.onFormation) bt.opts.onFormation({ front: front.map(i => team[i].charId), leader: team[fm.leader].charId });
       perform('formation', { front, leader: fm.leader });
     }
 
-    openModal('', { closable: false, kind: 'formation' });
+    // ドラッグは #modal-body に1つだけ付け、画面を閉じたら外す
+    const dragger = U.cardDrag($('#modal-body'), {
+      selector: '#modal-body .fm-card', ghostClass: 'fm-ghost',
+      enabled: () => !swapMode,
+      canDrop: (c, t) => canSwap(Number(c.dataset.idx), Number(t.dataset.idx)),
+      onDrop: (c, t) => { swap(Number(c.dataset.idx), Number(t.dataset.idx)); draw(); }
+    });
+    openModal('', { closable: false, kind: 'formation', onClose: () => dragger.destroy() });
     draw();
   }
 
@@ -899,20 +908,42 @@
       perform('roll', {});
     });
     $('#btn-swap').addEventListener('click', () => { if (!bt.locked && !bt.waiting) showSwapModal(); });
-    $('#btn-surrender').addEventListener('click', showSurrenderConfirm);
+    $('#btn-skill-menu').addEventListener('click', () => { if (bt.state) showSkillList(); });
+    $('#btn-log').addEventListener('click', () => { if (bt.state) showLogModal(); });
+    $('#btn-battle-menu').addEventListener('click', showBattleMenu);
     $('#move-options').addEventListener('click', e => {
-      if (U.tapGuarded()) return;
+      if (U.tapGuarded() || dragger.suppressed()) return;
       const b = e.target.closest('[data-move]');
       if (b && !bt.locked && !bt.waiting) showMoveConfirm(Number(b.dataset.move));
     });
+    // 前衛⇄後衛のドラッグ交代（判定はすべて Engine。対人戦のゲストはホストに依頼し、結果の状態で描き直す）
+    const layout = $('#screen-battle .bt-layout');
+    const dragger = U.cardDrag(layout, {
+      selector: '#screen-battle .bt-card.mine:not(.ko)', ghostClass: 'bt-ghost',
+      enabled: () => !!bt.state && bt.active,
+      canStart: () => {
+        const s = bt.state;
+        if (s.turnSide !== bt.me || (s.phase !== 'roll' && s.phase !== 'action')) return `${whoName(bt.foe)}のターンです`;
+        if (bt.locked || bt.waiting) return '処理中です';
+        const r = E.swapBlockReason(s, bt.me);
+        return r ? '交代できません：' + r : null;
+      },
+      canDrop: (c, t) => c.dataset.pos !== t.dataset.pos,
+      onDrop: (c, t) => {
+        const a = Number(c.dataset.idx), b = Number(t.dataset.idx);
+        const out = c.dataset.pos === 'front' ? a : b, inn = c.dataset.pos === 'front' ? b : a;
+        perform('swap', { out, in: inn });
+      }
+    });
     const cardClick = e => {
-      if (U.tapGuarded() || !bt.state) return;
-      const skillBtn = e.target.closest('[data-skill]');
-      if (skillBtn) { e.stopPropagation(); showSkillModal(Number(skillBtn.dataset.skill)); return; }
-      const card = e.target.closest('.unit-card[data-idx]');
+      if (U.tapGuarded() || dragger.suppressed() || !bt.state) return;
+      const card = e.target.closest('.bt-card[data-idx]');
       if (card) showDetailModal(card.dataset.side, Number(card.dataset.idx));
     };
     ['#ally-front', '#ally-back', '#enemy-front', '#enemy-back'].forEach(sel => $(sel).addEventListener('click', cardClick));
+    layout.addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.bt-card[data-idx]')) { e.preventDefault(); e.target.click(); }
+    });
     U.ui.onModalClose = () => { if (bt.active && bt.state && bt.state.phase === 'over') renderCenter(); };
   }
 
