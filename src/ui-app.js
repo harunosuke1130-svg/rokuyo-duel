@@ -149,7 +149,7 @@
       ? `<button type="button" class="team-missing" data-go="team"><b>チームが未完成です</b><span>「編成」で6体を選んで保存してください</span></button>`
       : p.team.map(id => {
         const ch = E.getChar(id);
-        return `<button type="button" class="portrait-card" data-go="team" aria-label="${esc(ch.name)} Lv${P.levelOf(p, id)}（編成へ）">${portrait(ch)}${levelTag(P.levelOf(p, id))}${elMark(ch)}</button>`;
+        return `<button type="button" class="portrait-card" data-go="team" aria-label="${esc(ch.name)} Lv${P.levelOf(p, id)}（編成へ）">${portrait(ch, { zoom: true })}${levelTag(P.levelOf(p, id))}${elMark(ch)}</button>`;
       }).join('');
     renderBonus();
     if (!app.bonusOffered && !P.loginStatus(p).claimed) { app.bonusOffered = true; showBonusModal(); }

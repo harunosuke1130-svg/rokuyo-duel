@@ -51,7 +51,10 @@ function imageRules() {
   const rules = [];
   list('chara').forEach(f => {
     const id = path.basename(f, path.extname(f));
-    rules.push(`.portrait[data-char="${id}"] { background: #1a120b url("img/chara/${f}") center top / cover no-repeat; }`, `.portrait[data-char="${id}"] i { display: none; }`);
+    // 画像は1回だけ埋め込み、絵（.portrait）と紋章（.emblem）で共有する
+    rules.push(`[data-char="${id}"] { --img: url("img/chara/${f}"); }`,
+      `.portrait[data-char="${id}"] { background-color: #efe6d2; background-image: var(--img); }`, `.portrait[data-char="${id}"] i { display: none; }`,
+      `.emblem[data-char="${id}"] { background: #efe6d2 var(--img) var(--ex, 50%) var(--ey, 0%) / 330% auto no-repeat; color: transparent; text-shadow: none; }`);
   });
   list('element').forEach(f => {
     const el = path.basename(f, path.extname(f));

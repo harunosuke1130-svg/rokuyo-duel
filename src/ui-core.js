@@ -22,7 +22,7 @@
   function emblem(ch, unit, size) {
     const el = ELEMENTS[ch.element] || { color: '#888' };
     const ko = unit && unit.hp <= 0 ? ' ko' : '';
-    return `<span class="emblem${size ? ' ' + size : ''}${ko}" style="--el:${el.color}" aria-hidden="true">${esc(ch.glyph)}</span>`;
+    return `<span class="emblem${size ? ' ' + size : ''}${ko}" data-char="${esc(ch.id)}" style="--el:${el.color}" aria-hidden="true">${esc(ch.glyph)}</span>`;
   }
   // 属性マーク（画像があればビルドで src/img/element/<属性>.* が背景に入る。無ければ属性名の1文字目）
   const EL_GLYPH = { fire: '火', water: '水', nature: '森', holy: '光', dark: '闇' };
@@ -34,7 +34,7 @@
   function portrait(ch, opts) {
     const o = opts || {};
     const el = ELEMENTS[ch.element] || { color: '#888' };
-    return `<span class="portrait${o.dim ? ' dim' : ''}" data-char="${esc(ch.id)}" style="--el:${el.color}" aria-hidden="true"><i>${esc(ch.glyph)}</i></span>`;
+    return `<span class="portrait${o.dim ? ' dim' : ''}${o.zoom ? ' zoom' : ''}" data-char="${esc(ch.id)}" style="--el:${el.color}" aria-hidden="true"><i>${esc(ch.glyph)}</i></span>`;
   }
   // 石のアイコン
   function gemIcon(cls) {

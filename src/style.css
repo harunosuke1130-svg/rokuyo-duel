@@ -606,8 +606,18 @@ body[data-screen="home"] .topbar { display: none; }
   background:
     radial-gradient(circle at 50% 38%, color-mix(in srgb, var(--el) 55%, #fff 10%), transparent 62%),
     linear-gradient(180deg, color-mix(in srgb, var(--el) 45%, #2a1f15), #1a120b);
-  background-size: cover; background-position: center top;
+  background-size: cover; background-position: center top; background-repeat: no-repeat;
 }
+/* キャラの絵の見せ方：--cx/--cy はホームのカード（上半身）、--ex/--ey は丸い紋章（顔）の位置 */
+[data-char="ryogen"] { --cx: 60%; --cy: 0%; --ex: 60%; --ey: 0%; }
+[data-char="gessen"] { --cx: 50%; --cy: 4%; --ex: 50%; --ey: 1%; }
+[data-char="gyakufu"] { --cx: 36%; --cy: 0%; --ex: 40%; --ey: 0%; }
+[data-char="kohaku"] { --cx: 54%; --cy: 45%; --ex: 53%; --ey: 37%; }
+[data-char="mukai"] { --cx: 54%; --cy: 0%; --ex: 53%; --ey: 0%; }
+[data-char="raimei"] { --cx: 60%; --cy: 40%; --ex: 65%; --ey: 32%; }
+[data-char="suiju"] { --cx: 44%; --cy: 0%; --ex: 46%; --ey: 0%; }
+[data-char="yoiyami"] { --cx: 34%; --cy: 0%; --ex: 36%; --ey: 0%; }
+.portrait.zoom { background-size: 200% auto; background-position: var(--cx, 50%) var(--cy, 0%); }
 .portrait i {
   font-style: normal; font-family: var(--mincho); font-weight: 800; font-size: clamp(22px, 7vw, 40px); color: #fff8e6;
   text-shadow: 0 0 10px color-mix(in srgb, var(--el) 80%, #fff), 0 2px 3px rgba(0, 0, 0, .7);
