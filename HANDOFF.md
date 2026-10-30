@@ -81,6 +81,9 @@
 - 戦闘の背景：`src/img/battle/sea-portrait.webp`（縦画面）・`sea-landscape.webp`（横画面）。ビルドが `<ID>-portrait/-landscape` を向きで切り替える CSS を生成し、専用背景はぼかさない（`--bt-blur: 0`）。
 - ダンジョンの敵1体の表示を大きく（スマホは幅72%、PCは300px）。
 
+- 翠の迷い森の絵：`src/img/chara/b-goblin|b-boar|b-elder.webp`（カードの枠・名前の帯を切り取り）と背景 `src/img/battle/forest-portrait|landscape.webp`。
+  紋章の拡大率を `--es` で変えられるようにした（既定 330%。ボスの全身の絵は 165〜220% で顔に合わせる）。
+
 ## v6.7：管理用アカウントの機能
 
 - 管理用アカウント（`profile.isAdmin`）は、すべての対戦（`P.matchUnlocked`）とダンジョン（`P.dungeonUnlocked`）を最初から選べる。

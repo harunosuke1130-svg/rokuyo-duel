@@ -58,7 +58,7 @@
    - 既存の HP の目安：雑魚 150〜180、中ボス 290〜350、大ボス 400〜510（後のダンジョンほど高い）。
    - 推奨レベルで「踏破できるがぎりぎり」になるように。`node scripts/sim-dungeon.js <ID> <推奨レベル> 300` で CPU 同士の踏破率を出して調整し、報告する（森 Lv1 約 83%、海底神殿 Lv5 約 60%、塔 Lv10 約 46% が今の目安）。
 4. **絵と背景を入れる**。
-   - ボスの絵：`src/img/chara/<id>.webp`（切り取らずに全体を表示する）。
+   - ボスの絵：`src/img/chara/<id>.webp`（戦闘では切り取らずに全体を表示する）。カードの枠・名前の帯は切り取る。ダンジョン一覧の丸い紋章で顔が見えるよう、`src/style.css` に `[data-char="<id>"] { --ex; --ey; --es }` を足す（`--es` は拡大率、全身の絵なら 165〜220%）。
    - ダンジョンの背景：`src/img/battle/<ダンジョンID>-portrait.webp`（縦画面）と `-landscape.webp`（横画面）。1 枚だけなら `<ダンジョンID>.webp`。
 5. **テストと文書を直す**：`tests/progress.test.js` のダンジョンのテスト、`GAME-OVERVIEW.md`・`HANDOFF.md`。
 
