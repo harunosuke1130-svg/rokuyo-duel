@@ -1485,3 +1485,17 @@ body[data-screen="dungeon"] .topbar {
 }
 @keyframes fxStill { 0%, 70% { opacity: .55; } 100% { opacity: 0; } }
 @keyframes numStill { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ガチャの種類（通常・属性ごと） */
+.gacha-kinds { display: flex; flex-wrap: wrap; gap: 6px; margin: 10px 0 4px; }
+.gk-btn {
+  display: inline-flex; align-items: center; gap: 5px; min-height: 40px; padding: 4px 12px; border-radius: 999px; cursor: pointer; touch-action: manipulation;
+  border: 1px solid var(--line); background: rgba(0, 0, 0, .25); color: var(--text); font-family: inherit; font-size: 14px; font-weight: 700;
+}
+.gk-btn .el-ico { width: 18px; height: 18px; }
+.gk-btn[aria-pressed="true"] { border-color: var(--gold); background: rgba(214, 178, 94, .22); color: var(--gold2); box-shadow: inset 0 0 0 1px rgba(242, 217, 141, .35); }
+.gk-btn[data-el][aria-pressed="true"] { border-color: color-mix(in srgb, var(--fx, var(--gold)) 80%, #fff); }
+.gk-btn:active { transform: scale(.97); }
+.gk-btn:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+.gacha-kind-text { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
+.gacha-kind-text b { color: var(--gold2); }

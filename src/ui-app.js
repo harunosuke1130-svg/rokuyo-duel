@@ -656,25 +656,34 @@
     go('gacha');
     renderGacha();
   }
+  // ガチャの種類（通常・属性ごと）。値段はどれも同じ
+  let gachaKind = 'all';
   function renderGacha() {
     const p = app.profile;
+    if (!P.getGacha(gachaKind)) gachaKind = 'all';
+    const g = P.getGacha(gachaKind);
+    const pool = P.gachaPool(gachaKind);
+    $('#gacha-kinds').innerHTML = D.GACHAS.map(k => `<button type="button" class="gk-btn" data-gacha-kind="${k.id}" aria-pressed="${k.id === gachaKind}"${k.element ? ` data-el="${k.element}"` : ''}>${k.element ? `<span class="el-ico" data-el="${k.element}" aria-hidden="true"></span>` : ''}${esc(k.element ? D.ELEMENTS[k.element].name : '通常')}</button>`).join('');
+    $('#gacha-kind-text').innerHTML = `<b>${esc(g.name)}</b>：${esc(g.text)}`;
     $('#gacha-stones').textContent = p.stones;
     const b1 = $('#btn-gacha-1'), b10 = $('#btn-gacha-10');
     b1.textContent = `1回引く（石${P.gachaCost(1)}）`;
     b10.textContent = `10回引く（石${P.gachaCost(10)}）`;
-    b1.disabled = p.stones < P.gachaCost(1);
-    b10.disabled = p.stones < P.gachaCost(10);
-    $('#gacha-pool').innerHTML = E.CHARACTERS.map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}${starsHtml(ch)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
+    b1.disabled = p.stones < P.gachaCost(1) || !pool.length;
+    b10.disabled = p.stones < P.gachaCost(10) || !pool.length;
+    const owned = pool.filter(id => P.owns(p, id)).length;
+    $('#gacha-pool-title').textContent = `${g.name}で呼び出せるキャラ（${pool.length}体・所持${owned}体）`;
+    $('#gacha-pool').innerHTML = pool.map(id => E.getChar(id)).map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}${starsHtml(ch)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
   }
   let gachaBusy = false;
   function pullGacha(count) {
     if (gachaBusy) return;
     gachaBusy = true;
-    const r = P.drawGacha(app.profile, count, rng);
+    const r = P.drawGacha(app.profile, count, rng, gachaKind);
     if (!r.ok) { gachaBusy = false; toast(r.error); return; }
     save();
     renderGacha();
-    openModal(`<h3>ガチャの結果（${count}回）</h3>
+    openModal(`<h3>${esc(P.getGacha(gachaKind).name)}の結果（${count}回）</h3>
       <div class="gacha-results">${r.results.map((x, i) => {
         const ch = E.getChar(x.id);
         return `<div class="gacha-card${x.isNew ? ' new' : ''}" style="animation-delay:${U.FAST ? 0 : i * 90}ms">${emblem(ch, null, 'big')}<b>${esc(ch.name)}</b>${starsHtml(ch)}
@@ -964,6 +973,12 @@
     $('#match-list').addEventListener('click', e => {
       const b = e.target.closest('[data-match]');
       if (b) startMatch(b.dataset.match);
+    });
+    $('#gacha-kinds').addEventListener('click', e => {
+      const b = e.target.closest('[data-gacha-kind]');
+      if (!b || gachaBusy) return;
+      gachaKind = b.dataset.gachaKind;
+      renderGacha();
     });
     $('#btn-gacha-1').addEventListener('click', () => pullGacha(1));
     $('#btn-gacha-10').addEventListener('click', () => pullGacha(10));

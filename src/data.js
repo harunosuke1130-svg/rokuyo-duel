@@ -295,6 +295,17 @@
   };
 
   /*
+   * ---------- ガチャの種類 ----------
+   * 値段はどれも同じ（ECONOMY.gachaCost / gacha10Cost）。element があればその属性のキャラだけが出る。
+   * どの種類でも、出るキャラの中では全員同じ確率。
+   */
+  const GACHAS = [
+    { id: 'all', name: '通常ガチャ', text: 'すべてのキャラが同じ確率で出ます。' }
+  ].concat(Object.keys(ELEMENTS).map(el => ({
+    id: el, element: el, name: ELEMENTS[el].name + 'ガチャ', text: `${ELEMENTS[el].name}属性のキャラだけが出ます（その中では全員同じ確率）。`
+  })));
+
+  /*
    * ---------- 対戦（CPUチームとの6対6） ----------
    * 上から順に解放（前の相手に1回勝つと次が開く）。enemies=敵チーム6体、level=敵のレベル、leader=敵リーダー
    * exp=勝利時にチーム6体それぞれが得る経験値（敗北は3割）、firstStones=初勝利の石、stones=2回目以降の勝利の石
@@ -369,7 +380,7 @@
       floors: [{ boss: 'b-imp', level: 9, exp: 220 }, { boss: 'b-witch', level: 10, exp: 320 }, { boss: 'b-maou', level: 11, exp: 450 }] }
   ];
 
-  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
+  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
 
   if (typeof module === 'object' && module.exports) module.exports = Data;
   else global.RikuyouData = Data;

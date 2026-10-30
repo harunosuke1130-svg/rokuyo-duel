@@ -169,14 +169,23 @@
   function gachaCost(count) {
     return count === 10 ? ECONOMY.gacha10Cost : ECONOMY.gachaCost * count;
   }
-  function drawGacha(p, count, rng) {
+  // ガチャの種類ごとの出るキャラ（data.js の GACHAS。属性ガチャはその属性のキャラだけ）
+  function getGacha(kind) { return (Data.GACHAS || []).find(g => g.id === (kind || 'all')) || null; }
+  function gachaPool(kind) {
+    const g = getGacha(kind);
+    if (!g) return [];
+    return g.element ? CHARACTERS.filter(c => c.element === g.element).map(c => c.id) : ALL_IDS.slice();
+  }
+  function drawGacha(p, count, rng, kind) {
     if (count !== 1 && count !== 10) return { ok: false, error: '1回か10回で引いてください' };
+    const pool = gachaPool(kind);
+    if (!pool.length) return { ok: false, error: 'このガチャは今は引けません' };
     const cost = gachaCost(count);
     if (p.stones < cost) return { ok: false, error: `石が足りません（必要 ${cost}／所持 ${p.stones}）` };
     p.stones -= cost;
     const results = [];
     for (let i = 0; i < count; i++) {
-      const id = ALL_IDS[Math.min(ALL_IDS.length - 1, Math.floor((rng || Math.random)() * ALL_IDS.length))];
+      const id = pool[Math.min(pool.length - 1, Math.floor((rng || Math.random)() * pool.length))];
       if (!owns(p, id)) {
         p.chars[id] = { level: 1, exp: 0 };
         results.push({ id, isNew: true });
@@ -296,7 +305,7 @@
     dayKey, dayDiff, newProfile, sanitize,
     owns, ownedIds, levelOf, expToNext, addExp, levelsFor, loadoutsFor,
     teamError, setTeam, setLoadout, setLevel,
-    gachaCost, drawGacha,
+    gachaCost, drawGacha, getGacha, gachaPool,
     loginStatus, claimLogin,
     getMatch, matchUnlocked, matchEnemy, applyMatchResult,
     getDungeon, dungeonRequires, dungeonSiblings, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, applyDungeonFloor,

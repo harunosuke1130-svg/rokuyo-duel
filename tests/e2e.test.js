@@ -526,13 +526,23 @@ test('mobile: ガチャ（1回・10回・石不足）', async () => {
   await page.click('#btn-home');
   await page.click('[data-go="gacha"]');
   assert.equal(await page.isDisabled('#btn-gacha-10'), false);
+  // 属性ガチャ：自然を選ぶと、呼び出せるキャラは自然属性だけ。値段は同じ
+  assert.equal(await page.$$eval('#gacha-kinds .gk-btn', b => b.length), 6, '通常＋5属性');
+  await page.click('#gacha-kinds [data-gacha-kind="nature"]');
+  assert.equal(await page.getAttribute('#gacha-kinds [data-gacha-kind="nature"]', 'aria-pressed'), 'true');
+  const natures = E.CHARACTERS.filter(c => c.element === 'nature').length;
+  assert.equal(await page.$$eval('#gacha-pool .pool-item', c => c.length), natures);
+  await page.waitForTimeout(500);
   await page.click('#btn-gacha-10');
   await page.waitForSelector('#modal[data-kind="gacha"]:not(.hidden)');
   assert.equal(await page.$$eval('.gacha-card', c => c.length), 10);
+  assert.ok((await page.textContent('#modal h3')).includes('自然ガチャ'));
+  const names = await page.$$eval('.gacha-card b', b => b.map(x => x.textContent));
+  assert.ok(names.every(n => E.CHARACTERS.some(c => c.name === n && c.element === 'nature')), '自然属性のキャラだけ');
   p = await H.profile(page);
   assert.equal(p.stones, 0);
   const owned = Object.keys(p.chars).length;
-  assert.ok(owned >= 6 && owned <= 8);
+  assert.ok(owned >= 6 && owned <= CHAR_COUNT);
   assert.deepEqual(errors, []);
   await ctx.close();
 });
