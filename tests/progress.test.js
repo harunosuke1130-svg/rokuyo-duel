@@ -139,10 +139,11 @@ test('ガチャ：石を消費し、新キャラは所持、持っているキ�
   assert.match(P.drawGacha(p, 10, Math.random).error, /石が足りません/);
   assert.equal(P.drawGacha(p, 3, Math.random).ok, false);
   p.stones = 900;
+  const owned10 = P.ownedIds(p).length;
   const r10 = P.drawGacha(p, 10, E.createRng(9));
   assert.equal(r10.results.length, 10);
   assert.equal(p.stones, 0);
-  assert.equal(P.ownedIds(p).length, P.ALL_IDS.length - (P.owns(p, missing[1]) ? 0 : 1));
+  assert.equal(P.ownedIds(p).length, owned10 + r10.results.filter(x => x.isNew).length, '新キャラの数だけ所持が増える');
 });
 
 test('ログインボーナス：1日1回・連続日数で額が変わる・途切れたら1日目から（日本時間）', () => {

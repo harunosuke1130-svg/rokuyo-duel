@@ -861,8 +861,10 @@
       const sheet = $('#modal-body .fm-sheet');
       sheet.addEventListener('click', onClick);
       sheet.querySelector('#btn-fm-swapmode').addEventListener('click', () => { swapMode = !swapMode; swapPick = null; draw(); });
-      sheet.querySelector('#btn-formation-ok').addEventListener('click', confirm);
+      // 前の画面（結果など）のボタンの連打が、出撃・戻るに当たらないようにする
+      sheet.querySelector('#btn-formation-ok').addEventListener('click', () => { if (!U.tapGuarded()) confirm(); });
       sheet.querySelectorAll('#btn-formation-back, #btn-formation-x').forEach(b => b.addEventListener('click', () => {
+        if (U.tapGuarded()) return;
         closeModal(true); stop(); if (bt.opts.onExit) bt.opts.onExit();
       }));
     };

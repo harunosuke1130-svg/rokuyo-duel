@@ -860,6 +860,8 @@ async function finishQuickly(page, loseSide) {
   await page.evaluate(side => { const s = window.RikuyouApp.getState(); s.teams[side].forEach((u, i) => { u.hp = s.front[side].indexOf(i) >= 0 ? 1 : 0; }); }, loseSide);
   for (let k = 0; k < 1500; k++) {
     if (await page.$('#modal[data-kind="result"]:not(.hidden)')) return;
+    // 回復で持ち直さないよう、決着までは前衛のHPを1以下に保つ
+    await page.evaluate(side => { const s = window.RikuyouApp.getState(); if (s.phase !== 'over') s.front[side].forEach(i => { const u = s.teams[side][i]; if (u.hp > 1) u.hp = 1; }); }, loseSide);
     await H.step(page);
     await page.waitForTimeout(60);
   }

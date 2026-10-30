@@ -42,6 +42,7 @@ async function startLocal(page, name, opts = {}) {
 const frontIdx = page => page.$$eval('#modal .fm-grid[data-row="front"] .fm-card', cs => cs.map(c => Number(c.dataset.idx)));
 async function arrange(page, front, leader) {
   await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)', { timeout: 20000 });
+  await page.waitForTimeout(TAP_GUARD); // 前の画面を閉じた直後のタップは無視されるため
   let cur = await frontIdx(page);
   if (front.some(i => cur.indexOf(i) < 0)) {
     await page.click('#btn-fm-swapmode');

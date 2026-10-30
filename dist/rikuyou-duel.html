@@ -2422,6 +2422,133 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
         text: '味方の回復疲労をなくし（この巡から数え直し、回復量が100%に戻る。1戦に1回まで）、さらに味方前衛全員をそれぞれ20回復する。',
         effects: [{ type: 'fatigueReset' }, { type: 'heal', amount: 20 }]
       }
+    },
+    // ---- 自動追加 2026-10-30 ----
+    {
+      id: 'benitetsu', name: '紅鉄の鍛冶師', glyph: '鉄', maxHp: 140, element: 'fire',
+      subTypes: ['鍛冶師', '戦士'],
+      leaderSkill: { name: '鍛冶場の熱気', text: '猛火属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
+      moves: [
+        { name: '火打ちの槌', atk: 12, heal: 0 },
+        { name: '赤熱の一撃', atk: 20, heal: 0 },
+        { name: '鍛え抜いた刃', atk: 28, heal: 0 },
+        { name: '炉端の休息', atk: 0, heal: 18 },
+        { name: '火の粉散らし', atk: 16, heal: 6 },
+        { name: '紅鉄の大振り', atk: 30, heal: 0 },
+        { name: '鉄槌の構え', atk: 22, heal: 4 },
+        { name: '焼き入れ', atk: 0, heal: 22 },
+        { name: '灼熱の大槌', atk: 36, heal: 0 }
+      ],
+      skill: {
+        name: '炉の加護', cd: 4,
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に6を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 6 }]
+      }
+    },
+    {
+      id: 'kokuyou', name: '黒曜の騎士', glyph: '曜', maxHp: 125, element: 'dark',
+      subTypes: ['騎士', '守護者'],
+      leaderSkill: { name: '闇夜の軍旗', text: '呪闇属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 5 }] },
+      moves: [
+        { name: '黒曜の剣', atk: 18, heal: 0 },
+        { name: '影踏み', atk: 24, heal: 0 },
+        { name: '盾打ち', atk: 10, heal: 8 },
+        { name: '夜断ち', atk: 32, heal: 0 },
+        { name: '静寂の祈り', atk: 0, heal: 24 },
+        { name: '闇の突進', atk: 22, heal: 0 },
+        { name: '黒曜の盾', atk: 0, heal: 26 },
+        { name: '闇裂き', atk: 30, heal: 0 },
+        { name: '夜の誓い', atk: 14, heal: 14 }
+      ],
+      skill: {
+        name: '黒曜の断罪', cd: 3,
+        text: '敵前衛全員に、それぞれ16ダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 16, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'homurao', name: '焔尾の狐', glyph: '狐', maxHp: 100, element: 'fire',
+      subTypes: ['獣', '術士'],
+      leaderSkill: { name: '陽だまりの尾', text: '味方全員の通常技の回復+3（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 3 }] },
+      moves: [
+        { name: '火の玉', atk: 10, heal: 0 },
+        { name: '尾払い', atk: 18, heal: 0 },
+        { name: '焔の舞', atk: 26, heal: 0 },
+        { name: 'ぬくもりの尾', atk: 14, heal: 6 },
+        { name: 'ひなたぼっこ', atk: 0, heal: 20 },
+        { name: '燃える爪', atk: 20, heal: 0 },
+        { name: '狐火', atk: 16, heal: 0 },
+        { name: '尾の揺らめき', atk: 0, heal: 16 },
+        { name: '九尾の焔', atk: 30, heal: 0 }
+      ],
+      skill: {
+        name: '狐火の舞', cd: 4,
+        text: 'このターンの通常技の攻撃を1.5倍にする（回復は変わらない）。',
+        effects: [{ type: 'atkMultiplier', value: 1.5 }]
+      }
+    },
+    {
+      id: 'kagenui', name: '影縫いの暗殺者', glyph: '影', maxHp: 95, element: 'dark',
+      subTypes: ['暗殺者', '影使い'],
+      leaderSkill: { name: '暗殺者の心得', text: '味方の固有スキルの直接ダメージ+3（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 3 }] },
+      moves: [
+        { name: '暗器投げ', atk: 16, heal: 0 },
+        { name: '影走り', atk: 22, heal: 0 },
+        { name: '身を潜める', atk: 12, heal: 6 },
+        { name: '背後の一刺し', atk: 28, heal: 0 },
+        { name: '毒消しの薬', atk: 8, heal: 10 },
+        { name: '影の刃', atk: 20, heal: 0 },
+        { name: '影縫い', atk: 18, heal: 0 },
+        { name: '闇の帳', atk: 0, heal: 18 },
+        { name: '刹那の刃', atk: 34, heal: 0 }
+      ],
+      skill: {
+        name: '影縫いの一閃', cd: 4,
+        text: '敵前衛全員に、それぞれ14ダメージ（防御・属性無視）。',
+        effects: [{ type: 'damage', amount: 14, ignoreDefense: true }]
+      }
+    },
+    {
+      id: 'konami', name: '小波の見習い', glyph: '波', maxHp: 90, element: 'water',
+      subTypes: ['見習い', '治癒師'],
+      leaderSkill: { name: '見習いの心得', text: '味方全員の最大HPと初期HPを5%上げる（端数切り捨て）。', effects: [{ type: 'maxHp', scope: 'all', percent: 5 }] },
+      moves: [
+        { name: 'しぶき投げ', atk: 8, heal: 0 },
+        { name: '小石の杖', atk: 12, heal: 0 },
+        { name: 'せせらぎ', atk: 0, heal: 14 },
+        { name: '波打ち', atk: 16, heal: 0 },
+        { name: '水の膜', atk: 6, heal: 8 },
+        { name: 'ひと泳ぎ', atk: 10, heal: 0 },
+        { name: '水鉄砲', atk: 12, heal: 0 },
+        { name: '潮だまり', atk: 0, heal: 14 },
+        { name: '大波ごっこ', atk: 20, heal: 0 }
+      ],
+      skill: {
+        name: '小波の癒し', cd: 3,
+        text: '味方前衛全員をそれぞれ15回復する（後衛は回復しない）。',
+        effects: [{ type: 'heal', amount: 15 }]
+      }
+    },
+    {
+      id: 'tomoshibi', name: '灯火の修道士', glyph: '灯', maxHp: 85, element: 'holy',
+      subTypes: ['修道士', '治癒師'],
+      leaderSkill: { name: '灯火の導き', text: '味方の固有スキルの回復+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
+      moves: [
+        { name: '灯の棒', atk: 6, heal: 0 },
+        { name: 'ささやかな祈り', atk: 10, heal: 6 },
+        { name: '灯の癒し', atk: 0, heal: 16 },
+        { name: '光の礫', atk: 14, heal: 0 },
+        { name: 'ろうそくの温もり', atk: 0, heal: 12 },
+        { name: '聖句', atk: 8, heal: 4 },
+        { name: '灯の祈り', atk: 0, heal: 18 },
+        { name: '小さな光', atk: 10, heal: 4 },
+        { name: '聖灯の祝福', atk: 6, heal: 20 }
+      ],
+      skill: {
+        name: '灯火の守り', cd: 4,
+        text: '味方前衛全員に結界を付ける（各自、次に受ける防御可能なダメージ1回を半減）。',
+        effects: [{ type: 'barrier' }]
+      }
     }
   ];
 
@@ -5308,8 +5435,10 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
       const sheet = $('#modal-body .fm-sheet');
       sheet.addEventListener('click', onClick);
       sheet.querySelector('#btn-fm-swapmode').addEventListener('click', () => { swapMode = !swapMode; swapPick = null; draw(); });
-      sheet.querySelector('#btn-formation-ok').addEventListener('click', confirm);
+      // 前の画面（結果など）のボタンの連打が、出撃・戻るに当たらないようにする
+      sheet.querySelector('#btn-formation-ok').addEventListener('click', () => { if (!U.tapGuarded()) confirm(); });
       sheet.querySelectorAll('#btn-formation-back, #btn-formation-x').forEach(b => b.addEventListener('click', () => {
+        if (U.tapGuarded()) return;
         closeModal(true); stop(); if (bt.opts.onExit) bt.opts.onExit();
       }));
     };
