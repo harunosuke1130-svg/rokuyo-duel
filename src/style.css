@@ -4,6 +4,10 @@
   --img-dungeon: url("img/banner-dungeon.webp");
   --img-match: url("img/banner-match.webp");
   --img-gacha: url("img/banner-gacha.webp");
+  --img-tabbar: url("img/tabbar.webp");
+  /* 下のタブの帯：絵の比率 941:163。幅は画面いっぱい（最大 560px） */
+  --tab-w: min(100vw, 560px);
+  --tabbar-h: calc(var(--tab-w) * 163 / 941 + env(safe-area-inset-bottom, 0px));
   color-scheme: dark;
   --bg: #16100b;
   --bg2: #1f1710;
@@ -511,22 +515,30 @@ body[data-screen="lobby"] .tabbar, body[data-screen="gacha"] .tabbar, body[data-
 body[data-screen="dungeon"] .tabbar {
   display: grid; grid-template-columns: repeat(4, minmax(0, 1fr));
   position: fixed; left: 0; right: 0; bottom: 0; z-index: 40;
-  padding: 6px max(8px, env(safe-area-inset-left, 0px)) calc(6px + env(safe-area-inset-bottom, 0px));
-  background: linear-gradient(180deg, #2a2017, #15100a); border-top: 1px solid rgba(214, 178, 94, .45);
-  box-shadow: 0 -6px 18px rgba(0, 0, 0, .5);
+  /* 絵の帯（ホーム・編成・図鑑・対人戦の絵と文字入り）。幅は最大 --tab-w、下は iPhone のホームバー分だけ地の色を伸ばす */
+  height: var(--tabbar-h); padding: 0 calc((100% - var(--tab-w)) / 2) env(safe-area-inset-bottom, 0px);
+  background: #e6dec6 var(--img-tabbar) center top / var(--tab-w) auto no-repeat;
+  box-shadow: 0 -4px 14px rgba(40, 28, 12, .35);
 }
 body[data-screen="home"] #app, body[data-screen="team"] #app, body[data-screen="zukan"] #app, body[data-screen="lobby"] #app,
-body[data-screen="gacha"] #app, body[data-screen="match"] #app, body[data-screen="dungeon"] #app { padding-bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
-body[data-screen="team"] .team-actions { bottom: calc(66px + env(safe-area-inset-bottom, 0px)); }
+body[data-screen="gacha"] #app, body[data-screen="match"] #app, body[data-screen="dungeon"] #app { padding-bottom: calc(var(--tabbar-h) + 16px); }
+body[data-screen="team"] .team-actions { bottom: var(--tabbar-h); }
+/* 帯の絵に文字とアイコンが描かれているので、ボタンは透明。選んでいるタブは淡く明るくし、金の飾り線を下に */
 .tab-item {
-  position: relative; display: flex; flex-direction: column; align-items: center; gap: 2px; min-height: 54px; padding: 4px 2px;
-  border: 0; background: transparent; color: #cbbd9f; font-family: var(--mincho); font-size: 13px; font-weight: 700; cursor: pointer;
+  position: relative; display: block; height: calc(var(--tab-w) * 163 / 941); padding: 0;
+  border: 0; background: transparent; color: transparent; font-size: 0; cursor: pointer; touch-action: manipulation;
 }
-.tab-item + .tab-item::before { content: ""; position: absolute; left: 0; top: 14px; bottom: 14px; width: 1px; background: rgba(214, 178, 94, .25); }
-.tab-item svg { width: 28px; height: 28px; }
-.tab-item.on { color: var(--gold2); text-shadow: 0 0 10px rgba(242, 217, 141, .45); }
-.tab-item.on::after { content: ""; position: absolute; left: 22%; right: 22%; bottom: 0; height: 2px; border-radius: 2px; background: var(--gold2); box-shadow: 0 0 8px var(--gold); }
-@media (min-width: 700px) { .tabbar { padding-left: calc(50% - 320px) !important; padding-right: calc(50% - 320px) !important; } }
+.tab-item svg, .tab-item span { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.tab-item:active { background: radial-gradient(ellipse 60% 70% at 50% 55%, rgba(120, 90, 40, .16), transparent 75%); }
+.tab-item.on { background: linear-gradient(180deg, rgba(63, 117, 80, .1), rgba(63, 117, 80, .26)); box-shadow: inset 0 0 0 2px rgba(201, 167, 90, .9), inset 0 0 12px rgba(255, 240, 200, .5); border-radius: 8px; }
+.tab-item.on::after {
+  content: ""; position: absolute; left: 20%; right: 20%; bottom: 5%; height: 2px; border-radius: 2px;
+  background: linear-gradient(90deg, transparent, #b6862e 18%, #e2b65a 50%, #b6862e 82%, transparent);
+}
+.tab-item.on::before {
+  content: ""; position: absolute; left: 50%; bottom: calc(5% - 3px); width: 8px; height: 8px; transform: translateX(-50%) rotate(45deg);
+  background: #d9a948; border: 1px solid #8a6020;
+}
 
 /* ホーム：画面いっぱいの町の背景（縦画面・横画面で絵を切り替え） */
 body[data-screen="home"] .topbar { display: none; }
@@ -722,7 +734,7 @@ body[data-screen="home"] { background: #2a1d14; }
 .zk-detail > .portrait { aspect-ratio: 148 / 205; height: auto; border-radius: 6px; border: 2px solid #b8955a; }
 .zk-detail .portrait i { font-size: 40px; }
 body[data-screen="home"] #toast, body[data-screen="team"] #toast, body[data-screen="zukan"] #toast, body[data-screen="lobby"] #toast,
-body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-screen="dungeon"] #toast { bottom: calc(84px + env(safe-area-inset-bottom, 0px)); }
+body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-screen="dungeon"] #toast { bottom: calc(var(--tabbar-h) + 8px); }
 .slot-btn.locked-move { opacity: .55; cursor: default; }
 .slot-btn.locked-move .eff { font-size: 12px; }
 .unlock-note { margin: 8px 0 0; color: var(--gold2); font-weight: 700; font-size: 13.5px; }
@@ -1499,3 +1511,143 @@ body[data-screen="dungeon"] .topbar {
 .gk-btn:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
 .gacha-kind-text { margin: 4px 0 0; font-size: 13px; color: var(--muted); }
 .gacha-kind-text b { color: var(--gold2); }
+
+/* ======================================================================
+ * 羊皮紙の画面（編成・図鑑）：明るい紙の地に、水彩の枠のカード
+ * ==================================================================== */
+body[data-screen="team"], body[data-screen="zukan"] { background: #efe7d4; color: #3a2a18; }
+body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: none; }
+.paper-screen { position: relative; max-width: 640px; margin: 0 auto; padding-top: env(safe-area-inset-top, 0px); color: #3a2a18; }
+.paper-screen::before {
+  content: ""; position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 15% 10%, rgba(255, 255, 250, .7), transparent 45%),
+    radial-gradient(ellipse at 85% 85%, rgba(205, 190, 155, .35), transparent 55%),
+    radial-gradient(circle at 50% 50%, transparent 60%, rgba(150, 125, 85, .22) 100%),
+    #efe7d4;
+}
+.paper-head { position: relative; padding: 14px 4px 6px; min-height: 120px; }
+.paper-kicker { position: relative; z-index: 1; margin: 0; font-family: var(--mincho); font-size: 15px; letter-spacing: .18em; color: #5a4526; }
+.paper-kicker::before { content: "✦ "; color: #b48a3c; }
+.paper-title { position: relative; z-index: 1; margin: 2px 0 0; font-family: var(--mincho); font-size: 44px; line-height: 1.1; letter-spacing: .08em; color: #2b1d0e; }
+.paper-sub { position: relative; z-index: 1; margin: 4px 0 0; font-family: var(--mincho); font-size: 13.5px; color: #4a3820; }
+/* 編成：右上に城の水彩（左と下は紙に溶かす） */
+.paper-head-team::after {
+  content: ""; position: absolute; right: -12px; top: 0; width: min(62%, 380px); aspect-ratio: 546 / 226; pointer-events: none;
+  background: url("img/paper-castle.webp") right top / cover no-repeat;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 35%), linear-gradient(180deg, #000 60%, transparent);
+  -webkit-mask-composite: source-in; mask-image: linear-gradient(90deg, transparent, #000 35%), linear-gradient(180deg, #000 60%, transparent); mask-composite: intersect;
+  opacity: .95;
+}
+/* 図鑑：中央に題字、右に所持数 */
+.paper-head-center { text-align: center; min-height: 0; padding-bottom: 10px; }
+.paper-head-center .paper-kicker::before { content: ""; }
+.paper-head-center .paper-title { display: inline-flex; align-items: center; gap: 14px; }
+.paper-head-center .paper-title::before, .paper-head-center .paper-title::after { content: "❖"; font-size: 16px; color: #b48a3c; }
+.zk-count { margin: 6px 0 0; font-family: var(--mincho); font-size: 16px; color: #4a3820; }
+.zk-count b { font-size: 20px; color: #2b1d0e; }
+.zk-count small { display: block; font-size: 12px; color: #6b5636; }
+@media (min-width: 420px) { .zk-count { position: absolute; right: 6px; top: 40px; text-align: right; } }
+
+/* 見出し：前衛・後衛・所持キャラ（金の飾りと線） */
+.paper-sec { display: flex; align-items: baseline; gap: 10px; margin: 12px 2px 6px; font-family: var(--mincho); }
+.paper-sec span { font-size: 22px; font-weight: 700; color: #2b1d0e; letter-spacing: .06em; }
+.paper-sec span::before { content: "✦ "; font-size: 14px; color: #b48a3c; vertical-align: .15em; }
+.paper-sec small { font-size: 12px; color: #6b5636; white-space: nowrap; }
+.paper-sec small b, .paper-sec small #team-count { color: #2f6a3e; font-size: 14px; }
+.paper-sec::after { content: ""; flex: 1; height: 1px; align-self: center; background: linear-gradient(90deg, #b48a3c, rgba(180, 138, 60, .1)); }
+
+/* 属性で絞り込み */
+.el-filter { display: flex; flex-wrap: wrap; gap: 6px; margin: 4px 0 10px; }
+.ef-btn {
+  display: inline-flex; align-items: center; gap: 4px; min-height: 36px; padding: 2px 12px; border-radius: 999px; cursor: pointer; touch-action: manipulation;
+  border: 1px solid #c7b38a; background: rgba(255, 252, 242, .8); color: #4a3820; font-family: var(--mincho); font-size: 13.5px; font-weight: 700;
+}
+.ef-btn .el-ico { width: 16px; height: 16px; }
+.ef-btn[aria-pressed="true"] { background: linear-gradient(180deg, #3f7550, #2c573a); border-color: #c9a75a; color: #f8f0dc; }
+.ef-btn:focus-visible { outline: 3px solid #b48a3c; outline-offset: 2px; }
+.paper-empty { grid-column: 1 / -1; margin: 6px 0; font-size: 13px; color: #6b5636; }
+
+/* 枠の色（属性ごと）：紙に合う落ち着いた色 */
+.paper-screen [data-el="fire"] { --pf: #b5503a; }
+.paper-screen [data-el="water"] { --pf: #3d6fae; }
+.paper-screen [data-el="nature"] { --pf: #5f8a4c; }
+.paper-screen [data-el="holy"] { --pf: #b9963e; }
+.paper-screen [data-el="dark"] { --pf: #6e57a6; }
+
+/* 編成：前衛・後衛の6枠 */
+.tm-row { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 10px; }
+.tm-card {
+  position: relative; display: flex; flex-direction: column; padding: 5px; border-radius: 4px; cursor: grab; touch-action: manipulation;
+  background: #fbf6ea; border: 2px solid var(--pf, #b8955a); box-shadow: 0 2px 6px rgba(90, 60, 25, .2), inset 0 0 0 1px rgba(255, 255, 255, .6);
+  -webkit-user-select: none; user-select: none;
+}
+.tm-card.empty { display: grid; place-items: center; min-height: 190px; border: 2px dashed #b9a57c; background: rgba(255, 252, 242, .5); color: #8a7550; font-family: var(--mincho); cursor: default; }
+.tm-art { position: relative; display: block; aspect-ratio: 1 / 1.05; overflow: hidden; border-radius: 2px; border: 1px solid color-mix(in srgb, var(--pf, #b8955a) 60%, #fff); }
+.tm-art .portrait { position: absolute; inset: 0; }
+.tm-art .portrait.zoom { background-size: 170% auto; }
+.tm-crown { position: absolute; left: 4px; top: 4px; z-index: 2; display: grid; place-items: center; width: 30px; height: 30px; border-radius: 4px; background: linear-gradient(180deg, #7a5420, #4e3410); border: 1px solid #e7c473; color: #f2d27a; }
+.tm-crown svg { width: 20px; height: 15px; }
+/* 札：属性の丸は絵の左下に重ね、名前は1行いっぱい・下に★とLv */
+.tm-plate { position: relative; display: block; padding: 4px 1px 1px; min-width: 0; }
+.tm-plate .el-mark { position: absolute; left: 2px; top: -30px; width: 28px; height: 28px; z-index: 2; }
+.tm-plate-text { display: flex; flex-direction: column; min-width: 0; }
+.tm-name { font-family: var(--mincho); font-size: 13.5px; font-weight: 700; line-height: 1.3; color: #2b1d0e; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; text-align: center; letter-spacing: -.02em; }
+.tm-meta { display: flex; justify-content: space-between; align-items: baseline; gap: 4px; padding: 0 2px; }
+.tm-meta .stars { margin: 0; font-size: 11px; color: #b8862a; text-shadow: none; }
+.tm-lv { font-size: 12px; color: #4a3820; font-variant-numeric: tabular-nums; }
+.tm-card.dragging { opacity: .35; }
+.tm-card.drop-target { outline: 3px dashed #2f6a3e; outline-offset: 3px; }
+.tm-card.drop-target::before { content: "⇄ 入れ替え"; position: absolute; left: 50%; top: 40%; transform: translate(-50%, -50%); z-index: 4; padding: 2px 8px; border-radius: 999px; background: rgba(40, 30, 15, .85); color: #fff; font-size: 12px; font-weight: 700; white-space: nowrap; }
+.tm-card.holding { transform: scale(.97); transition: transform .2s; }
+.tm-card:focus-visible { outline: 3px solid #b48a3c; outline-offset: 2px; }
+.tm-ghost { width: auto; }
+@media (max-width: 380px) { .tm-name { font-size: 12px; } .tm-plate .el-mark { width: 24px; height: 24px; top: -26px; } }
+
+/* 編成：所持キャラ（タップで出し入れ・ⓘで詳細） */
+.tm-owned { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 8px; }
+@media (min-width: 560px) { .tm-owned { grid-template-columns: repeat(5, minmax(0, 1fr)); } }
+.tm-mini { position: relative; border-radius: 4px; background: #fbf6ea; border: 2px solid color-mix(in srgb, var(--pf, #b8955a) 75%, #fff); box-shadow: 0 1px 4px rgba(90, 60, 25, .18); }
+.tm-mini-btn { display: block; width: 100%; padding: 3px; border: 0; background: none; color: inherit; font: inherit; text-align: left; cursor: pointer; touch-action: manipulation; }
+.tm-mini .tm-art { aspect-ratio: 1 / .78; }
+.tm-mini-foot { display: flex; align-items: center; gap: 3px; padding: 3px 1px 1px; flex-wrap: wrap; }
+.tm-mini-foot .el-mark { position: static; width: 22px; height: 22px; flex: none; }
+.tm-mini-foot .tm-lv { margin-left: auto; font-size: 11.5px; }
+.tm-mini-foot .stars { width: 100%; margin: 0; text-align: right; font-size: 10px; color: #b8862a; text-shadow: none; line-height: 1; }
+.tm-check { position: absolute; left: 3px; top: 3px; display: grid; place-items: center; width: 24px; height: 24px; border-radius: 50%; background: #2f6a3e; border: 2px solid #f4ecd6; color: #fff; font-size: 14px; font-weight: 700; }
+.tm-mini.picked { box-shadow: 0 0 0 2px #2f6a3e, 0 1px 4px rgba(90, 60, 25, .18); }
+.tm-info { position: absolute; right: 3px; top: 3px; width: 28px; height: 28px; border-radius: 50%; border: 1px solid #c7b38a; background: rgba(255, 252, 242, .92); color: #4a3820; font-family: Georgia, serif; font-style: italic; font-weight: 700; font-size: 14px; cursor: pointer; }
+.tm-mini-btn:focus-visible, .tm-info:focus-visible { outline: 3px solid #b48a3c; outline-offset: 1px; }
+
+/* 編成：保存ボタン（緑地に金の縁） */
+.paper-screen .team-actions { position: sticky; z-index: 5; display: flex; align-items: center; justify-content: center; gap: 14px; padding: 12px 0 10px; background: linear-gradient(180deg, rgba(239, 231, 212, 0), #efe7d4 40%); }
+.paper-btn {
+  flex: 0 1 320px; min-height: 52px; padding: 6px 24px; border-radius: 6px; cursor: pointer; touch-action: manipulation;
+  border: 2px solid #c9a75a; background: linear-gradient(180deg, #3f7550, #2a5236); color: #f8f0dc;
+  font-family: var(--mincho); font-size: 20px; font-weight: 700; letter-spacing: .14em; box-shadow: 0 3px 8px rgba(40, 60, 30, .3), inset 0 0 0 1px rgba(255, 240, 200, .25);
+}
+.paper-btn:active:not(:disabled) { transform: translateY(1px); filter: brightness(.92); }
+.paper-btn:disabled { background: #b7ad96; border-color: #cfc2a2; color: #f3eee2; box-shadow: none; cursor: not-allowed; }
+.paper-btn:focus-visible, .paper-link:focus-visible { outline: 3px solid #b48a3c; outline-offset: 2px; }
+.paper-link { flex: none; white-space: nowrap; min-height: 44px; padding: 0 8px; border: 0; background: none; color: #6b4a1e; font-family: var(--mincho); font-size: 15px; text-decoration: underline; text-underline-offset: 4px; cursor: pointer; }
+.paper-screen .admin-tools { color: #3a2a18; background: rgba(255, 252, 242, .7); border-color: #b48a3c; }
+.paper-screen .admin-tools b { color: #7a5420; }
+
+/* 図鑑：2列の大きなカード（属性の菱形・名前の札） */
+.paper-screen .zukan-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 14px; }
+@media (min-width: 600px) { .paper-screen .zukan-grid { grid-template-columns: repeat(3, minmax(0, 1fr)); } }
+.paper-screen .zukan-card {
+  display: flex; flex-direction: column; gap: 0; padding: 6px; border-radius: 6px; text-align: center; cursor: pointer;
+  background: #fbf6ea; border: 2px solid var(--pf, #b8955a); box-shadow: 0 2px 8px rgba(90, 60, 25, .2), inset 0 0 0 3px #fbf6ea, inset 0 0 0 4px color-mix(in srgb, var(--pf, #b8955a) 45%, #fff); color: #2b1d0e;
+}
+.paper-screen .zk-art { position: relative; display: block; aspect-ratio: 1 / .95; border-radius: 3px; overflow: hidden; border: 1px solid color-mix(in srgb, var(--pf, #b8955a) 55%, #fff); }
+.paper-screen .zk-art .portrait { position: absolute; inset: 0; background-size: cover; background-position: var(--cx, 50%) 18%; }
+.zk-el { position: absolute; left: 7px; top: 7px; z-index: 3; display: grid; place-items: center; width: 32px; height: 32px; transform: rotate(45deg); border-radius: 4px; background: var(--pf, #8a6a3a); border: 2px solid #f6eedb; box-shadow: 0 1px 4px rgba(0, 0, 0, .3); }
+.zk-el .el-ico { width: 18px; height: 18px; margin: 0; transform: rotate(-45deg); filter: brightness(0) invert(1); }
+.paper-screen .zk-art .lv-tag { position: absolute; right: 5px; top: 5px; left: auto; z-index: 3; }
+.zk-plate { display: flex; flex-direction: column; align-items: center; gap: 1px; padding: 6px 4px 2px; margin: 4px 6px 0; border-top: 1px solid color-mix(in srgb, var(--pf, #b8955a) 35%, transparent); }
+.paper-screen .zk-name { font-family: var(--mincho); font-size: 16px; font-weight: 700; color: #2b1d0e; line-height: 1.3; }
+.zk-plate .stars { margin: 0; font-size: 15px; color: #b8862a; text-shadow: none; letter-spacing: .05em; }
+.paper-screen .zukan-card.missing { opacity: 1; }
+.paper-screen .zukan-card.missing .zk-name { color: #7a6a52; }
+.paper-screen .zukan-card:focus-visible { outline: 3px solid #b48a3c; outline-offset: 2px; }

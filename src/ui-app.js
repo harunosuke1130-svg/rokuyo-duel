@@ -199,45 +199,138 @@
     showHome();
   }
 
-  /* ---------- チーム・キャラ ---------- */
+  /* ---------- 編成（前衛3体・後衛3体・所持キャラ） ----------
+   * 上の6枠（0〜2が前衛、3〜5が後衛）はドラッグで入れ替え、タップで詳細（技・レベル・リーダー）。
+   * 所持キャラはタップでチームに出し入れ。保存するとチームの並びと「前回の配置」（前衛・リーダー）に入る。 */
+  const teamUI = { slots: [], leader: null, filter: 'all', dragger: null };
+  const CROWN_SVG = '<svg viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15L1 4l6 5 5-8 5 8 6-5-1 11z" fill="currentColor"/><rect x="2" y="15" width="20" height="2.4" rx="1" fill="currentColor"/></svg>';
+  // 属性で絞り込むボタン（編成・図鑑で共通）
+  function elFilterHtml(sel) {
+    const items = [['all', 'すべて']].concat(Object.keys(D.ELEMENTS).map(el => [el, D.ELEMENTS[el].name]));
+    return items.map(([k, label]) => `<button type="button" class="ef-btn" data-filter="${k}" aria-pressed="${k === sel}">${k === 'all' ? '' : `<span class="el-ico" data-el="${k}" aria-hidden="true"></span>`}${esc(label)}</button>`).join('');
+  }
   function showTeam() {
     go('team');
-    app.picked = P.teamError(app.profile, app.profile.team) ? app.profile.team.filter(id => P.owns(app.profile, id)) : app.profile.team.slice();
+    const p = app.profile;
+    const team = p.team.filter(id => P.owns(p, id));
+    // 前回の配置（前衛）を上の段に。残りはチームの並び順
+    const fm = p.formation;
+    const order = fm && fm.front.length && fm.front.every(id => team.indexOf(id) >= 0)
+      ? fm.front.concat(team.filter(id => fm.front.indexOf(id) < 0)) : team.slice();
+    teamUI.slots = Array.from({ length: CONFIG.TEAM_SIZE }, (_, i) => order[i] || null);
+    teamUI.leader = fm && team.indexOf(fm.leader) >= 0 ? fm.leader : (order[0] || null);
     renderAdminTools();
     renderTeam();
   }
+  function teamSlotCard(id, i) {
+    if (!id) return `<div class="tm-card empty" data-tslot="${i}"><span>空き</span></div>`;
+    const p = app.profile;
+    const ch = E.getChar(id);
+    const lv = P.levelOf(p, id);
+    const lead = id === teamUI.leader;
+    return `<div class="tm-card el-frame" ${frameAttrs(ch)} data-tslot="${i}" data-id="${esc(id)}" role="button" tabindex="0" aria-label="${esc(ch.name)} Lv${lv}${lead ? '（リーダー）' : ''}（詳細）">
+      <span class="tm-art">${portrait(ch, { zoom: true })}${lead ? `<span class="tm-crown" title="リーダー">${CROWN_SVG}</span>` : ''}</span>
+      <span class="tm-plate">${elMark(ch)}<span class="tm-plate-text"><b class="tm-name">${esc(ch.name)}</b><span class="tm-meta">${starsHtml(ch)}<span class="tm-lv">Lv.${lv}</span></span></span></span>
+    </div>`;
+  }
   function renderTeam() {
     const p = app.profile;
-    $('#team-grid').innerHTML = E.CHARACTERS.map(ch => {
-      const owned = P.owns(p, ch.id);
-      const sel = app.picked.indexOf(ch.id) >= 0;
-      if (!owned) {
-        return `<div class="pick-card locked"><span class="pick-mark">未所持</span>
-          <div class="uc-head">${emblem(ch, { hp: 0 }, 'big')}<div><div class="uc-name">${esc(ch.name)}${starsHtml(ch)}</div><div>${elementTag(ch)}${subTags(ch)}</div></div></div>
-          <p class="muted">ガチャで仲間にできます。</p>${leaderBox(ch)}</div>`;
-      }
-      const c = p.chars[ch.id];
-      const lo = P.loadoutsFor(p, [ch.id])[ch.id];
-      const custom = lo.join() !== E.defaultLoadout(ch.id).join();
-      const usable = ch.moves.filter((m, k) => E.moveUnlockLevel(k) <= c.level).length;
-      const nextUnlock = ch.moves.map((m, k) => E.moveUnlockLevel(k)).filter(l => l > c.level).sort((a, b) => a - b)[0];
-      const maxed = c.level >= CONFIG.LEVEL.max;
-      return `<div class="pick-card${sel ? ' selected' : ''}" data-pick="${ch.id}" role="button" tabindex="0" aria-pressed="${sel}">
-        <span class="pick-mark">${sel ? '選択中 ' + (app.picked.indexOf(ch.id) + 1) : '未選択'}</span>
-        <div class="uc-head">${emblem(ch, null, 'big')}<div><div class="uc-name">${esc(ch.name)}${starsHtml(ch)} ${levelTag(c.level)}</div>
-        <div>${elementTag(ch)}${subTags(ch)}</div>
-        <div class="hptext">最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</div></div></div>
-        <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
-        ${p.isAdmin ? levelControl(ch.id, c.level) : ''}
-        <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(ch.id, lo)} / ${E.loadoutBudget(ch.id, c.level)}・使える技${usable}/${ch.moves.length}${nextUnlock ? `（次はLv${nextUnlock}）` : ''}</span></div>
-        ${movesList(ch, null, lo)}
-        <button type="button" class="btn btn-small btn-ghost btn-block btn-edit" data-edit="${ch.id}">技の入れ替え・並べ替え</button>
-        <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
-        ${leaderBox(ch)}
+    const s = teamUI.slots;
+    if (teamUI.leader && s.indexOf(teamUI.leader) < 0) teamUI.leader = null;
+    if (!teamUI.leader) teamUI.leader = s.find(Boolean) || null;
+    $('#team-front').innerHTML = s.slice(0, CONFIG.FRONT_SIZE).map((id, i) => teamSlotCard(id, i)).join('');
+    $('#team-back').innerHTML = s.slice(CONFIG.FRONT_SIZE).map((id, i) => teamSlotCard(id, i + CONFIG.FRONT_SIZE)).join('');
+    $('#team-filter').innerHTML = elFilterHtml(teamUI.filter);
+    const list = E.CHARACTERS.filter(ch => P.owns(p, ch.id) && (teamUI.filter === 'all' || ch.element === teamUI.filter));
+    $('#team-grid').innerHTML = list.map(ch => {
+      const inTeam = s.indexOf(ch.id) >= 0;
+      const lv = P.levelOf(p, ch.id);
+      return `<div class="tm-mini el-frame${inTeam ? ' picked' : ''}" ${frameAttrs(ch)}>
+        <button type="button" class="tm-mini-btn" data-pick="${esc(ch.id)}" aria-pressed="${inTeam}" aria-label="${esc(ch.name)} Lv${lv}（${inTeam ? 'チームから外す' : 'チームに入れる'}）">
+          <span class="tm-art">${portrait(ch, { zoom: true })}${inTeam ? '<span class="tm-check" aria-hidden="true">✓</span>' : ''}</span>
+          <span class="tm-mini-foot">${elMark(ch)}<span class="tm-lv">Lv.${lv}</span>${starsHtml(ch)}</span>
+        </button>
+        <button type="button" class="tm-info" data-info="${esc(ch.id)}" aria-label="${esc(ch.name)}の詳細">i</button>
       </div>`;
-    }).join('');
-    $('#team-count').textContent = app.picked.length;
-    $('#btn-team-ok').disabled = app.picked.length !== CONFIG.TEAM_SIZE;
+    }).join('') || '<p class="paper-empty">この属性のキャラはまだ持っていません。</p>';
+    const filled = s.filter(Boolean).length;
+    $('#team-count').textContent = filled;
+    $('#btn-team-ok').disabled = filled !== CONFIG.TEAM_SIZE;
+    if (!teamUI.dragger) bindTeamDrag();
+  }
+  function bindTeamDrag() {
+    teamUI.dragger = U.cardDrag($('#screen-team'), {
+      selector: '#team-front .tm-card, #team-back .tm-card', ghostClass: 'tm-ghost',
+      enabled: () => document.body.dataset.screen === 'team',
+      canStart: c => (c.dataset.id ? null : '空き枠は動かせません'),
+      canDrop: (c, t) => c !== t,
+      onDrop: (c, t) => {
+        const a = Number(c.dataset.tslot), b = Number(t.dataset.tslot);
+        const sl = teamUI.slots;
+        [sl[a], sl[b]] = [sl[b], sl[a]];
+        renderTeam();
+      }
+    });
+  }
+  function togglePick(id) {
+    if (!P.owns(app.profile, id)) return;
+    const s = teamUI.slots;
+    const k = s.indexOf(id);
+    if (k >= 0) s[k] = null;
+    else {
+      const free = s.indexOf(null);
+      if (free < 0) { toast(`チームは${CONFIG.TEAM_SIZE}体までです。外したいキャラをもう一度タップしてください`); return; }
+      s[free] = id;
+    }
+    renderTeam();
+  }
+  // キャラの詳細（編成から）：レベル・経験値・技構成・スキル。チームに入っていればリーダーにする／外す
+  function showTeamChar(id) {
+    const p = app.profile;
+    const ch = E.getChar(id);
+    if (!ch || !P.owns(p, id)) return;
+    const c = p.chars[id];
+    const lo = P.loadoutsFor(p, [id])[id];
+    const custom = lo.join() !== E.defaultLoadout(id).join();
+    const usable = ch.moves.filter((m, k) => E.moveUnlockLevel(k) <= c.level).length;
+    const nextUnlock = ch.moves.map((m, k) => E.moveUnlockLevel(k)).filter(l => l > c.level).sort((a, b) => a - b)[0];
+    const maxed = c.level >= CONFIG.LEVEL.max;
+    const inTeam = teamUI.slots.indexOf(id) >= 0;
+    const lead = id === teamUI.leader;
+    openModal(`<div class="zk-detail">${portrait(ch)}<div>
+        <h3>${esc(ch.name)}${starsHtml(ch)}</h3>
+        <div>${elementTag(ch)}${subTags(ch)}</div>
+        <p class="hptext">Lv${c.level}・最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</p>
+        <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
+      </div></div>
+      ${p.isAdmin ? levelControl(id, c.level) : ''}
+      <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(id, lo)} / ${E.loadoutBudget(id, c.level)}・使える技${usable}/${ch.moves.length}${nextUnlock ? `（次はLv${nextUnlock}）` : ''}</span></div>
+      ${movesList(ch, null, lo)}
+      <button type="button" class="btn btn-small btn-ghost btn-block btn-edit" data-edit="${esc(id)}">技の入れ替え・並べ替え</button>
+      <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
+      ${leaderBox(ch, lead ? 'リーダー' : '')}
+      <div class="modal-actions">
+        ${inTeam ? `${lead ? '' : '<button type="button" class="btn btn-primary btn-block" id="btn-tc-leader">リーダーにする</button>'}<button type="button" class="btn btn-ghost btn-block" id="btn-tc-toggle">チームから外す</button>`
+          : '<button type="button" class="btn btn-primary btn-block" id="btn-tc-toggle">チームに入れる</button>'}
+        <button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button>
+      </div>`, {
+      kind: 'team-char',
+      bind: b => {
+        b.addEventListener('click', e => {
+          const st = e.target.closest('[data-lv-step]');
+          if (st) { changeLevel(st.dataset.lv, P.levelOf(app.profile, st.dataset.lv) + Number(st.dataset.lvStep)); return; }
+          const ed = e.target.closest('[data-edit]');
+          if (ed) { showLoadoutEditor(ed.dataset.edit); return; }
+          if (e.target.closest('#btn-tc-leader')) { teamUI.leader = id; closeModal(true); renderTeam(); toast(`${ch.name}をリーダーにしました`, 'ok'); return; }
+          if (e.target.closest('#btn-tc-toggle')) { closeModal(true); togglePick(id); }
+        });
+        b.addEventListener('change', e => {
+          const inp = e.target.closest('[data-lv-input]');
+          if (inp) changeLevel(inp.dataset.lvInput, Number(inp.value));
+        });
+        b.addEventListener('keydown', e => { if (e.target.closest('[data-lv-box]')) e.stopPropagation(); });
+      }
+    });
   }
   // 管理用アカウント：レベルを直接動かす（キャラごと・全員まとめて）
   function levelControl(id, lv) {
@@ -265,18 +358,11 @@
     if (!r.ok) { toast(r.error); return; }
     save();
     renderTeam();
+    if (U.ui.modal && U.ui.modal.kind === 'team-char') showTeamChar(id);
     const inp = document.querySelector(`[data-lv-input="${id}"]`);
     if (inp) inp.focus();
   }
 
-  function togglePick(id) {
-    if (!P.owns(app.profile, id)) return;
-    const k = app.picked.indexOf(id);
-    if (k >= 0) app.picked.splice(k, 1);
-    else if (app.picked.length < CONFIG.TEAM_SIZE) app.picked.push(id);
-    else toast(`チームは${CONFIG.TEAM_SIZE}体までです。外したいキャラをもう一度タップしてください`);
-    renderTeam();
-  }
 
   function showLoadoutEditor(charId) {
     const ch = E.getChar(charId);
@@ -840,16 +926,21 @@
   }
 
   /* ---------- 図鑑 ---------- */
+  let zukanFilter = 'all';
   function showZukan() {
     go('zukan');
+    renderZukan();
+  }
+  function renderZukan() {
     const p = app.profile;
     $('#zukan-count').textContent = P.ownedIds(p).length;
     $('#zukan-total').textContent = E.CHARACTERS.length;
-    $('#zukan-grid').innerHTML = E.CHARACTERS.map(ch => {
+    $('#zukan-filter').innerHTML = elFilterHtml(zukanFilter);
+    $('#zukan-grid').innerHTML = E.CHARACTERS.filter(ch => zukanFilter === 'all' || ch.element === zukanFilter).map(ch => {
       const owned = P.owns(p, ch.id);
-      return `<button type="button" class="zukan-card el-frame${owned ? '' : ' missing'}" ${frameAttrs(ch)} data-zukan="${ch.id}">
-        <span class="zk-art">${portrait(ch, { dim: !owned })}${elMark(ch)}${owned ? levelTag(P.levelOf(p, ch.id)) : '<span class="lv-tag">未所持</span>'}</span>
-        <b class="zk-name">${esc(ch.name)}${starsHtml(ch)}</b><span class="zk-tags">${elementTag(ch)}${subTags(ch)}</span></button>`;
+      return `<button type="button" class="zukan-card el-frame${owned ? '' : ' missing'}" ${frameAttrs(ch)} data-zukan="${ch.id}" aria-label="${esc(ch.name)}${owned ? '' : '（未所持）'}の詳細">
+        <span class="zk-art">${portrait(ch, { dim: !owned })}<span class="zk-el" data-el="${esc(ch.element)}"><span class="el-ico" data-el="${esc(ch.element)}" aria-hidden="true"></span></span>${owned ? levelTag(P.levelOf(p, ch.id)) : '<span class="lv-tag">未所持</span>'}</span>
+        <span class="zk-plate"><b class="zk-name">${esc(ch.name)}</b>${starsHtml(ch)}</span></button>`;
     }).join('');
   }
   function showZukanEntry(id) {
@@ -941,28 +1032,39 @@
       if (c) showZukanEntry(c.dataset.zukan);
     });
     $('#team-grid').addEventListener('click', e => {
-      if (e.target.closest('[data-lv-box]')) {
-        e.stopPropagation();
-        const b = e.target.closest('[data-lv-step]');
-        if (b) changeLevel(b.dataset.lv, P.levelOf(app.profile, b.dataset.lv) + Number(b.dataset.lvStep));
-        return;
-      }
-      const ed = e.target.closest('[data-edit]');
-      if (ed) { e.stopPropagation(); showLoadoutEditor(ed.dataset.edit); return; }
+      const info = e.target.closest('[data-info]');
+      if (info) { showTeamChar(info.dataset.info); return; }
       const c = e.target.closest('[data-pick]');
       if (c) togglePick(c.dataset.pick);
     });
-    $('#team-grid').addEventListener('change', e => {
-      const inp = e.target.closest('[data-lv-input]');
-      if (inp) changeLevel(inp.dataset.lvInput, Number(inp.value));
+    // 上の6枠：タップで詳細（ドラッグした直後のクリックは無視）
+    ['#team-front', '#team-back'].forEach(sel => $(sel).addEventListener('click', e => {
+      if (U.tapGuarded() || (teamUI.dragger && teamUI.dragger.suppressed())) return;
+      const card = e.target.closest('.tm-card');
+      if (!card) return;
+      if (card.dataset.id) showTeamChar(card.dataset.id);
+      else toast('下の所持キャラをタップすると、空いている枠に入ります');
+    }));
+    ['#team-front', '#team-back'].forEach(sel => $(sel).addEventListener('keydown', e => {
+      if ((e.key === 'Enter' || e.key === ' ') && e.target.matches('.tm-card[data-id]')) { e.preventDefault(); showTeamChar(e.target.dataset.id); }
+    }));
+    $('#team-filter').addEventListener('click', e => {
+      const b = e.target.closest('[data-filter]');
+      if (b) { teamUI.filter = b.dataset.filter; renderTeam(); }
     });
-    $('#team-grid').addEventListener('keydown', e => { if (e.target.closest('[data-lv-box]')) e.stopPropagation(); });
+    $('#zukan-filter').addEventListener('click', e => {
+      const b = e.target.closest('[data-filter]');
+      if (b) { zukanFilter = b.dataset.filter; renderZukan(); }
+    });
     $('#btn-team-back').addEventListener('click', showHome);
     $('#btn-team-ok').addEventListener('click', () => {
-      const r = P.setTeam(app.profile, app.picked);
+      const ids = teamUI.slots.slice();
+      const r = P.setTeam(app.profile, ids);
       if (!r.ok) { toast(r.error); return; }
+      // 上の段（前衛）とリーダーは、出撃準備の初期配置として覚える
+      app.profile.formation = { front: ids.slice(0, CONFIG.FRONT_SIZE), leader: teamUI.leader || ids[0] };
       save();
-      toast('チームを保存しました', 'ok');
+      toast('編成を保存しました', 'ok');
       showHome();
     });
     $('#dungeon-list').addEventListener('click', e => {

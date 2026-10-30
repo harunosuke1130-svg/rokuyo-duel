@@ -72,25 +72,42 @@ for (const kind of ['mobile', 'desktop']) {
     await page.click('#tabbar [data-tab="home"]');
     await page.waitForSelector('#screen-home:not(.hidden)');
 
-    // チーム画面：未所持は選べない・技のカスタムを保存
+    // 編成画面：前衛3・後衛3の枠と所持キャラ（持っているキャラだけ）。枠をタップ→詳細→技のカスタムを保存
     await page.click('[data-go="team"]');
     await page.waitForSelector('#screen-team:not(.hidden)');
-    assert.equal(await page.$$eval('.pick-card.locked', c => c.length), CHAR_COUNT - 6);
+    assert.equal(await page.$$eval('#team-front .tm-card[data-id]', c => c.length), 3);
+    assert.equal(await page.$$eval('#team-back .tm-card[data-id]', c => c.length), 3);
+    assert.equal(await page.$$eval('#team-grid .tm-mini', c => c.length), 6, '所持キャラだけ並ぶ');
     assert.equal(await page.isDisabled('#btn-team-ok'), false, '初期チーム6体が選ばれている');
     const first = p.team[0];
-    await page.click(`[data-edit="${first}"]`);
+    await page.waitForTimeout(500);
+    await page.click(`#screen-team .tm-card[data-id="${first}"]`);
+    await page.waitForSelector('#modal[data-kind="team-char"]:not(.hidden)');
+    await page.click(`#modal [data-edit="${first}"]`);
     await page.click('[data-slot="0"]');
     await page.click('[data-slot="5"]');
     await page.click('#btn-lo-save');
     await page.waitForSelector('#modal', { state: 'hidden' });
     p = await H.profile(page);
     assert.deepEqual(p.loadouts[first], [5, 1, 2, 3, 4, 0]);
-    // 選択を外すと保存できない → 戻すと保存できる
-    await page.click(`[data-pick="${first}"] .uc-name`);
+    // 属性で絞り込み
+    const firstEl = E.getChar(first).element;
+    await page.click(`#team-filter [data-filter="${firstEl}"]`);
+    assert.ok(await page.$$eval('#team-grid .tm-mini', c => c.length) >= 1);
+    assert.ok((await page.$$eval('#team-grid .tm-mini', c => c.map(x => x.dataset.el))).every(el => el === firstEl));
+    await page.click('#team-filter [data-filter="all"]');
+    // 外すと空き枠になり保存できない → 戻すと空き枠に入って保存できる
+    await page.waitForTimeout(500);
+    await page.click(`[data-pick="${first}"]`);
     assert.equal(await page.isDisabled('#btn-team-ok'), true);
-    await page.click(`[data-pick="${first}"] .uc-name`);
+    assert.equal(await page.$$eval('#screen-team .tm-card.empty', c => c.length), 1);
+    await page.click(`[data-pick="${first}"]`);
+    assert.equal(await page.$$eval('#screen-team .tm-card.empty', c => c.length), 0);
     await page.click('#btn-team-ok');
     await page.waitForSelector('#screen-home:not(.hidden)');
+    p = await H.profile(page);
+    assert.equal(p.formation.front.length, 3, '前衛3体を出撃準備の初期配置として覚える');
+    assert.ok(p.formation.front.every(id => p.team.indexOf(id) >= 0) && p.team.indexOf(p.formation.leader) >= 0);
 
     // 再読み込みしてもプロフィールが残る（同じタブ＝同じプレイヤーで続く）
     await page.reload();
@@ -523,7 +540,8 @@ test('mobile: ガチャ（1回・10回・石不足）', async () => {
   let p = await H.profile(page);
   assert.equal(p.stones, 200, '連打しても1回分');
   await page.evaluate(() => { window.RikuyouApp.getProfile().stones = 900; });
-  await page.click('#btn-home');
+  await page.waitForTimeout(500);
+  await page.click('#tabbar [data-tab="home"]');
   await page.click('[data-go="gacha"]');
   assert.equal(await page.isDisabled('#btn-gacha-10'), false);
   // 属性ガチャ：自然を選ぶと、呼び出せるキャラは自然属性だけ。値段は同じ
@@ -741,6 +759,9 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   await page.click('[data-go="team"]');
   await page.waitForSelector('#screen-team:not(.hidden)');
   const before = await page.evaluate(() => window.RikuyouApp.getProfile().team.slice());
+  await page.waitForTimeout(500);
+  await page.click('[data-info="ryogen"]');
+  await page.waitForSelector('#modal[data-kind="team-char"]:not(.hidden)');
   await page.click('[data-lv="ryogen"][data-lv-step="10"]');
   assert.equal((await H.profile(page)).chars.ryogen.level, 11);
   await page.fill('[data-lv-input="ryogen"]', '25');
@@ -748,6 +769,8 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   await page.dispatchEvent('[data-lv-input="ryogen"]', 'change');
   assert.equal((await H.profile(page)).chars.ryogen.level, 25);
   assert.deepEqual(await page.evaluate(() => window.RikuyouApp.getProfile().team.slice()), before, 'レベル操作で選択は変わらない');
+  await page.click('#modal-x');
+  await page.waitForTimeout(500);
   await page.fill('#in-level-all', '30');
   await page.click('#btn-level-all');
   assert.ok(Object.values((await H.profile(page)).chars).every(c => c.level === 30));

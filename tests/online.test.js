@@ -105,7 +105,8 @@ test('管理用アカウント（設定のメールアドレス）は全キャ�
   assert.equal(Object.keys(p.chars).length, E.CHARACTERS.length);
   assert.ok((await page.textContent('#home-profile')).includes('管理用アカウント'));
   await page.click('[data-go="team"]');
-  assert.equal(await page.$$eval('.pick-card.locked', c => c.length), 0);
+  await page.waitForSelector('#screen-team:not(.hidden)');
+  assert.equal(await page.$$eval('#team-grid .tm-mini', c => c.length), E.CHARACTERS.length, '全キャラを所持');
   assert.deepEqual(errors, []);
   await ctx.close();
 });

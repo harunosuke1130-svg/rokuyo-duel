@@ -74,27 +74,36 @@
   </section>
 
   <!-- 図鑑 -->
-  <section id="screen-zukan" class="screen hidden">
-    <div class="panel intro">
-      <h2 class="heading">図鑑</h2>
-      <p>六耀の地の仲間たち。タップすると技・固有スキル・リーダースキルをすべて見られます。まだ仲間にしていないキャラはガチャで呼べます。</p>
-      <p class="count-line">所持：<b class="gold" id="zukan-count">0</b> / <span id="zukan-total">0</span></p>
-    </div>
+  <!-- 図鑑（羊皮紙の画面）：属性で絞り込み、2列の大きなカード。タップで技・スキルの詳細 -->
+  <section id="screen-zukan" class="screen hidden paper-screen">
+    <header class="paper-head paper-head-center">
+      <p class="paper-kicker">六耀の決闘</p>
+      <h2 class="paper-title">図鑑</h2>
+      <p class="zk-count">所持 <b id="zukan-count">0</b>/<span id="zukan-total">0</span><small>キャラをタップして詳細</small></p>
+    </header>
+    <div id="zukan-filter" class="el-filter" role="group" aria-label="属性で絞り込み"></div>
     <div id="zukan-grid" class="zukan-grid"></div>
   </section>
 
   <!-- チーム編成 -->
-  <section id="screen-team" class="screen hidden">
-    <div class="panel intro">
-      <h2 class="heading">チーム・キャラ</h2>
-      <p>持っているキャラから<strong>異なる6体</strong>を選んで保存します。各キャラの「技の入れ替え・並べ替え」で出目1〜6への割り当てを変えられます。レベルが上がると最大HPと通常技の攻撃が上がります。</p>
-      <p class="count-line">選択中：<span id="team-count">0</span> / 6</p>
-      <div id="admin-level-all" class="admin-tools hidden"></div>
-    </div>
-    <div id="team-grid" class="team-grid"></div>
+  <!-- 編成（羊皮紙の画面）：前衛3体・後衛3体（ドラッグで入れ替え・タップで詳細）、所持キャラ（タップで出し入れ） -->
+  <section id="screen-team" class="screen hidden paper-screen">
+    <header class="paper-head paper-head-team">
+      <p class="paper-kicker">六耀の決闘</p>
+      <h2 class="paper-title">編成</h2>
+      <p class="paper-sub">ドラッグで入れ替え・タップで詳細</p>
+    </header>
+    <div id="admin-level-all" class="admin-tools hidden"></div>
+    <h3 class="paper-sec"><span>前衛</span><small>攻撃を受ける3体</small></h3>
+    <div id="team-front" class="tm-row"></div>
+    <h3 class="paper-sec"><span>後衛</span><small>控えの3体</small></h3>
+    <div id="team-back" class="tm-row"></div>
+    <h3 class="paper-sec"><span>所持キャラ</span><small>タップでチームに出し入れ（<b id="team-count">0</b>/6）</small></h3>
+    <div id="team-filter" class="el-filter" role="group" aria-label="属性で絞り込み"></div>
+    <div id="team-grid" class="tm-owned"></div>
     <div class="team-actions">
-      <button type="button" class="btn btn-ghost" id="btn-team-back">戻る</button>
-      <button type="button" class="btn btn-primary" id="btn-team-ok" disabled>このチームを保存</button>
+      <button type="button" class="paper-link" id="btn-team-back">戻る</button>
+      <button type="button" class="paper-btn" id="btn-team-ok" disabled>編成を保存</button>
     </div>
   </section>
 
