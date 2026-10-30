@@ -495,7 +495,6 @@
     const r = actionBlockReason(state, side);
     if (r) return r;
     if (state.swapUsed) return 'このターンはすでに交代しました';
-    if (state.skillUsed) return '固有スキルを使った後は交代できません';
     if (!frontAlive(state, side).length) return '交代できる前衛がいません';
     if (!backAlive(state, side).length) return '交代できる後衛がいません';
     return null;

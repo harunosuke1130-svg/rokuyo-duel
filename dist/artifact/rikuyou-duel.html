@@ -2334,7 +2334,6 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
     const r = actionBlockReason(state, side);
     if (r) return r;
     if (state.swapUsed) return 'このターンはすでに交代しました';
-    if (state.skillUsed) return '固有スキルを使った後は交代できません';
     if (!frontAlive(state, side).length) return '交代できる前衛がいません';
     if (!backAlive(state, side).length) return '交代できる後衛がいません';
     return null;
@@ -2560,6 +2559,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
  * 六耀の決闘 — CPU の思考
  * プレイヤーと同じ Engine の操作関数だけを使って行動します。
  * 「交代（任意）→ スキル（任意）→ 通常技」の組み合わせを状態の複製で試し、評価値が最も高い手順を選びます。
+ * スキルの後でも交代は残っていれば使える（振り直しの後などは、次の decide で交代を検討し直す）。
  * 振り直しは「振り直した後の6通りの平均」で判断し、実際の出目やプレイヤーの今後の選択は先読みしません。
  */
 (function (global) {
@@ -5365,7 +5365,7 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
       <ol class="help-list">
         <li>持っているキャラから異なる6体でチームを作ります。戦闘前に前衛3体・後衛3体と<b>リーダー</b>を決めます。</li>
         <li><b>先攻・後攻はサイコロ</b>で決めます。大きい数を出した方が先攻、同じ数なら振り直しです。</li>
-        <li>自分のターンは「数字を出す」→（必要なら交代1回）→（必要なら固有スキル1回）→ 前衛から1体の「出目に対応する技」を1つ使う、の順です。交代や選び直しで数字は変わりません（振り直しスキルだけ例外）。</li>
+        <li>自分のターンは「数字を出す」→（必要なら交代1回・固有スキル1回。どちらが先でもよい）→ 前衛から1体の「出目に対応する技」を1つ使う、の順です。交代や選び直しで数字は変わりません（振り直しスキルだけ例外）。</li>
         <li>攻撃は<b>敵前衛全員</b>、回復は<b>味方前衛全員</b>にそれぞれ全量。後衛は攻撃も回復も受けません。固有スキルは後衛のキャラも使えます。</li>
         <li>前衛が倒れたら後衛から補充します。6体すべてが戦闘不能になったら負けです。</li>
       </ol>

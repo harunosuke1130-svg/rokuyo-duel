@@ -176,7 +176,7 @@ test('予測表示と実際の結果が対象ごとに一致する', () => {
   assert.deepEqual(p.attacks.map(a => a.damage), [67, 32, 64]);
 });
 
-test('交代：HP・CD・結界を保持し、数字は変わらず、1ターン1回・スキル後は不可', () => {
+test('交代：HP・CD・結界を保持し、数字は変わらず、1ターン1回・スキルの前後どちらでも可', () => {
   const s = battle();
   s.teams.player[0].hp = 77;
   s.teams.player[0].cd = 2;
@@ -198,15 +198,15 @@ test('交代：HP・CD・結界を保持し、数字は変わらず、1ターン
   // 新しく出た前衛の技が使える
   assert.equal(E.useMove(s, 'player', 0).ok, false, '下げたキャラは技を使えない');
   assert.ok(E.useMove(s, 'player', 3).ok);
-  // スキル使用後は交代不可
+  // スキル使用後でも交代できる（1ターン1回はそのまま）
   cpuMove(s, 4, 1); // 雷鳴 4 天雷42 … 前衛が被弾
   const s2 = battle();
   E.roll(s2, 'player', fixed(5));
   assert.ok(E.useSkill(s2, 'player', 0).ok);
-  assert.match(E.swap(s2, 'player', 1, 3).error, /スキルを使った後/);
-  // 通常技の後も不可（ターンが終わる）
-  E.useMove(s2, 'player', 1);
-  assert.equal(E.swap(s2, 'player', 1, 3).ok, false);
+  assert.ok(E.swap(s2, 'player', 1, 3).ok, 'スキルの後でも交代できる');
+  // 通常技の後は不可（ターンが終わる）
+  E.useMove(s2, 'player', 3);
+  assert.equal(E.swap(s2, 'player', 3, 1).ok, false);
 });
 
 test('後衛に下がっても回復しない・CDは後衛でも進む', () => {
@@ -277,7 +277,7 @@ test('後衛がいなければ前衛3体未満でも進行する', () => {
   assert.equal(s.winner, 'player');
 });
 
-test('スキルで倒したら補充後、同じ数字で通常技に戻る（交代は締め切り）', () => {
+test('スキルで倒したら補充後、同じ数字で通常技に戻る（スキルの後も交代はできる）', () => {
   const s = battle([4, 0, 1]);
   s.teams.cpu[1].hp = 15;
   E.roll(s, 'player', fixed(2));
@@ -291,9 +291,10 @@ test('スキルで倒したら補充後、同じ数字で通常技に戻る（�
   assert.equal(s.dice, 2);
   assert.equal(s.skillUsed, true);
   assert.equal(E.useSkill(s, 'player', 0).ok, false, 'スキルは1ターン1回');
-  assert.equal(E.swap(s, 'player', 0, 3).ok, false);
+  assert.ok(E.swap(s, 'player', 0, 3).ok, 'スキルの後でも交代できる');
+  assert.equal(E.swap(s, 'player', 3, 0).ok, false, '交代は1ターン1回');
   assert.equal(s.teams.cpu[4].hp, 100, '補充キャラはスキルを受けていない');
-  assert.ok(E.useMove(s, 'player', 0).ok);
+  assert.ok(E.useMove(s, 'player', 3).ok);
 });
 
 test('スキルだけで全滅したら通常技に進まず決着', () => {
