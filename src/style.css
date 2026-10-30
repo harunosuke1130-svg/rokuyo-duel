@@ -643,6 +643,9 @@ body[data-screen="home"] { background: #2a1d14; }
 [data-char="b-imp"] { --cx: 52%; --cy: 30%; --ex: 52%; --ey: 33%; --es: 220%; }
 [data-char="b-witch"] { --cx: 50%; --cy: 8%; --ex: 50%; --ey: 10%; --es: 280%; }
 [data-char="b-maou"] { --cx: 70%; --cy: 10%; --ex: 73%; --ey: 12%; --es: 280%; }
+[data-char="b-salamander"] { --cx: 70%; --cy: 50%; --ex: 88%; --ey: 53%; --es: 200%; }
+[data-char="b-golem"] { --cx: 50%; --cy: 10%; --ex: 50%; --ey: 9%; --es: 200%; }
+[data-char="b-dragon"] { --cx: 80%; --cy: 14%; --ex: 98%; --ey: 12%; --es: 240%; }
 .portrait.zoom { background-size: 200% auto; background-position: var(--cx, 50%) var(--cy, 0%); }
 .portrait i {
   font-style: normal; font-family: var(--mincho); font-weight: 800; font-size: clamp(22px, 7vw, 40px); color: #fff8e6;
