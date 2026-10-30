@@ -2519,7 +2519,7 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
         { name: '波打ち', atk: 16, heal: 0 },
         { name: '水の膜', atk: 6, heal: 8 },
         { name: 'ひと泳ぎ', atk: 10, heal: 0 },
-        { name: '水鉄砲', atk: 12, heal: 0 },
+        { name: '水はじき', atk: 12, heal: 0 },
         { name: '潮だまり', atk: 0, heal: 14 },
         { name: '大波ごっこ', atk: 20, heal: 0 }
       ],
@@ -2629,7 +2629,17 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
       skill: { name: '虚無の詠唱', cd: 4, text: '敵前衛全員に、それぞれ20ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 20, ignoreDefense: true }] } },
     { id: 'b-maou', name: '星喰いの魔王', glyph: '王', maxHp: 510, element: 'dark', subTypes: ['王族', '魔術師'], rank: '大ボス',
       moves: [{ name: '魔王の剣', atk: 32, heal: 0 }, { name: '暗黒波', atk: 26, heal: 0 }, { name: '闇の玉座', atk: 0, heal: 23 }, { name: '星喰らい', atk: 35, heal: 0 }, { name: '絶望の霧', atk: 19, heal: 6 }, { name: '終焉の一撃', atk: 48, heal: 0 }],
-      skill: { name: '魔王の覚醒', cd: 4, text: 'このターンに使う通常技の攻撃を2倍にする。', effects: [{ type: 'atkMultiplier', value: 2 }] } }
+      skill: { name: '魔王の覚醒', cd: 4, text: 'このターンに使う通常技の攻撃を2倍にする。', effects: [{ type: 'atkMultiplier', value: 2 }] } },
+    // 紅蓮の火山洞（2026-10-30 自動追加）
+    { id: 'b-salamander', name: '火蜥蜴', glyph: '蜥', maxHp: 190, element: 'fire', subTypes: ['クリーチャー', '火竜の子'], rank: '雑魚',
+      moves: [{ name: '火の息', atk: 20, heal: 0 }, { name: '尻尾払い', atk: 16, heal: 0 }, { name: '岩陰で休む', atk: 0, heal: 11 }, { name: '火炎弾', atk: 23, heal: 0 }, { name: '噛みつき', atk: 12, heal: 3 }, { name: '溶岩流', atk: 28, heal: 0 }],
+      skill: { name: '火の粉の雨', cd: 4, text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 10 }] } },
+    { id: 'b-golem', name: '溶岩ゴーレム', glyph: '岩', maxHp: 370, element: 'fire', subTypes: ['守護者', '剛力'], rank: '中ボス',
+      moves: [{ name: '溶岩の拳', atk: 30, heal: 0 }, { name: '岩なだれ', atk: 24, heal: 0 }, { name: '冷えて固まる', atk: 0, heal: 16 }, { name: '地響き', atk: 23, heal: 0 }, { name: '火山弾', atk: 19, heal: 5 }, { name: '大噴火', atk: 44, heal: 0 }],
+      skill: { name: '溶岩の鎧', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
+    { id: 'b-dragon', name: '炎竜ヴァルグ', glyph: '竜', maxHp: 460, element: 'fire', subTypes: ['竜', '王族'], rank: '大ボス',
+      moves: [{ name: '竜の爪', atk: 30, heal: 0 }, { name: '灼熱の吐息', atk: 25, heal: 0 }, { name: '鱗の再生', atk: 0, heal: 20 }, { name: '炎の翼', atk: 33, heal: 0 }, { name: '焦土', atk: 18, heal: 5 }, { name: '終末の業火', atk: 45, heal: 0 }],
+      skill: { name: '業火の息吹', cd: 4, text: '敵前衛全員に、それぞれ20ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 20, ignoreDefense: true }] } }
   ];
 
   /*
@@ -2648,7 +2658,9 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     { id: 'sea', name: '霧の海底神殿', text: '霧に沈んだ、海神をまつる神殿。', recommend: 'Lv5〜', requires: 'forest', firstClearStones: 400, clearStones: 60,
       floors: [{ boss: 'b-jelly', level: 6, exp: 120 }, { boss: 'b-serpent', level: 7, exp: 180 }, { boss: 'b-nagi', level: 8, exp: 280 }] },
     { id: 'tower', name: '宵闇の塔', text: '星を喰らう魔王が棲む、夜の塔。', recommend: 'Lv10〜', requires: 'sea', firstClearStones: 600, clearStones: 80,
-      floors: [{ boss: 'b-imp', level: 9, exp: 220 }, { boss: 'b-witch', level: 10, exp: 320 }, { boss: 'b-maou', level: 11, exp: 450 }] }
+      floors: [{ boss: 'b-imp', level: 9, exp: 220 }, { boss: 'b-witch', level: 10, exp: 320 }, { boss: 'b-maou', level: 11, exp: 450 }] },
+    { id: 'volcano', name: '紅蓮の火山洞', text: '溶岩が流れる、炎竜の眠る洞窟。', recommend: 'Lv13〜', requires: 'tower', firstClearStones: 650, clearStones: 90,
+      floors: [{ boss: 'b-salamander', level: 12, exp: 260 }, { boss: 'b-golem', level: 13, exp: 380 }, { boss: 'b-dragon', level: 14, exp: 520 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
