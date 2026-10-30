@@ -1469,7 +1469,7 @@ body[data-screen="dungeon"] .topbar {
 }
 
 /* HPバー：減った分を明るい帯で少し残してから縮める */
-.hpbar { position: relative; }
+.hpbar { position: relative; isolation: isolate; } /* バーの重なりはバーの中だけ（下の帯などに透けない） */
 .hpbar > i { position: relative; z-index: 1; }
 .hpbar > .hp-trail { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; background: rgba(255, 238, 200, .95); transition: width .45s ease .22s; }
 
