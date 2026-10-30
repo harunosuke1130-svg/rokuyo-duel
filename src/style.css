@@ -809,6 +809,8 @@ body[data-screen="gacha"] #toast, body[data-screen="match"] #toast, body[data-sc
   position: fixed !important; left: 0; top: 0; z-index: 100; margin: 0; pointer-events: none; cursor: grabbing;
   box-shadow: 0 16px 30px rgba(0, 0, 0, .5) !important; transition: none !important; will-change: transform;
 }
+/* 無効な位置で離したとき：影が元の位置へ戻る */
+.drag-ghost.returning, .fm-ghost.returning { transition: transform .22s ease-out, opacity .22s ease-out !important; opacity: .6; }
 
 /* 下部：リーダーと出撃 */
 .fm-foot {
@@ -1339,3 +1341,147 @@ body[data-screen="dungeon"] .topbar {
 .dg-btn:disabled { background: rgba(255, 255, 255, .06); color: #a9a196; border-style: dashed; box-shadow: none; cursor: not-allowed; }
 .dg-btn-sub { background: transparent; border-color: rgba(255, 255, 255, .3); box-shadow: none; font-family: var(--gothic); font-size: 15px; letter-spacing: 0; }
 @media (max-width: 380px) { .dg-rewards { grid-template-columns: 1fr 1fr; } }
+
+/* ======================================================================
+ * 戦闘の演出（操作の結果と次にできることを伝える。短く・画面全体は揺らさない・点滅しない）
+ * 属性の色：猛火・水脈・自然・呪闇・聖光
+ * ==================================================================== */
+:root { --el-fire: #ff7a3c; --el-water: #4fb3ff; --el-nature: #6fd06a; --el-dark: #a874ff; --el-holy: #ffd86a; }
+[data-el="fire"] { --fx: var(--el-fire); }
+[data-el="water"] { --fx: var(--el-water); }
+[data-el="nature"] { --fx: var(--el-nature); }
+[data-el="dark"] { --fx: var(--el-dark); }
+[data-el="holy"] { --fx: var(--el-holy); }
+
+/* サイコロ：短く転がって止まる → 着地で一度だけ小さく弾み、金の輪が広がる */
+#screen-battle .dice { position: relative; }
+.dice.rolling { animation: diceTumble .56s cubic-bezier(.3, .7, .4, 1) both; }
+.dice.rolling span { animation: none; opacity: .75; }
+.dice.landed { animation: diceLand .38s ease-out both; }
+.dice.landed::after {
+  content: ""; position: absolute; inset: -4px; border-radius: inherit; pointer-events: none;
+  border: 2px solid rgba(255, 226, 140, .95); animation: diceRing .5s ease-out forwards;
+}
+@keyframes diceTumble {
+  0% { transform: translateY(0) rotate(0); }
+  25% { transform: translateY(-10px) rotate(-120deg) scale(.92); }
+  55% { transform: translateY(0) rotate(-250deg) scale(.96); }
+  75% { transform: translateY(-4px) rotate(-320deg); }
+  100% { transform: translateY(0) rotate(-360deg); }
+}
+@keyframes diceLand { 0% { transform: scale(1.22); } 55% { transform: scale(.94); } 100% { transform: scale(1); } }
+@keyframes diceRing { from { opacity: 1; transform: scale(1); } to { opacity: 0; transform: scale(1.6); } }
+
+/* 技を選ぶ場面：選べる前衛を属性の色で縁取り、技の欄を下から登場させる。後衛は控えめに */
+#ally-front.picking .bt-card.can-act { box-shadow: 0 0 0 2px var(--fx, #ffe08a), 0 0 14px color-mix(in srgb, var(--fx, #ffe08a) 55%, transparent); }
+#ally-front.picking .bt-card.can-act .mo-btn { box-shadow: inset 0 0 0 1px rgba(255, 236, 190, .55), 0 0 0 1px var(--fx, #ffe08a), 0 3px 8px rgba(0, 0, 0, .5); }
+#ally-front.pick-enter .bt-move { animation: moIn .3s cubic-bezier(.2, .8, .2, 1) both; }
+#ally-front.pick-enter > .bt-card:nth-child(2) .bt-move { animation-delay: .06s; }
+#ally-front.pick-enter > .bt-card:nth-child(3) .bt-move { animation-delay: .12s; }
+#ally-front.pick-enter .bt-card.can-act { animation: canAct .6s ease-out both; }
+#ally-back.dim .bt-card { filter: saturate(.7) brightness(.86); transition: filter .2s; }
+@keyframes moIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes canAct { 0% { transform: translateY(0); } 40% { transform: translateY(-4px); } 100% { transform: none; } }
+
+/* 行動したキャラ：短く前へ出る（味方は上・敵は下）／固有スキルは光の輪 */
+.bt-card.act-up { animation: actUp .36s ease-out; }
+.bt-card.act-down { animation: actDown .36s ease-out; }
+.bt-card.act-cast { animation: actCast .55s ease-out; }
+.bt-card.act-up, .bt-card.act-down, .bt-card.act-cast { position: relative; z-index: 3; }
+@keyframes actUp { 0% { transform: none; } 45% { transform: translateY(-10px) scale(1.04); box-shadow: 0 0 0 2px var(--act-el), 0 0 18px var(--act-el); } 100% { transform: none; } }
+@keyframes actDown { 0% { transform: none; } 45% { transform: translateY(10px) scale(1.04); box-shadow: 0 0 0 2px var(--act-el), 0 0 18px var(--act-el); } 100% { transform: none; } }
+@keyframes actCast { 0% { box-shadow: 0 0 0 0 var(--act-el); } 40% { box-shadow: 0 0 0 4px var(--act-el), 0 0 24px var(--act-el); } 100% { box-shadow: 0 0 0 0 transparent; } }
+
+/* 当たった：カードだけが小さく押される（画面全体は揺らさない） */
+.bt-card.hit-up { animation: hitUp .3s ease-out; }
+.bt-card.hit-down { animation: hitDown .3s ease-out; }
+@keyframes hitUp { 30% { transform: translateY(-4px); } 100% { transform: none; } }
+@keyframes hitDown { 30% { transform: translateY(4px); } 100% { transform: none; } }
+
+/* 絵の上の効果（属性ごと） */
+.fx-card { position: absolute; inset: 0; z-index: 4; pointer-events: none; overflow: hidden; }
+.fx-card::before, .fx-card::after { content: ""; position: absolute; inset: 0; opacity: 0; }
+.fx-hit::before { background: radial-gradient(circle at 50% 50%, color-mix(in srgb, var(--fx, #fff) 85%, #fff) 0, color-mix(in srgb, var(--fx, #fff) 55%, transparent) 30%, transparent 62%); animation: fxBurst .45s ease-out; }
+/* 猛火：斜めの炎の筋 */
+.fx-hit[data-el="fire"]::after { background: linear-gradient(115deg, transparent 38%, var(--el-fire) 47%, #ffe0a0 50%, var(--el-fire) 53%, transparent 62%); animation: fxSlash .4s ease-out; }
+/* 水脈：広がる波紋 */
+.fx-hit[data-el="water"]::after { inset: 18%; border-radius: 50%; border: 3px solid var(--el-water); box-shadow: 0 0 10px var(--el-water); animation: fxRipple .5s ease-out; }
+/* 自然：交差する葉の筋 */
+.fx-hit[data-el="nature"]::after { background: linear-gradient(60deg, transparent 44%, var(--el-nature) 49%, transparent 54%), linear-gradient(-60deg, transparent 44%, #c8f5a0 49%, transparent 54%); animation: fxSlash .42s ease-out; }
+/* 呪闇：渦 */
+.fx-hit[data-el="dark"]::after { inset: 12%; border-radius: 50%; background: conic-gradient(from 0deg, transparent, var(--el-dark), transparent 40%, var(--el-dark), transparent 80%); animation: fxSwirl .5s ease-out; }
+/* 聖光：光の筋 */
+.fx-hit[data-el="holy"]::after { background: repeating-conic-gradient(from 0deg at 50% 50%, color-mix(in srgb, var(--el-holy) 80%, transparent) 0 6deg, transparent 6deg 30deg); animation: fxRays .48s ease-out; }
+/* 回復：下から上へ立ちのぼる光の粒 */
+.fx-heal::before { background: radial-gradient(circle, rgba(170, 255, 190, .55) 0, transparent 60%); animation: fxBurst .55s ease-out; }
+.fx-heal::after {
+  background:
+    radial-gradient(circle at 20% 80%, #d8ffd8 0 2px, transparent 3px), radial-gradient(circle at 45% 90%, #fff 0 2px, transparent 3px),
+    radial-gradient(circle at 70% 85%, #b8ffc8 0 2.5px, transparent 3.5px), radial-gradient(circle at 85% 75%, #fff 0 1.5px, transparent 2.5px),
+    radial-gradient(circle at 32% 70%, #c8ffd0 0 1.5px, transparent 2.5px);
+  animation: fxRise .7s ease-out;
+}
+/* 結界：金の輪 */
+.fx-barrier::after { inset: 8%; border-radius: 10px; border: 2px solid #ffe08a; box-shadow: 0 0 12px #ffd060, inset 0 0 12px rgba(255, 210, 100, .5); animation: fxShield .6s ease-out; }
+@keyframes fxBurst { 0% { opacity: 0; transform: scale(.4); } 25% { opacity: 1; } 100% { opacity: 0; transform: scale(1.25); } }
+@keyframes fxSlash { 0% { opacity: 0; transform: translateX(-30%); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateX(30%); } }
+@keyframes fxRipple { 0% { opacity: 1; transform: scale(.2); } 100% { opacity: 0; transform: scale(1.5); } }
+@keyframes fxSwirl { 0% { opacity: 0; transform: rotate(0) scale(.5); } 30% { opacity: 1; } 100% { opacity: 0; transform: rotate(220deg) scale(1.2); } }
+@keyframes fxRays { 0% { opacity: 0; transform: scale(.5) rotate(0); } 30% { opacity: 1; } 100% { opacity: 0; transform: scale(1.3) rotate(25deg); } }
+@keyframes fxRise { 0% { opacity: 0; transform: translateY(10%); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-45%); } }
+@keyframes fxShield { 0% { opacity: 0; transform: scale(1.2); } 35% { opacity: 1; transform: scale(1); } 100% { opacity: 0; } }
+
+/* 全体攻撃・全体回復：列全体をなでる帯と「敵前衛全員」などの短い表示 */
+.fx-sweep { position: fixed; pointer-events: none; overflow: hidden; border-radius: 6px; }
+.fx-sweep::before {
+  content: ""; position: absolute; top: 0; bottom: 0; left: -40%; width: 40%;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fx, #fff) 55%, transparent), transparent);
+  animation: fxSweep .5s ease-out forwards;
+}
+.fx-sweep-heal::before { background: linear-gradient(90deg, transparent, rgba(150, 255, 170, .45), transparent); }
+.fx-sweep span {
+  position: absolute; left: 50%; top: 3px; transform: translateX(-50%); padding: 0 9px; border-radius: 999px; white-space: nowrap;
+  background: rgba(14, 10, 6, .78); color: #fff; font-size: 12px; font-weight: 700; border: 1px solid var(--fx, rgba(150, 255, 170, .8));
+  animation: fxTag .9s ease-out forwards;
+}
+.fx-sweep-heal span { border-color: rgba(150, 255, 170, .8); }
+@keyframes fxSweep { to { transform: translateX(350%); } }
+@keyframes fxTag { 0% { opacity: 0; } 15% { opacity: 1; } 75% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ダメージ・回復の数字：対象の近くで弾んで浮かぶ（数字の縁は属性の色） */
+.fx-num { animation: numFloat 1.15s ease-out forwards; will-change: transform, opacity; }
+.fx-num.dmg { color: #fff1e8; font-size: 30px; -webkit-text-stroke: 1px rgba(0, 0, 0, .35); text-shadow: 0 0 6px var(--fx, #ff6a50), 0 0 2px var(--fx, #ff6a50), 0 2px 4px #000; }
+.fx-num.heal { color: #eaffea; text-shadow: 0 0 6px #3fcf6a, 0 2px 4px #000; }
+@keyframes numFloat {
+  0% { opacity: 0; transform: translate(-50%, -30%) scale(.6); }
+  15% { opacity: 1; transform: translate(-50%, -60%) scale(1.15); }
+  30% { transform: translate(-50%, -65%) scale(1); }
+  80% { opacity: 1; }
+  100% { opacity: 0; transform: translate(-50%, -150%) scale(1); }
+}
+
+/* HPバー：減った分を明るい帯で少し残してから縮める */
+.hpbar { position: relative; }
+.hpbar > i { position: relative; z-index: 1; }
+.hpbar > .hp-trail { position: absolute; left: 0; top: 0; bottom: 0; z-index: 0; background: rgba(255, 238, 200, .95); transition: width .45s ease .22s; }
+
+/* 交代：入れ替わるカードは上に重ねて動かす */
+.bt-card.swapping { position: relative; z-index: 6; }
+/* ドラッグ中：交換できる相手に点線の印と「ここへ」 */
+.bt-card.drop-candidate, .fm-card.drop-candidate { outline: 2px dashed rgba(255, 240, 190, .95); outline-offset: 2px; animation: candPulse 1.1s ease-in-out infinite; }
+.bt-card.drop-target, .fm-card.drop-target { animation: none; }
+@keyframes candPulse { 50% { outline-color: rgba(255, 210, 110, .55); } }
+
+/* 「視差効果を減らす」：動きを止め、結果は静止表示（数字・縁取り・HP）で分かるようにする */
+@media (prefers-reduced-motion: reduce) {
+  .dice.rolling, .dice.landed, .dice.landed::after, .bt-dice-btn.ready .dice,
+  .bt-card.act-up, .bt-card.act-down, .bt-card.act-cast, .bt-card.hit-up, .bt-card.hit-down,
+  #ally-front.pick-enter .bt-move, #ally-front.pick-enter .bt-card.can-act,
+  .bt-card.drop-candidate, .fm-card.drop-candidate, .fx-sweep::before { animation: none !important; }
+  .fx-card::before, .fx-card::after { animation: fxStill .6s linear !important; }
+  .fx-num { animation: numStill 1.2s linear forwards !important; transform: translate(-50%, -60%) !important; }
+  .fx-sweep span { animation: fxTag .9s linear forwards; }
+  .hpbar > i { transition: none; }
+}
+@keyframes fxStill { 0%, 70% { opacity: .55; } 100% { opacity: 0; } }
+@keyframes numStill { 0%, 75% { opacity: 1; } 100% { opacity: 0; } }

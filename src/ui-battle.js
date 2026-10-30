@@ -41,7 +41,11 @@
     room: null,
     heartbeat: null,
     formationShown: false,
-    fmDraft: null    // 準備画面で並べ中の配置（{ slots, leader }）。対人戦で依頼が戻されたときも引き継ぐ
+    fmDraft: null,   // 準備画面で並べ中の配置（{ slots, leader }）。対人戦で依頼が戻されたときも引き継ぐ
+    // 演出（表示だけ。状態・結果には触れない）
+    hpShown: {},     // 画面に出しているHP（"side:idx" → 値）
+    hpHold: {},      // 当たる瞬間まで前のHPを見せておく分
+    pickKey: ''      // 技を選ぶ場面が変わったときだけ、技の欄を登場させる
   };
 
   const foeIsCpu = () => bt.mode === 'cpu';
@@ -66,6 +70,7 @@
     bt.diceAnim = false;
     bt.lastLogs = [];
     bt.active = false;
+    bt.hpShown = {}; bt.hpHold = {}; bt.pickKey = '';
     if (bt.unwatch) { try { bt.unwatch(); } catch (e) { /* noop */ } }
     bt.unwatch = null;
     if (bt.heartbeat) clearInterval(bt.heartbeat);
@@ -216,6 +221,8 @@
 
   // 結果の演出 → 次の段階へ
   function onResult(r, fromRoom) {
+    holdHp(r.events || []);
+    captureSwap(r.events || []);
     const rollEv = r.events.find(e => e.type === 'roll');
     const initEv = r.events.find(e => e.type === 'initiative');
     if (initEv) { showInitiative(initEv, r); return; }
@@ -230,6 +237,7 @@
   function afterAction(r, delay) {
     if (r.logs && r.logs.length) bt.lastLogs = r.logs.filter(l => l.kind !== 'turn').slice(-8);
     render();
+    playSwap();
     playEvents(r.events || []);
     const quick = r.events && r.events.every(e => e.type === 'roll' || e.type === 'switch' || e.type === 'skill' || e.type === 'barrier');
     schedule(advance, delay !== undefined ? delay : (quick ? DELAY.fxGap * 3 + 60 : DELAY.after));
@@ -290,6 +298,7 @@
   function cpuReplace() {
     const r = CPU.act(bt.state, bt.foe, rng);
     if (!r.ok) { console.error(r.error); return; }
+    captureSwap(r.events || []);
     afterAction(r, DELAY.replace / 2);
   }
 
@@ -377,19 +386,24 @@
     const ch = E.unitChar(u);
     const hidden = side === bt.foe && s.phase === 'formation';
     const mine = side === bt.me;
-    const st = hpState(u);
+    // HPは「当たる瞬間」まで前の値を見せる（演出だけ。状態は変えない）
+    const key = side + ':' + i;
+    const shown = key in bt.hpHold ? bt.hpHold[key] : u.hp;
+    bt.hpShown[key] = shown;
+    const vu = shown === u.hp ? u : Object.assign({}, u, { hp: shown });
+    const st = hpState(vu);
     const lead = !hidden && s.leader && s.leader[side] === i;
     const tags = [];
     if (lead) tags.push('<span class="bt-tag lead" title="リーダー"><svg viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15L1 4l6 5 5-8 5 8 6-5-1 11z" fill="currentColor"/></svg><i>リーダー</i></span>');
     if (E.isBoss(u.charId)) tags.push(`<span class="bt-tag boss">${esc(ch.rank || 'ボス')}</span>`);
     if (u.barrier && u.hp > 0) tags.push('<span class="bt-tag barrier">結界</span>');
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
-    const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${st === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
+    const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${hpState(u) === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
-    return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${u.hp <= 0 ? ' ko' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
-      <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: !E.isBoss(u.charId) })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${u.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(u) : ''}</span>
-      ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}${starsHtml(ch)}</span><span class="bt-hpline">${hpNum(u)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(u)}</span>`
-        : `${hpBar(u)}<span class="bt-backline">${starsHtml(ch)}${u.hp > 0 && u.cd > 0 && !hidden ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : ''}</span>`}
+    return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${withMove ? ' can-act' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
+      <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: !E.isBoss(u.charId) })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${vu.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(vu) : ''}</span>
+      ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}${starsHtml(ch)}</span><span class="bt-hpline">${hpNum(vu)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(vu)}</span>`
+        : `${hpBar(vu)}<span class="bt-backline">${starsHtml(ch)}${u.hp > 0 && u.cd > 0 && !hidden ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : ''}</span>`}
       ${withMove ? `<span class="bt-move">${moveArea(i)}</span>` : ''}
       ${hidden ? '<span class="bt-hidden">配置前</span>' : ''}
     </div>`;
@@ -408,6 +422,15 @@
     const fr = $('#' + pre + '-front');
     fr.innerHTML = frontIds.map(i => unitCard(side, i, 'front')).join('') + empty;
     fr.dataset.count = String(slots);
+    if (side === bt.me) {
+      // 技を選べる間：前衛の技の欄を強調し、後衛を少し控えめに。場面が変わったときだけ技の欄を登場させる
+      const picking = myActing(s) && !bt.waiting;
+      const key = picking ? [s.round, s.dice, s.front[side].join(','), s.skillUsed, s.swapUsed].join('|') : '';
+      fr.classList.toggle('picking', picking);
+      fr.classList.toggle('pick-enter', picking && key !== bt.pickKey);
+      bt.pickKey = key;
+      $('#' + pre + '-back').classList.toggle('dim', picking);
+    }
     $('#' + pre + '-back').innerHTML = backIds.map(i => unitCard(side, i, 'back')).join('');
     // 後衛がいない側（ボス）は「後衛」の見出しを隠す
     $('#' + pre + '-back').previousElementSibling.classList.toggle('hidden', !backIds.length);
@@ -525,26 +548,118 @@
     } });
   }
 
-  /* ---------- 演出 ---------- */
-  function floatAt(el, text, cls, offset) {
+  /* ---------- 演出（表示だけ。結果は Engine が決めたもの。状態は変えない） ---------- */
+  const reduced = () => U.reducedMotion();
+  const cardOf = (side, idx) => document.querySelector(`#screen-battle .unit-card[data-side="${side}"][data-idx="${idx}"]`);
+  const elOf = (side, idx) => { const u = bt.state && bt.state.teams[side] && bt.state.teams[side][idx]; return u ? E.unitChar(u).element : ''; };
+
+  function floatAt(el, text, cls, offset, elem) {
     if (!el) return;
     const r = el.getBoundingClientRect();
     if (r.width === 0) return;
     const n = document.createElement('div');
     n.className = 'fx-num ' + cls;
+    if (elem) n.dataset.el = elem;
     n.textContent = text;
     n.style.left = Math.min(window.innerWidth - 30, Math.max(30, r.left + r.width / 2)) + 'px';
-    n.style.top = Math.min(window.innerHeight - 20, Math.max(20, r.top + r.height / 2 + (offset || 0))) + 'px';
+    n.style.top = Math.min(window.innerHeight - 20, Math.max(20, r.top + r.height * 0.5 + (offset || 0))) + 'px';
     $('#fx-layer').appendChild(n);
-    setTimeout(() => n.remove(), 1200);
+    setTimeout(() => n.remove(), 1300);
   }
   function flash(el, cls) {
     if (!el) return;
     el.classList.remove(cls);
     void el.offsetWidth;
     el.classList.add(cls);
+    setTimeout(() => el.classList.remove(cls), 800);
   }
+  // カードの絵の上に、属性ごとの当たり・回復・結界の効果を重ねる（CSS のみ・短い）
+  function cardFx(card, kind, elem) {
+    const art = card && card.querySelector('.bt-art');
+    if (!art) return;
+    const fx = document.createElement('span');
+    fx.className = 'fx-card fx-' + kind;
+    if (elem) fx.dataset.el = elem;
+    fx.setAttribute('aria-hidden', 'true');
+    art.appendChild(fx);
+    setTimeout(() => fx.remove(), 750);
+  }
+  // 全体攻撃・全体回復：その列全体を、属性の色の帯がなでる
+  function rowSweep(side, kind, elem) {
+    const row = $(side === bt.me ? '#ally-front' : '#enemy-front');
+    const r = row && row.getBoundingClientRect();
+    if (!r || !r.width) return;
+    const n = document.createElement('div');
+    n.className = 'fx-sweep fx-sweep-' + kind;
+    if (elem) n.dataset.el = elem;
+    Object.assign(n.style, { left: r.left + 'px', top: r.top + 'px', width: r.width + 'px', height: Math.min(r.height, 220) + 'px' });
+    n.innerHTML = `<span>${kind === 'heal' ? '味方前衛全員' : (side === bt.me ? '味方前衛全員' : '敵前衛全員')}</span>`;
+    $('#fx-layer').appendChild(n);
+    setTimeout(() => n.remove(), 900);
+  }
+
+  // HP：当たる瞬間まで前の値を見せる。結果が来た時点で「画面に出ている値」と違えば保持する
+  function holdHp(events) {
+    if (!bt.state) return;
+    events.forEach(ev => {
+      if (ev.type !== 'damage' && ev.type !== 'heal') return;
+      const key = ev.side + ':' + ev.idx;
+      const u = bt.state.teams[ev.side] && bt.state.teams[ev.side][ev.idx];
+      if (!u || !(key in bt.hpShown) || key in bt.hpHold) return;
+      if (bt.hpShown[key] !== u.hp) bt.hpHold[key] = bt.hpShown[key];
+    });
+  }
+  // 当たった：そのカードのHPバーと数字だけを、前の値から新しい値へ滑らかに動かす
+  function releaseHp(side, idx) {
+    const key = side + ':' + idx;
+    if (!(key in bt.hpHold)) return;
+    const from = bt.hpHold[key];
+    delete bt.hpHold[key];
+    const u = bt.state && bt.state.teams[side] && bt.state.teams[side][idx];
+    const card = cardOf(side, idx);
+    if (!u || !card) return;
+    const to = u.hp;
+    bt.hpShown[key] = to;
+    const bar = card.querySelector('.hpbar');
+    const fill = bar && bar.querySelector('i');
+    if (fill) {
+      if (to < from && !reduced()) {
+        // 減った分を明るい帯で少し残してから縮める
+        const trail = document.createElement('b');
+        trail.className = 'hp-trail';
+        trail.style.width = (from / u.maxHp * 100) + '%';
+        bar.insertBefore(trail, fill);
+        requestAnimationFrame(() => { trail.style.width = Math.max(0, to / u.maxHp * 100) + '%'; });
+        setTimeout(() => trail.remove(), 900);
+      }
+      fill.style.width = Math.max(0, to / u.maxHp * 100) + '%';
+      const r = to / u.maxHp;
+      bar.classList.toggle('low', r <= 0.25);
+      bar.classList.toggle('mid', r > 0.25 && r <= 0.5);
+    }
+    const num = card.querySelector('.bt-hp b');
+    if (num) countTo(num, from, to);
+  }
+  function countTo(el, from, to) {
+    if (reduced() || U.FAST || from === to) { el.textContent = to; return; }
+    const t0 = performance.now(), dur = 380, token = bt.session;
+    const step = now => {
+      if (token !== bt.session || !el.isConnected) return;
+      const k = Math.min(1, (now - t0) / dur);
+      el.textContent = Math.round(from + (to - from) * (1 - Math.pow(1 - k, 3)));
+      if (k < 1) requestAnimationFrame(step);
+    };
+    requestAnimationFrame(step);
+  }
+
+  // 行動 → 当たり。行動したキャラを短く強調し、その後で対象に当たり（全体なら同時）と数字を出す
   function playEvents(events) {
+    const actEv = events.find(e => e.type === 'move') || events.find(e => e.type === 'skill');
+    const actEl = actEv ? elOf(actEv.side, actEv.idx) : '';
+    if (actEv) {
+      const c = cardOf(actEv.side, actEv.idx);
+      if (c) { c.style.setProperty('--act-el', `var(--el-${actEl || 'holy'})`); flash(c, actEv.type === 'move' ? (actEv.side === bt.me ? 'act-up' : 'act-down') : 'act-cast'); }
+    }
     const groups = [];
     events.forEach(ev => {
       if (ev.type !== 'damage' && ev.type !== 'heal' && ev.type !== 'barrier') return;
@@ -552,37 +667,95 @@
       if (last && last.type === ev.type && last.side === ev.side) last.list.push(ev);
       else groups.push({ type: ev.type, side: ev.side, list: [ev] });
     });
+    const lead = actEv && !U.FAST ? 200 : 0;
+    const gap = U.FAST ? 0 : 340;
     groups.forEach((g, k) => {
       schedule(() => {
+        if (g.list.length >= 2 && g.type !== 'barrier') rowSweep(g.side, g.type, g.type === 'heal' ? 'heal' : actEl);
         g.list.forEach(ev => {
-          const card = document.querySelector(`.unit-card[data-side="${ev.side}"][data-idx="${ev.idx}"]`);
-          if (ev.type === 'damage') { floatAt(card, '-' + ev.amount, 'dmg'); flash(card, 'shake'); }
-          else if (ev.type === 'heal') { floatAt(card, '+' + ev.amount, 'heal', 16); flash(card, 'glow-heal'); }
-          else { floatAt(card, '結界', 'info'); flash(card, 'glow-heal'); }
+          const card = cardOf(ev.side, ev.idx);
+          if (ev.type === 'damage') {
+            cardFx(card, 'hit', actEl);
+            flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
+            floatAt(card, '-' + ev.amount, 'dmg', 0, actEl);
+          } else if (ev.type === 'heal') {
+            cardFx(card, 'heal');
+            flash(card, 'glow-heal');
+            if (ev.amount > 0) floatAt(card, '+' + ev.amount, 'heal', 14); // 満タンで回復0のときは数字を出さない
+          } else {
+            cardFx(card, 'barrier');
+            floatAt(card, '結界', 'info', -10);
+          }
+          releaseHp(ev.side, ev.idx);
         });
-      }, k * (DELAY.fxGap * 3));
+      }, lead + k * gap);
+    });
+    // 念のため：保持したHPは最後に必ず戻す（演出が途中で切れても表示が正しい値になる）
+    schedule(() => {
+      const keys = Object.keys(bt.hpHold);
+      if (!keys.length) return;
+      bt.hpHold = {};
+      render();
+    }, lead + groups.length * gap + 120);
+  }
+
+  // 交代：入れ替わる2枚が、前の位置から新しい位置へ滑らかに動く（FLIP）
+  let swapFrom = null;
+  function captureSwap(events) {
+    const evs = events.filter(e => e.type === 'switch');
+    swapFrom = null;
+    if (!evs.length || reduced() || U.FAST) return;
+    swapFrom = [];
+    evs.forEach(ev => [ev.out, ev.in].forEach(idx => {
+      if (idx === undefined || idx === null) return;
+      const c = cardOf(ev.side, idx);
+      if (c) swapFrom.push({ side: ev.side, idx, rect: c.getBoundingClientRect() });
+    }));
+  }
+  function playSwap() {
+    const list = swapFrom;
+    swapFrom = null;
+    if (!list || !list.length) return;
+    list.forEach(({ side, idx, rect }) => {
+      const c = cardOf(side, idx);
+      if (!c) return;
+      const now = c.getBoundingClientRect();
+      if (!now.width || !rect.width) return;
+      const dx = rect.left - now.left, dy = rect.top - now.top, sc = rect.width / now.width;
+      if (Math.abs(dx) < 1 && Math.abs(dy) < 1) return;
+      c.classList.add('swapping');
+      c.style.transformOrigin = '0 0';
+      c.style.transform = `translate(${dx}px, ${dy}px) scale(${sc})`;
+      void c.offsetWidth;
+      c.style.transition = 'transform .34s cubic-bezier(.2, .8, .2, 1)';
+      c.style.transform = '';
+      setTimeout(() => { c.classList.remove('swapping'); c.style.transition = ''; c.style.transformOrigin = ''; }, 380);
     });
   }
 
+  // サイコロ：短く転がって、Engine が決めた出目で止まる（転がる間の数字は決まった順の飾りで、抽選はしない）
   function animateDice(value, side, then) {
     const dice = $('#dice');
     bt.diceAnim = true;
     render();
-    dice.className = 'dice rolling' + (side === bt.foe ? ' cpu' : '');
+    const foe = side === bt.foe ? ' cpu' : '';
+    const land = () => {
+      bt.diceAnim = false;
+      dice.className = 'dice landed' + foe;
+      dice.innerHTML = `<span>${value}</span>`;
+      then();
+    };
+    if (reduced()) { dice.className = 'dice' + foe; dice.innerHTML = `<span>${value}</span>`; schedule(land, U.FAST ? DELAY.roll : 120); return; }
+    dice.className = 'dice rolling' + foe;
+    const faces = [2, 5, 3, 6, 1, 4].map(n => ((n + value) % CONFIG.DICE_SIDES) + 1);
+    let k = 0;
     const token = bt.session;
     const iv = setInterval(() => {
       if (token !== bt.session) { clearInterval(iv); return; }
-      dice.innerHTML = `<span>${1 + Math.floor(Math.random() * CONFIG.DICE_SIDES)}</span>`;
-    }, 70);
+      dice.innerHTML = `<span>${faces[k++ % faces.length]}</span>`;
+    }, 80);
     bt.timers.add(iv);
-    schedule(() => {
-      clearInterval(iv);
-      bt.timers.delete(iv);
-      bt.diceAnim = false;
-      dice.className = 'dice pop' + (side === bt.foe ? ' cpu' : '');
-      dice.innerHTML = `<span>${value}</span>`;
-      then();
-    }, DELAY.roll);
+    schedule(() => { clearInterval(iv); bt.timers.delete(iv); land(); }, DELAY.roll);
   }
 
   // 先攻・後攻のサイコロの結果を見せる

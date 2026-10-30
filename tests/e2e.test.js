@@ -144,7 +144,8 @@ test('desktop: 出撃準備（ドラッグで前後衛を交換・クリック�
     await page.mouse.move(b.x, b.y, { steps: 6 });
     if (check) await check();
     await page.mouse.up();
-    assert.equal(await page.$('.fm-ghost'), null);
+    // 有効な位置ならすぐ消える。無効な位置なら元の位置へ戻ってから消える
+    await page.waitForSelector('.fm-ghost', { state: 'detached', timeout: 1000 });
   };
   // 前衛→後衛へドラッグ：2体が入れ替わる（交換先が強調される）
   await drag(1, 4, async () => assert.ok(await page.$('#modal .fm-card.drop-target[data-idx="4"]'), '交換先を強調'));
@@ -245,9 +246,15 @@ test('mobile: 出撃準備（タッチは長押ししてからドラッグ・す
 });
 
 // 戦闘画面：カードの中心
+// 描き直しの瞬間に要素が入れ替わることがあるので、取れるまで少し待つ
 const btBox = async (page, sel) => {
-  const b = await (await page.$(sel)).boundingBox();
-  return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+  for (let k = 0; k < 20; k++) {
+    const h = await page.$(sel);
+    const b = h && await h.boundingBox();
+    if (b) return { x: b.x + b.width / 2, y: b.y + b.height / 2 };
+    await page.waitForTimeout(50);
+  }
+  throw new Error('要素が見つかりません: ' + sel);
 };
 const mouseDrag = async (page, fromSel, to, check) => {
   const a = await btBox(page, fromSel);
@@ -280,7 +287,7 @@ test('desktop: 戦闘画面（盤面の右に操作欄・ドラッグで交代�
   // 数字を出す前は交代できない（理由を表示・状態は変わらない）
   await mouseDrag(page, front(f0), back(b0));
   assert.ok((await page.textContent('#toast')).includes('交代できません'));
-  assert.equal(await page.$('.drag-ghost'), null);
+  assert.equal(await page.$$eval('.drag-ghost', g => g.length), 0);
   assert.deepEqual((await H.state(page)).front.player, s.front.player);
   await page.click('#btn-roll');
   await H.waitMyAction(page);
@@ -334,7 +341,7 @@ test('desktop: 戦闘画面（盤面の右に操作欄・ドラッグで交代�
     if (fi !== undefined && bi >= 0) {
       await page.waitForTimeout(450);
       await mouseDrag(page, front(fi), back(bi));
-      assert.equal(await page.$('.drag-ghost'), null);
+      assert.equal(await page.$$eval('.drag-ghost', g => g.length), 0);
     }
   }
   assert.deepEqual(errors, []);

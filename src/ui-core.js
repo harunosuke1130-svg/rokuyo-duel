@@ -12,7 +12,7 @@
   const FAST = params.has('fast');
   const DELAY = FAST
     ? { roll: 40, cpuThink: 30, after: 40, replace: 30, result: 30, fxGap: 0, initiative: 60 }
-    : { roll: 650, cpuThink: 750, after: 1000, replace: 900, result: 1000, fxGap: 120, initiative: 1600 };
+    : { roll: 560, cpuThink: 750, after: 1000, replace: 900, result: 1000, fxGap: 120, initiative: 1600 };
   const rng = E.createRng(params.get('seed'));
 
   const $ = sel => document.querySelector(sel);
@@ -147,6 +147,8 @@
    *      holdSelector / onHold(card)：長押しして動かさずに離したとき（技の表示など） }
    * 戻り値：suppressed()（ドラッグ直後のクリックを無視する）, busy(), destroy() */
   const DRAG_HOLD_MS = 320, DRAG_SLOP = 8;
+  // 「視差効果を減らす」設定（演出の動きを抑える）
+  const reducedMotion = () => !!(window.matchMedia && window.matchMedia('(prefers-reduced-motion: reduce)').matches);
   function cardDrag(root, o) {
     // holdSelector：長押し（動かさずに離す）で onHold を呼ぶカード。ドラッグできないカード（敵など）も含められる
     const holdSel = o.holdSelector || o.selector;
@@ -200,6 +202,9 @@
       document.body.appendChild(g);
       drag.ghost = g;
       drag.card.classList.add('dragging');
+      // 交換できる相手に印を付ける（離してよい場所が一目で分かるように）
+      drag.cands = Array.from(root.querySelectorAll(o.selector)).filter(t => t !== drag.card && o.canDrop(drag.card, t));
+      drag.cands.forEach(t => t.classList.add('drop-candidate'));
       try { drag.card.setPointerCapture(drag.id); } catch (err) { /* 取れなくても window で追う */ }
       place();
     }
@@ -242,7 +247,18 @@
       d.card.classList.remove('holding');
       if (!d.active && !d.held) return;
       suppressUntil = Date.now() + 400;
-      if (d.ghost) d.ghost.remove();
+      if (d.cands) d.cands.forEach(t => t.classList.remove('drop-candidate'));
+      const dropped = drop && d.target;
+      if (d.ghost) {
+        // 有効な位置で離した：影は消して本物のカードが入れ替わる。無効な位置：影が元の位置へ戻る
+        const g = d.ghost, home = d.card.getBoundingClientRect();
+        if (dropped || reducedMotion() || !home.width) g.remove();
+        else {
+          g.classList.add('returning');
+          g.style.transform = `translate(${home.left}px, ${home.top}px)`;
+          setTimeout(() => g.remove(), 240);
+        }
+      }
       d.card.classList.remove('dragging');
       if (d.target) d.target.classList.remove('drop-target');
       const still = Math.hypot(d.x - (d.held ? d.hx : d.x0), d.y - (d.held ? d.hy : d.y0)) <= DRAG_SLOP * 2;
@@ -264,7 +280,7 @@
   }
 
   window.RikuyouUI = {
-    E, CONFIG, FAST, DELAY, rng, $, esc,
+    E, CONFIG, FAST, DELAY, rng, $, esc, reducedMotion,
     emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
     ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen, cardDrag
   };
