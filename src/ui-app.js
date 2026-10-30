@@ -474,31 +474,148 @@
     resultModal(res.won, ctx.title, res.state.round, body, buttons);
   }
 
-  /* ---------- ダンジョン（雑魚 → 中ボス → 大ボス を順に倒す） ---------- */
+  /* ---------- ダンジョン（冒険の地図。雑魚 → 中ボス → 大ボス を順に倒す） ---------- */
+  // カードの色：既存の3つは場所の色、それ以外は大ボスの属性の色
+  const DG_THEMES = ['forest', 'sea', 'tower'];
+  function dungeonTheme(d) {
+    if (DG_THEMES.indexOf(d.id) >= 0) return d.id;
+    const last = d.floors[d.floors.length - 1];
+    return (last && E.getChar(last.boss) && E.getChar(last.boss).element) || 'nature';
+  }
+  function dungeonStatus(p, d) {
+    const open = P.dungeonUnlocked(p, d.id);
+    const cleared = P.dungeonCleared(p, d.id);
+    const req = P.dungeonRequires(d).map(r => P.getDungeon(r)).filter(Boolean);
+    return {
+      open, cleared, req,
+      key: cleared ? 'cleared' : open ? 'open' : 'locked',
+      label: cleared ? '踏破済み' : open ? '挑戦可能' : '未解放',
+      unlockText: req.length ? `${req.map(r => `「${r.name}」`).join('か')}を踏破で解放` : ''
+    };
+  }
+  function dungeonArt(d) {
+    const boss = E.getChar(d.floors[d.floors.length - 1].boss);
+    return `<span class="dg-art" data-art="${esc(d.id)}" aria-hidden="true"><i>${esc(boss ? boss.glyph : '')}</i></span>`;
+  }
+  function teamFaces(p) {
+    if (P.teamError(p, p.team)) return '<span class="dg-team-missing">チームが未完成です。「編成」で6体を保存してください。</span>';
+    return `<span class="dg-faces">${p.team.map(id => {
+      const ch = E.getChar(id);
+      return `<span class="dg-face" title="${esc(ch.name)} Lv${P.levelOf(p, id)}">${emblem(ch, null, 'small')}<b>${P.levelOf(p, id)}</b></span>`;
+    }).join('')}</span>`;
+  }
   function showDungeon() {
     B.stop();
     go('dungeon');
     const p = app.profile;
-    $('#dungeon-team').textContent = P.teamError(p, p.team) ? 'チームが未完成です。先に6体を保存してください。'
-      : '出撃チーム：' + p.team.map(id => `${E.getChar(id).name}(Lv${P.levelOf(p, id)})`).join('・');
+    $('#dungeon-team').innerHTML = `<div class="dg-team-head"><span>出撃チーム</span><button type="button" class="dg-link" data-go="team">編成 ›</button></div>${teamFaces(p)}`;
     $('#dungeon-list').innerHTML = D.DUNGEONS.map(d => {
-      const open = P.dungeonUnlocked(p, d.id);
-      const req = P.dungeonRequires(d).map(r => P.getDungeon(r)).filter(Boolean);
-      const sib = P.dungeonSiblings(d.id);
-      const cleared = P.dungeonCleared(p, d.id);
-      return `<div class="panel dungeon${open ? '' : ' locked'}">
-        <div class="zone-head"><span class="zone-label">${esc(d.name)}</span><span class="zone-sub">${cleared ? '踏破済み' : open ? '推奨 ' + esc(d.recommend) : '未解放'}</span></div>
-        <p class="muted">${esc(d.text)}${!open && req.length ? `（${req.map(r => `「${esc(r.name)}」`).join('か')}を踏破すると解放）` : ''}</p>
-        ${sib.length ? `<p class="dungeon-fork"><span class="badge">分かれ道</span>${sib.map(s => `「${esc(s.name)}」`).join('・')}と同じ所から進めます</p>` : ''}
-        <div class="boss-path">${d.floors.map((f, i) => {
-          const b = E.getChar(f.boss);
-          return `<div class="boss-step">${emblem(b, null, i === 2 ? 'big' : '')}<span class="badge${i === 2 ? ' leader' : ''}">${i + 1}階・${esc(b.rank)}</span><b>${esc(b.name)}</b><span class="muted">Lv${f.level}・HP${E.levelMaxHp(b.maxHp, f.level)}</span></div>`;
-        }).join('<span class="boss-arrow" aria-hidden="true">→</span>')}</div>
-        <p class="muted small-note">3体を順番に倒します。HPと戦闘不能は次の階に引き継ぎ（階の間に生存キャラが最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復）。踏破報酬：石${cleared ? d.clearStones : d.firstClearStones + '（初回）'}</p>
-        ${open ? `<button type="button" class="btn btn-primary btn-block" data-dungeon="${d.id}">${cleared ? 'もう一度挑む' : '挑む'}</button>` : ''}
-      </div>`;
+      const st = dungeonStatus(p, d);
+      const fork = P.dungeonSiblings(d.id).length > 0;
+      const reward = st.cleared ? `再挑戦報酬 ${gemIcon()}${d.clearStones}` : `初回報酬 ${gemIcon()}${d.firstClearStones}`;
+      return `<button type="button" class="dg-card" data-dg="${esc(d.id)}" data-theme="${esc(dungeonTheme(d))}" data-state="${st.key}"
+          aria-label="${esc(d.name)}（${st.label}・推奨 ${esc(d.recommend)}）の詳細を見る">
+        ${dungeonArt(d)}
+        <span class="dg-body">
+          <span class="dg-row"><span class="dg-name">${esc(d.name)}</span><span class="dg-state">${st.label}</span></span>
+          <span class="dg-text">${esc(d.text)}</span>
+          <span class="dg-meta"><span>推奨 ${esc(d.recommend)}</span>${fork ? '<span class="dg-fork">分かれ道</span>' : ''}<span class="dg-reward">${reward}</span></span>
+          <span class="dg-go">${st.open ? '<span>詳細を見る</span><span aria-hidden="true">›</span>' : `<span class="dg-lock">${esc(st.unlockText || '未解放')}</span><span>詳細</span>`}</span>
+        </span>
+      </button>`;
     }).join('');
+    mapParallax.update();
   }
+  // 詳細：敵3体・階層・報酬・出撃チームを確かめてから「挑む」
+  function showDungeonDetail(id) {
+    const p = app.profile;
+    const d = P.getDungeon(id);
+    if (!d) return;
+    const st = dungeonStatus(p, d);
+    const teamErr = P.teamError(p, p.team);
+    const totalExp = d.floors.reduce((a, f) => a + f.exp, 0);
+    const action = !st.open
+      ? `<div class="dg-locked-note">${esc(st.unlockText || 'まだ挑戦できません')}</div><button type="button" class="dg-btn" disabled>未解放</button>`
+      : teamErr ? `<div class="reason">${esc(teamErr)}</div><button type="button" class="dg-btn" id="btn-dg-team">編成へ</button>`
+      : `<button type="button" class="dg-btn dg-btn-go" id="btn-dg-start" data-start="${esc(d.id)}">${st.cleared ? 'もう一度挑む' : '挑む'}</button>`;
+    openModal(`<div class="dg-detail" data-theme="${esc(dungeonTheme(d))}" data-state="${st.key}">
+        <div class="dg-detail-hero">${dungeonArt(d)}<div class="dg-detail-title"><h3>${esc(d.name)}</h3><span class="dg-state">${st.label}</span></div></div>
+        <p class="dg-detail-text">${esc(d.text)}　<span class="muted">推奨 ${esc(d.recommend)}</span></p>
+        <h4>階層と敵</h4>
+        <ol class="dg-floors">${d.floors.map((f, i) => {
+          const b = E.getChar(f.boss);
+          return `<li class="dg-floor${i === d.floors.length - 1 ? ' last' : ''}">${emblem(b, null, 'big')}
+            <span class="dg-floor-info"><span class="dg-floor-no">${i + 1}階・${esc(b.rank)}</span><b>${esc(b.name)}</b>
+            <span class="muted">Lv${f.level}・HP${E.levelMaxHp(b.maxHp, f.level)}・${elementTag(b)}</span></span>
+            <span class="dg-floor-exp">経験値<br>${f.exp}</span></li>`;
+        }).join('')}</ol>
+        <h4>報酬</h4>
+        <div class="dg-rewards">
+          <div class="${st.cleared ? 'done' : ''}"><span>初回踏破</span><b>${gemIcon()}${d.firstClearStones}</b>${st.cleared ? '<em>受け取り済み</em>' : ''}</div>
+          <div><span>2回目以降</span><b>${gemIcon()}${d.clearStones}</b></div>
+          <div><span>経験値（勝った階ごと）</span><b>合計 ${totalExp}</b></div>
+        </div>
+        <h4>出撃チーム</h4>
+        <div class="dg-detail-team">${teamFaces(p)}</div>
+        <p class="muted small-note">HPと戦闘不能は次の階に引き継ぎます。くわしくは「ダンジョンの遊び方」へ。</p>
+        <div class="dg-actions">${action}<button type="button" class="dg-btn dg-btn-sub" data-close="1">一覧へ戻る</button></div>
+      </div>`, {
+      kind: 'dungeon',
+      bind: b => {
+        const go2 = b.querySelector('#btn-dg-start');
+        if (go2) go2.addEventListener('click', () => { closeModal(true); startDungeon(id, 0); });
+        const tm = b.querySelector('#btn-dg-team');
+        if (tm) tm.addEventListener('click', () => { closeModal(true); showTeam(); });
+      }
+    });
+  }
+  function showDungeonRules() {
+    const R = D.DUNGEON_RULES;
+    openModal(`<h3>ダンジョンの遊び方</h3>
+      <ol class="help-list">
+        <li>自分の6体のチームで、1階の雑魚・2階の中ボス・3階の大ボスを1体ずつ順番に倒します。</li>
+        <li>HPと戦闘不能は次の階に引き継ぎます。階の間に、生き残ったキャラは最大HPの${R.healBetweenFloorsPercent}%回復します。</li>
+        <li>勝った階では経験値が入ります。負けた階でも${R.loseExpPercent}%もらえます。</li>
+        <li>大ボスを倒すと踏破です。初回は多めの石、2回目以降も石がもらえます。</li>
+        <li>前のダンジョンを踏破すると、次のダンジョンが解放されます。道が2つに分かれる所（分かれ道）は、どちらか1つを踏破すれば先へ進めます。</li>
+        <li>途中経過は保存されません。やめたときは、次は1階からです。</li>
+      </ol>
+      <div class="modal-actions"><button type="button" class="btn btn-block" data-close="1">閉じる</button></div>`, { kind: 'dungeon-rules' });
+  }
+  // 地図の背景のパララックス：固定した背景の層を、スクロールの一部だけ上へずらす（iPhone の Safari でも動く transform 方式）。
+  // 「視差効果を減らす」設定・動きの遅い端末では止めて静止背景にする。ずらす量は層の余白（--dg-extra）以内なので端は空かない
+  const mapParallax = (() => {
+    const RATE = 0.12;
+    let ticking = false, enabled = null;
+    const ok = () => {
+      if (enabled !== null) return enabled;
+      const mm = q => !!(window.matchMedia && window.matchMedia(q).matches);
+      enabled = typeof window.requestAnimationFrame === 'function' && !mm('(prefers-reduced-motion: reduce)') && !mm('(update: slow)');
+      return enabled;
+    };
+    function apply() {
+      ticking = false;
+      const bg = $('#dungeon-bg');
+      if (!bg) return;
+      if (!ok() || document.body.dataset.screen !== 'dungeon') { bg.style.transform = ''; return; }
+      const max = bg.offsetHeight - window.innerHeight;
+      const y = Math.max(0, Math.min(max > 0 ? max : 0, window.scrollY * RATE));
+      bg.style.transform = `translate3d(0, ${-y.toFixed(1)}px, 0)`;
+    }
+    function update() {
+      if (ticking) return;
+      ticking = true;
+      if (ok()) window.requestAnimationFrame(apply); else apply();
+    }
+    window.addEventListener('scroll', () => { if (document.body.dataset.screen === 'dungeon') update(); }, { passive: true });
+    window.addEventListener('resize', () => { if (document.body.dataset.screen === 'dungeon') update(); }, { passive: true });
+    if (window.matchMedia) {
+      const mq = window.matchMedia('(prefers-reduced-motion: reduce)');
+      const reset = () => { enabled = null; update(); };
+      if (mq.addEventListener) mq.addEventListener('change', reset); else if (mq.addListener) mq.addListener(reset);
+    }
+    return { update };
+  })();
   function startDungeon(id, floor, startHp) {
     if (!P.dungeonUnlocked(app.profile, id)) { toast('まだ挑戦できないダンジョンです'); return; }
     const d = P.getDungeon(id);
@@ -840,9 +957,10 @@
       showHome();
     });
     $('#dungeon-list').addEventListener('click', e => {
-      const b = e.target.closest('[data-dungeon]');
-      if (b) startDungeon(b.dataset.dungeon, 0);
+      const b = e.target.closest('[data-dg]');
+      if (b && !U.tapGuarded()) showDungeonDetail(b.dataset.dg);
     });
+    $('#btn-dungeon-rules').addEventListener('click', showDungeonRules);
     $('#match-list').addEventListener('click', e => {
       const b = e.target.closest('[data-match]');
       if (b) startMatch(b.dataset.match);

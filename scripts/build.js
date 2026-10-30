@@ -64,11 +64,19 @@ function imageRules() {
   });
   // src/img/battle/<背景ID>.* を置くと、その戦闘の背景になる（forest / sea / tower / arena）。
   // <背景ID>-portrait.* と <背景ID>-landscape.* を置くと、縦画面・横画面で切り替える。専用の背景はぼかさない
+  // 画像は :root の変数に1回だけ埋め込み、戦闘の背景とダンジョン一覧のカードで共有する
+  const art = {};
   list('battle').forEach(f => {
-    const m = path.basename(f, path.extname(f)).match(/^(.+?)(?:-(portrait|landscape))?$/);
-    const rule = `#screen-battle[data-bg="${m[1]}"] { --bt-img: url("img/battle/${f}"); --bt-blur: 0px; }`;
+    const base = path.basename(f, path.extname(f));
+    const m = base.match(/^(.+?)(?:-(portrait|landscape))?$/);
+    rules.push(`:root { --bt-${base}: url("img/battle/${f}"); }`);
+    const rule = `#screen-battle[data-bg="${m[1]}"] { --bt-img: var(--bt-${base}); --bt-blur: 0px; }`;
     rules.push(m[2] ? `@media (orientation: ${m[2]}) { ${rule} }` : rule);
+    if (!art[m[1]] || m[2] === 'landscape') art[m[1]] = `var(--bt-${base})`; // カードは横長の絵を優先
   });
+  // src/img/dungeon/<ダンジョンID>.* を置くと、ダンジョン一覧のカードの絵になる（無ければ戦闘の背景を使う）
+  list('dungeon').forEach(f => { art[path.basename(f, path.extname(f))] = `url("img/dungeon/${f}")`; });
+  Object.keys(art).sort().forEach(id => rules.push(`.dg-art[data-art="${id}"] { --dg-img: ${art[id]}; }`, `.dg-art[data-art="${id}"] i { display: none; }`));
   return rules.length ? '\n/* ---- src/img/chara・element・battle から自動生成 ---- */\n' + rules.join('\n') + '\n' : '';
 }
 

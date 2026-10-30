@@ -626,11 +626,41 @@ test('mobile: ダンジョン：1階の雑魚（1体）を倒すと、HPを引�
   await H.startLocal(page, '探索者', { claim: false });
   await page.click('[data-go="dungeon"]');
   await page.waitForSelector('#screen-dungeon:not(.hidden)');
-  assert.equal(await page.$('[data-dungeon="sea"]'), null, '2つ目のダンジョンは未解放');
-  assert.equal(await page.$$eval('.dungeon:first-child .boss-step', b => b.length), 3);
+  // 冒険の地図：カードは名前・状態・推奨・報酬だけ。触っても戦闘は始まらず、詳細が開く
+  assert.equal(await page.getAttribute('[data-dg="forest"]', 'data-state'), 'open');
+  assert.equal(await page.getAttribute('[data-dg="sea"]', 'data-state'), 'locked', '2つ目のダンジョンは未解放');
+  assert.ok((await page.textContent('[data-dg="sea"]')).includes('「翠の迷い森」を踏破で解放'));
+  assert.ok((await page.textContent('[data-dg="forest"]')).includes('初回報酬'));
+  assert.equal(await page.$$eval('#dungeon-team .dg-face', f => f.length), 6, '出撃チームは顔アイコン6つ');
+  assert.ok(await H.noHorizontalScroll(page), '横スクロールなし');
+  // 遊び方は別の画面で
+  await page.click('#btn-dungeon-rules');
+  await page.waitForSelector('#modal[data-kind="dungeon-rules"]:not(.hidden)');
+  await page.click('#modal [data-close="1"].btn');
+  await page.waitForTimeout(500);
+  // 未解放の詳細：敵は見られるが挑めない
+  await page.click('[data-dg="sea"]');
+  await page.waitForSelector('#modal[data-kind="dungeon"]:not(.hidden)');
+  assert.equal(await page.$$eval('#modal .dg-floor', f => f.length), 3);
+  assert.equal(await page.$('#btn-dg-start'), null, '未解放は挑めない');
+  assert.equal(await page.$eval('#modal .dg-btn[disabled]', b => b.textContent), '未解放');
+  await page.click('#modal [data-close="1"].dg-btn');
+  await page.waitForTimeout(500);
+  assert.equal(await page.evaluate(() => document.body.dataset.screen), 'dungeon', '一覧へ戻る');
+  // 詳細：敵3体・報酬（初回／2回目以降）・出撃チーム
+  await page.click('[data-dg="forest"]');
+  await page.waitForSelector('#modal[data-kind="dungeon"]:not(.hidden)');
+  assert.equal(await page.$$eval('#modal .dg-floor', f => f.length), 3);
+  const rewardText = await page.textContent('#modal .dg-rewards');
+  assert.ok(rewardText.includes('300') && rewardText.includes('40'), '初回300・2回目以降40');
+  assert.equal(await page.$$eval('#modal .dg-detail-team .dg-face', f => f.length), 6);
+  assert.equal(await page.textContent('#btn-dg-start'), '挑む');
+  assert.equal(await page.evaluate(() => window.RikuyouApp.getState()), null, 'まだ戦闘は始まっていない');
+  await page.click('#modal [data-close="1"].dg-btn');
+  await page.waitForTimeout(500);
   let won1 = false;
   for (let tries = 0; tries < 4 && !won1; tries++) {
-    if (tries === 0) await page.click('[data-dungeon="forest"]');
+    if (tries === 0) { await page.click('[data-dg="forest"]'); await page.click('#btn-dg-start'); }
     else await page.click('#modal [data-act]:has-text("1階から挑み直す")');
     await H.formation(page, [0, 1, 2], 0);
     let s = await H.state(page);
@@ -687,7 +717,8 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   assert.ok(await page.$('[data-match="m10"]'), '最後の対戦も選べる');
   await page.click('#btn-home');
   await page.click('[data-go="dungeon"]');
-  assert.ok(await page.$('[data-dungeon="tower"]'), '最後のダンジョンも選べる');
+  await page.waitForSelector('#screen-dungeon:not(.hidden)');
+  assert.equal(await page.getAttribute('[data-dg="tower"]', 'data-state'), 'open', '最後のダンジョンも選べる');
   await page.click('#btn-home');
   // 管理用：編成画面でレベルを直接変える（キャラごと・全員）
   await page.click('[data-go="team"]');

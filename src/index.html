@@ -109,13 +109,19 @@
   </section>
 
   <!-- ダンジョン -->
+  <!-- ダンジョン（冒険の地図）：背景は固定の層で、スクロールに合わせてゆっくり動く（ui-app.js の mapParallax） -->
   <section id="screen-dungeon" class="screen hidden">
-    <div class="panel intro">
-      <h2 class="heading">ダンジョン</h2>
-      <p>6人のチームで、1階の雑魚・2階の中ボス・3階の大ボスを1体ずつ順番に倒します。HPと戦闘不能は次の階に引き継ぎ。大ボスを倒すと踏破で、石がもらえます。勝った階では経験値も入ります。</p>
-      <p class="muted" id="dungeon-team"></p>
+    <div class="dg-bg" id="dungeon-bg" aria-hidden="true"></div>
+    <div class="dg-head">
+      <svg class="dg-compass" viewBox="0 0 40 40" aria-hidden="true"><circle cx="20" cy="20" r="17" fill="none" stroke="currentColor" stroke-width="1.4"/><path d="M20 4l3.2 12.8L36 20l-12.8 3.2L20 36l-3.2-12.8L4 20l12.8-3.2z" fill="currentColor" opacity=".85"/><circle cx="20" cy="20" r="2.4" fill="#2a1d14"/></svg>
+      <div class="dg-head-text">
+        <h2 class="dg-title">冒険の地図</h2>
+        <p class="dg-sub">挑戦するダンジョンを選ぼう</p>
+      </div>
+      <button type="button" class="dg-rules-btn" id="btn-dungeon-rules">ダンジョンの遊び方</button>
     </div>
-    <div id="dungeon-list"></div>
+    <div id="dungeon-list" class="dg-list"></div>
+    <div class="dg-team" id="dungeon-team"></div>
   </section>
 
   <!-- ガチャ -->

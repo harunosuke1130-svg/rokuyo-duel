@@ -60,6 +60,7 @@
 4. **絵と背景を入れる**。
    - ボスの絵：`src/img/chara/<id>.webp`（戦闘では切り取らずに全体を表示する）。カードの枠・名前の帯は切り取る。ダンジョン一覧の丸い紋章で顔が見えるよう、`src/style.css` に `[data-char="<id>"] { --ex; --ey; --es }` を足す（`--es` は拡大率、全身の絵なら 165〜220%）。
    - ダンジョンの背景：`src/img/battle/<ダンジョンID>-portrait.webp`（縦画面）と `-landscape.webp`（横画面）。1 枚だけなら `<ダンジョンID>.webp`。
+     ダンジョン一覧のカードは、この背景（横長を優先）を自動で使う。別の絵にしたいときは `src/img/dungeon/<ダンジョンID>.webp`（横長・幅 500〜700px・40KB 前後）を置く。
 5. **テストと文書を直す**：`tests/progress.test.js` のダンジョンのテスト、`GAME-OVERVIEW.md`・`HANDOFF.md`。
 
 ### 毎日の自動追加（定期タスク）
