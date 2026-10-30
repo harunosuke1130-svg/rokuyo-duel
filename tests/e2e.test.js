@@ -846,3 +846,98 @@ test('mobile: 通常速度（演出あり）でも相手のターン中は操作
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+// 相手の残りHPを1にして、こちらの技で決着させる（結果画面の確認用）
+// 出撃準備：戦えるキャラから前衛3体を選んで出撃（ダンジョンの階をまたぐとき用）
+async function formationAlive(page) {
+  await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)', { timeout: 20000 });
+  const s = await H.state(page);
+  const alive = s.teams.player.map((u, i) => i).filter(i => s.teams.player[i].hp > 0).slice(0, 3);
+  await H.formation(page, alive, alive[0]);
+}
+async function finishQuickly(page, loseSide) {
+  // 前衛はHP1、後衛は戦闘不能にして、1回の攻撃で決着させる
+  await page.evaluate(side => { const s = window.RikuyouApp.getState(); s.teams[side].forEach((u, i) => { u.hp = s.front[side].indexOf(i) >= 0 ? 1 : 0; }); }, loseSide);
+  for (let k = 0; k < 1500; k++) {
+    if (await page.$('#modal[data-kind="result"]:not(.hidden)')) return;
+    await H.step(page);
+    await page.waitForTimeout(60);
+  }
+  throw new Error('結果画面が出ない');
+}
+
+test('mobile: 戦闘結果（自動表示・演出のスキップ・報酬は1回だけ・再表示は演出なし）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'seed=5');
+  await H.startLocal(page, '結果係', { claim: false });
+  await page.evaluate(() => { const p = window.RikuyouApp.getProfile(); p.chars[p.team[1]].exp = 80; });
+  const before = await H.profile(page);
+  await page.click('[data-go="match"]');
+  await page.waitForTimeout(500);
+  await page.click('[data-match="m1"]');
+  await H.formation(page, [0, 1, 2], 0);
+  await finishQuickly(page, 'cpu');
+  // 演出中：スキップがある。押すと直ちに最終結果
+  assert.ok(await page.$('#modal .rs.win.rs-play'), '勝利の演出');
+  await page.click('#btn-rs-skip');
+  assert.ok(await page.$('#modal .rs.rs-done'));
+  assert.equal(await page.$('#btn-rs-skip'), null);
+  assert.equal(await page.textContent('#modal .rs-count'), '+100');
+  assert.equal(await page.$$eval('#modal .rs-card', c => c.length), 6, '仲間6体');
+  const up = await page.$eval('#modal .rs-card.up', c => c.textContent);
+  assert.ok(/Lv\s*1\s*→\s*2/.test(up.replace(/\s+/g, ' ')), 'レベルアップを表示');
+  assert.ok((await page.textContent('#modal')).includes('経験値 +60'));
+  let p = await H.profile(page);
+  assert.equal(p.stones, before.stones + 100);
+  // 連打・戦闘ログ→サイコロで再表示しても報酬は増えない。再表示は演出なし
+  await page.click('#modal .rs-link[data-close="1"]');
+  await page.waitForSelector('#modal', { state: 'hidden' });
+  await page.waitForTimeout(500);
+  await page.click('#btn-roll');
+  await page.waitForSelector('#modal[data-kind="result"]:not(.hidden)');
+  assert.ok(await page.$('#modal .rs.rs-done'), '再表示は最終結果だけ');
+  p = await H.profile(page);
+  assert.equal(p.stones, before.stones + 100, '再表示で二重に付与しない');
+  // 主ボタン：次の相手に挑戦
+  assert.equal(await page.textContent('#modal .rs-btn-main'), '次の相手に挑戦');
+  await page.dblclick('#modal .rs-btn-main');
+  await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)');
+  assert.equal((await H.profile(page)).stones, before.stones + 100);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: 戦闘結果（ダンジョン：途中の階・敗北の到達階・最終踏破は豪華に）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'fast=1&seed=3');
+  await H.startLocal(page, '踏破係', { claim: false });
+  await page.click('[data-go="dungeon"]');
+  await page.waitForSelector('#screen-dungeon:not(.hidden)');
+  await page.waitForTimeout(500);
+  await page.click('[data-dg="forest"]'); await page.click('#btn-dg-start');
+  await H.formation(page, [0, 1, 2], 0);
+  await finishQuickly(page, 'cpu');
+  let t = await page.textContent('#modal .rs');
+  assert.ok(t.includes('1階 突破') && t.includes('次の階へ引き継ぐHP'));
+  assert.equal(await page.$('#modal .rs.grand'), null);
+  await page.click('#modal [data-act]:has-text("2階へ進む")');
+  await formationAlive(page);
+  await finishQuickly(page, 'cpu');
+  await page.click('#modal [data-act]:has-text("3階へ進む")');
+  await formationAlive(page);
+  const stones = (await H.profile(page)).stones;
+  await finishQuickly(page, 'cpu');
+  assert.ok(await page.$('#modal .rs.win.grand'), '最終踏破は豪華な演出');
+  assert.ok((await page.textContent('#modal .rs-title')).includes('踏破'));
+  assert.equal(await page.textContent('#modal .rs-count'), '+300');
+  assert.equal((await H.profile(page)).stones, stones + 300);
+  // 敗北：到達した階を表示し、主ボタンは1階から挑み直す
+  await page.click('#modal [data-act]:has-text("もう一度挑む")');
+  await H.formation(page, [0, 1, 2], 0);
+  await finishQuickly(page, 'player');
+  t = await page.textContent('#modal .rs');
+  assert.ok(await page.$('#modal .rs.lose'));
+  assert.ok(t.includes('1階まで到達'));
+  assert.equal(await page.textContent('#modal .rs-btn-main'), '1階から挑み直す');
+  assert.equal(await page.$('#modal .rs-spark'), null, '敗北に祝福の光はない');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -462,16 +462,6 @@
     };
   }
 
-  function rewardHtml(exp, stones, levelUps, note) {
-    const ups = (levelUps || []).filter(u => u.to > u.from);
-    return `<div class="effect-box reward-box">
-      ${stones ? `<div class="big-reward">石 +${stones}${note ? ` <small>${esc(note)}</small>` : ''}</div>` : ''}
-      <div>チームの6体がそれぞれ経験値 <b>+${exp}</b></div>
-      ${ups.length ? `<div class="levelups">${ups.map(u => `<span class="team-chip">${esc(E.getChar(u.id).name)} <b>Lv${u.from}→${u.to}</b></span>`).join('')}</div>` : ''}
-      ${ups.length ? `<p class="muted">レベルアップで技力の上限も上がりました。</p>` : ''}
-      ${unlockedHtml(ups)}
-    </div>`;
-  }
   // レベルアップで新しく使えるようになった技
   function unlockedHtml(ups) {
     const list = [];
@@ -482,19 +472,141 @@
     return list.length ? `<p class="unlock-note">新しい技が使えるようになりました：${list.map(esc).join('、')}<br><span class="muted">「編成」の「技の入れ替え・並べ替え」で入れられます</span></p>` : '';
   }
 
-  function resultModal(won, title, round, body, buttons) {
-    const show = () => openModal(`<div class="result-title ${won ? 'win' : 'lose'}">${won ? '勝利' : '敗北'}</div>
-      <p style="text-align:center">${esc(title)}<br><span class="muted">第${round}巡で決着</span></p>
-      ${body}
-      <div class="modal-actions">
-        ${buttons.map((b, k) => `<button type="button" class="btn ${b.primary ? 'btn-primary' : 'btn-ghost'} btn-block" data-act="${k}">${esc(b.label)}</button>`).join('')}
-        <button type="button" class="btn btn-ghost btn-block" data-close="1">戦闘ログを見る</button>
+
+  /* ---------- 戦闘結果（水彩の結果画面） ----------
+   * 報酬・経験値・戦績は呼び出し側で確定済み（1回だけ）。ここは表示と演出だけで、演出の完了を条件にしない。
+   * growth：[{ id, fromLv, fromExp, toLv, toExp, gained, hp? }]（成長前後の実際の値） */
+  function snapTeam(ids) {
+    const p = app.profile;
+    return ids.filter(id => P.owns(p, id)).map(id => ({ id, lv: P.levelOf(p, id), exp: p.chars[id].exp || 0 }));
+  }
+  function growthFrom(snap, gained) {
+    const p = app.profile;
+    return snap.map(b => ({ id: b.id, fromLv: b.lv, fromExp: b.exp, toLv: P.levelOf(p, b.id), toExp: p.chars[b.id].exp || 0, gained: gained || 0 }));
+  }
+  const LV_MAX = CONFIG.LEVEL.max;
+  const expPct = (lv, exp) => (lv >= LV_MAX ? 100 : Math.min(100, exp / P.expToNext(lv) * 100));
+  // 経験値バーの区切り：レベルが上がるたびに 100% まで伸びて 0 から続ける
+  function barPlan(g) {
+    if (g.fromLv >= LV_MAX || !g.gained) return [{ from: expPct(g.toLv, g.toExp), to: expPct(g.toLv, g.toExp) }];
+    const segs = [];
+    let lv = g.fromLv, start = expPct(lv, g.fromExp);
+    while (lv < g.toLv) { segs.push({ from: start, to: 100, up: lv + 1 }); start = 0; lv++; }
+    segs.push({ from: start, to: expPct(g.toLv, g.toExp) });
+    return segs;
+  }
+  function growthCard(g, k) {
+    const ch = E.getChar(g.id);
+    const up = g.toLv > g.fromLv;
+    const stats = up ? [`HP ${E.levelMaxHp(ch.maxHp, g.fromLv)}→${E.levelMaxHp(ch.maxHp, g.toLv)}`, `攻撃+${E.levelAtkBonus(g.toLv) - E.levelAtkBonus(g.fromLv)}`, `技力+${E.loadoutBudget(g.id, g.toLv) - E.loadoutBudget(g.id, g.fromLv)}`] : [];
+    const expText = g.toLv >= LV_MAX ? 'MAX' : `${g.toExp} / ${P.expToNext(g.toLv)}`;
+    return `<div class="rs-card${up ? ' up' : ''}" data-k="${k}" style="--i:${k}">
+      <span class="rs-art">${portrait(ch, { zoom: !E.isBoss(ch.id) })}${up ? `<span class="rs-badge">${g.toLv >= LV_MAX ? 'MAX LEVEL' : 'LEVEL UP'}</span>` : ''}</span>
+      <span class="rs-info">
+        <span class="rs-name">${elMark(ch)}<b>${esc(ch.name)}</b></span>
+        <span class="rs-lvline"><span class="rs-lv">Lv <b class="rs-lv-from">${g.fromLv}</b><span class="rs-up"> → <b>${g.toLv}</b></span></span>${g.gained ? `<span class="rs-exp">EXP <b>+${g.gained}</b></span>` : ''}</span>
+        <span class="rs-bar"><i></i></span>
+        <span class="rs-sub">${g.hp !== undefined ? `<span class="rs-hp">${g.hp}</span>` : ''}<span class="rs-expnum">${expText}</span></span>
+        ${up ? `<span class="rs-stats">${stats.map(esc).join('・')}</span>` : ''}
+      </span>
+    </div>`;
+  }
+  // o: { won, grand, kind, title, lines[], round, stones, stoneNote, expEach, growth, note, extra, buttons[{label, primary, run}], growthTitle }
+  function showResult(o) {
+    const render = animate => {
+      const primary = o.buttons.filter(b => b.primary);
+      const secondary = o.buttons.filter(b => !b.primary);
+      const ups = o.growth.map(g => ({ id: g.id, from: g.fromLv, to: g.toLv })).filter(u => u.to > u.from);
+      const laurel = side => `<svg class="rs-laurel ${side}" viewBox="0 0 40 90" aria-hidden="true"><path d="M30 88C10 70 6 40 20 4" fill="none" stroke="currentColor" stroke-width="2"/>${[12, 24, 36, 48, 60, 72].map((y, n) => `<ellipse cx="${n % 2 ? 26 : 14}" cy="${y}" rx="7" ry="3.2" transform="rotate(${n % 2 ? 35 : -35} ${n % 2 ? 26 : 14} ${y})" fill="currentColor"/>`).join('')}</svg>`;
+      openModal(`<div class="rs ${o.won ? 'win' : 'lose'}${o.grand ? ' grand' : ''}${animate ? ' rs-play' : ' rs-done'}">
+        ${animate ? '<button type="button" class="rs-skip" id="btn-rs-skip">スキップ</button>' : ''}
+        <section class="rs-hero">
+          <div class="rs-head">
+            ${o.won ? laurel('l') : '<svg class="rs-moon" viewBox="0 0 40 40" aria-hidden="true"><path d="M26 4a16 16 0 1 0 10 28A13 13 0 0 1 26 4z" fill="currentColor"/></svg>'}
+            <h3 class="rs-title">${o.grand ? '踏破' : o.won ? '勝利' : '敗北'}</h3>
+            ${o.won ? laurel('r') : ''}
+            ${o.won ? '<span class="rs-spark" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i><i></i></span>' : ''}
+          </div>
+          <div class="rs-lines">${o.lines.map((t, n) => `<p class="${n === 0 ? 'rs-mode' : ''}">${esc(t)}</p>`).join('')}<p class="rs-round">第${o.round}巡で決着</p></div>
+          ${o.stones ? `<div class="rs-reward"><span class="gem-wrap">${gemIcon()}</span><span>石</span><b class="rs-count" data-to="${o.stones}">+${o.stones}</b>${o.stoneNote ? `<small>${esc(o.stoneNote)}</small>` : ''}</div>` : ''}
+          ${o.note ? `<p class="rs-note">${esc(o.note)}</p>` : ''}
+        </section>
+        <section class="rs-paper">
+          <h4 class="rs-sec">${esc(o.growthTitle || '仲間の成長')}</h4>
+          ${o.expEach ? `<p class="rs-each">各キャラ 経験値 +${o.expEach}</p>` : ''}
+          <div class="rs-grid">${o.growth.map(growthCard).join('')}</div>
+          ${o.extra || ''}
+          ${unlockedHtml(ups)}
+          ${!o.won && o.expEach ? '<p class="rs-cheer">成長を力に、もう一度。</p>' : ''}
+          <div class="rs-actions">
+            ${primary.map(b => `<button type="button" class="rs-btn rs-btn-main" data-act="${o.buttons.indexOf(b)}">${esc(b.label)}</button>`).join('')}
+            ${secondary.length ? `<div class="rs-subs">${secondary.map(b => `<button type="button" class="rs-btn rs-btn-sub" data-act="${o.buttons.indexOf(b)}">${esc(b.label)}</button>`).join('')}</div>` : ''}
+            <div class="rs-links"><button type="button" class="rs-link" id="btn-rs-home">ホーム</button><span aria-hidden="true">｜</span><button type="button" class="rs-link" data-close="1">戦闘ログ</button></div>
+          </div>
+        </section>
       </div>`, {
-      kind: 'result',
-      bind: b => b.querySelectorAll('[data-act]').forEach(x => x.addEventListener('click', () => { closeModal(true); buttons[Number(x.dataset.act)].run(); }))
+        kind: 'result',
+        bind: b => {
+          b.querySelectorAll('[data-act]').forEach(x => x.addEventListener('click', () => { closeModal(true); o.buttons[Number(x.dataset.act)].run(); }));
+          b.querySelector('#btn-rs-home').addEventListener('click', () => { closeModal(true); showHome(); });
+          playResult(b.querySelector('.rs'), o, animate);
+        }
+      });
+    };
+    // 2回目以降（戦闘ログから戻る）は演出なしで最終結果だけ
+    app.lastResult = () => render(false);
+    render(!U.FAST && !U.reducedMotion());
+  }
+  // 演出（約2秒）：見出し → 仲間 → 報酬のカウントアップ → 経験値バー・レベルアップ。スキップで即座に最終表示
+  function playResult(root, o, animate) {
+    const cards = Array.from(root.querySelectorAll('.rs-card'));
+    const finalize = () => {
+      if (!root.isConnected) return;
+      timers.forEach(clearTimeout); timers.length = 0;
+      root.classList.remove('rs-play'); root.classList.add('rs-done');
+      root.querySelectorAll('.rs-count').forEach(c => { c.textContent = '+' + c.dataset.to; });
+      cards.forEach((c, k) => {
+        const g = o.growth[k];
+        const i = c.querySelector('.rs-bar i');
+        i.style.transition = 'none'; i.style.width = expPct(g.toLv, g.toExp) + '%';
+        if (g.toLv > g.fromLv) c.classList.add('up-on');
+      });
+      const sk = root.querySelector('#btn-rs-skip');
+      if (sk) sk.remove();
+    };
+    const timers = [];
+    const at = (ms, fn) => timers.push(setTimeout(() => { if (root.isConnected) fn(); }, ms));
+    if (!animate) { finalize(); return; }
+    root.querySelector('#btn-rs-skip').addEventListener('click', finalize);
+    // 経験値バーは成長前の位置から
+    cards.forEach((c, k) => { const i = c.querySelector('.rs-bar i'); i.style.transition = 'none'; i.style.width = barPlan(o.growth[k])[0].from + '%'; });
+    // 報酬のカウントアップ（0.5〜1.1秒）
+    root.querySelectorAll('.rs-count').forEach(c => {
+      const to = Number(c.dataset.to);
+      c.textContent = '+0';
+      at(500, () => {
+        const t0 = performance.now();
+        const step = now => {
+          if (!root.classList.contains('rs-play')) return;
+          const k = Math.min(1, (now - t0) / 600);
+          c.textContent = '+' + Math.round(to * (1 - Math.pow(1 - k, 3)));
+          if (k < 1) requestAnimationFrame(step);
+        };
+        requestAnimationFrame(step);
+      });
     });
-    app.lastResult = show;
-    show();
+    // 経験値バー（0.9〜1.7秒）。レベルが上がった瞬間に光と「Lv a → b」
+    cards.forEach((c, k) => {
+      const segs = barPlan(o.growth[k]);
+      const i = c.querySelector('.rs-bar i');
+      const per = 800 / segs.length;
+      segs.forEach((sg, n) => {
+        const t = 900 + k * 40 + n * per;
+        at(t, () => { i.style.transition = 'none'; i.style.width = sg.from + '%'; void i.offsetWidth; i.style.transition = `width ${per * 0.9}ms ease-out`; i.style.width = sg.to + '%'; });
+        if (sg.up) at(t + per * 0.9, () => { c.querySelector('.rs-lv-from').textContent = o.growth[k].fromLv; c.classList.add('up-on'); });
+      });
+    });
+    at(2000, finalize);
   }
 
   /* ---------- 対戦（CPUチームと6対6） ---------- */
@@ -540,24 +652,26 @@
   }
   function onMatchFinish(ctx, res) {
     const p = app.profile;
-    let body;
-    let nextId = null;
+    const snap = snapTeam(ctx.team);
+    let nextId = null, exp, stones = 0, note = '', lines;
     if (ctx.kind === 'match') {
       const r = P.applyMatchResult(p, ctx.matchId, ctx.team, res.won);
-      body = rewardHtml(r.exp, r.stones, r.levelUps, r.firstWin ? '初勝利' : '');
+      exp = r.exp; stones = r.stones; note = r.firstWin ? '初勝利' : '';
       const k = D.CPU_MATCHES.findIndex(m => m.id === ctx.matchId);
+      const m = D.CPU_MATCHES[k];
       if (res.won && D.CPU_MATCHES[k + 1]) nextId = D.CPU_MATCHES[k + 1].id;
+      lines = ['ランク戦', `${m.rank}「${m.name}」`];
     } else {
-      const exp = res.won ? 40 : 10;
-      body = rewardHtml(exp, 0, ctx.team.map(id => P.addExp(p, id, exp)), '');
+      exp = res.won ? 40 : 10;
+      ctx.team.forEach(id => P.addExp(p, id, exp));
+      lines = ['フリー対戦', ctx.title.replace(/^フリー対戦/, '').replace(/[（）]/g, '') || ''];
     }
     save();
     const buttons = [];
     if (nextId) buttons.push({ label: '次の相手に挑戦', primary: true, run: () => startMatch(nextId) });
     buttons.push({ label: 'もう一度挑戦', primary: !nextId, run: () => (ctx.kind === 'match' ? startMatch(ctx.matchId) : startFree()) });
     buttons.push({ label: '対戦の一覧へ', run: showMatch });
-    buttons.push({ label: 'ホームへ', run: showHome });
-    resultModal(res.won, ctx.title, res.state.round, body, buttons);
+    showResult({ won: res.won, kind: ctx.kind, lines: lines.filter(Boolean), round: res.state.round, stones, stoneNote: note, expEach: exp, growth: growthFrom(snap, exp), buttons });
   }
 
   /* ---------- ダンジョン（冒険の地図。雑魚 → 中ボス → 大ボス を順に倒す） ---------- */
@@ -715,26 +829,28 @@
   function onDungeonFloorFinish(ctx, res) {
     const p = app.profile;
     const d = P.getDungeon(ctx.dungeonId);
+    const snap = snapTeam(ctx.team);
     const r = P.applyDungeonFloor(p, ctx.dungeonId, ctx.floor, ctx.team, res.won);
     save();
     const units = res.state.teams[B.me()];
+    const growth = growthFrom(snap, r.exp);
     const buttons = [];
-    let body = rewardHtml(r.exp, r.stones, r.levelUps, r.firstClear ? '初回踏破' : (r.cleared ? '踏破' : ''));
+    let extra = '', line2;
     if (res.won && !r.last) {
       const hp = P.carryOverHp(units);
-      body += `<h4>次の階へ引き継ぐHP（生存キャラは最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復）</h4>
-        <div class="levelups">${units.map(u => `<span class="team-chip">${esc(E.unitChar(u).name)} <b>${hp[u.charId] > 0 ? hp[u.charId] + '/' + u.maxHp : '戦闘不能'}</b></span>`).join('')}</div>`;
+      growth.forEach(g => { const u = units.find(x => x.charId === g.id); if (u) g.hp = hp[g.id] > 0 ? `HP ${hp[g.id]}/${u.maxHp}` : '戦闘不能'; });
+      extra = `<p class="rs-carry">次の階へ引き継ぐHP（カードの数字）：生き残ったキャラは最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復します。</p>`;
+      line2 = `${ctx.floor + 1}階 突破（全${d.floors.length}階）`;
       const nb = E.getChar(d.floors[ctx.floor + 1].boss);
       buttons.push({ label: `${ctx.floor + 2}階へ進む（${nb.rank}：${nb.name}）`, primary: true, run: () => startDungeon(ctx.dungeonId, ctx.floor + 1, hp) });
       buttons.push({ label: 'ここで引き返す', run: showDungeon });
     } else {
-      if (r.cleared) body = `<div class="big-reward">「${esc(d.name)}」踏破！</div>` + body;
-      else body = `<p class="reason" style="text-align:center">${ctx.floor + 1}階で力尽きました。もう一度、1階から挑戦できます。</p>` + body;
+      line2 = r.cleared ? `全${d.floors.length}階 踏破` : `${ctx.floor + 1}階まで到達（全${d.floors.length}階）`;
       buttons.push({ label: r.cleared ? 'もう一度挑む' : '1階から挑み直す', primary: true, run: () => startDungeon(ctx.dungeonId, 0) });
       buttons.push({ label: 'ダンジョン一覧へ', run: showDungeon });
     }
-    buttons.push({ label: 'ホームへ', run: showHome });
-    resultModal(res.won, ctx.title, res.state.round, body, buttons);
+    showResult({ won: res.won, grand: !!r.cleared, kind: 'dungeon', lines: [d.name, line2], round: res.state.round, stones: r.stones,
+      stoneNote: r.firstClear ? '初回踏破' : (r.cleared ? '踏破' : ''), expEach: r.exp, growth, extra, buttons });
   }
 
   /* ---------- ガチャ ---------- */
@@ -889,22 +1005,12 @@
   function onPvpFinish(foeName, res) {
     const r = P.applyPvpResult(app.profile, res.won, new Date());
     save();
-    const show = () => openModal(`<div class="result-title ${res.won ? 'win' : 'lose'}">${res.won ? '勝利' : '敗北'}</div>
-      <p style="text-align:center">${esc(foeName)} との対戦${res.surrendered ? `<br><span class="muted">${res.surrendered === B.me() ? 'あなたが降参しました' : '相手が降参しました'}</span>` : ''}</p>
-      <div class="effect-box reward-box">${r.stones ? `<div class="big-reward">石 +${r.stones}</div>` : ''}<div class="muted">今日の対人戦報酬 ${r.rewardedToday} / ${r.limit} 回</div></div>
-      <div class="modal-actions">
-        <button type="button" class="btn btn-primary btn-block" id="btn-to-lobby">ロビーへ</button>
-        <button type="button" class="btn btn-ghost btn-block" id="btn-to-home">ホームへ</button>
-        <button type="button" class="btn btn-ghost btn-block" data-close="1">戦闘ログを見る</button>
-      </div>`, {
-      kind: 'result',
-      bind: b => {
-        b.querySelector('#btn-to-lobby').addEventListener('click', () => { closeModal(true); B.stop(); showLobby(); });
-        b.querySelector('#btn-to-home').addEventListener('click', () => { closeModal(true); showHome(); });
-      }
-    });
-    app.lastResult = show;
-    show();
+    const team = app.profile.team.filter(id => P.owns(app.profile, id));
+    const lines = ['プレイヤー対戦', `${foeName} との対戦`];
+    if (res.surrendered) lines.push(res.surrendered === B.me() ? 'あなたが降参しました' : '相手が降参しました');
+    showResult({ won: res.won, kind: 'pvp', lines, round: res.state.round, stones: r.stones, note: `今日の対人戦報酬 ${r.rewardedToday} / ${r.limit} 回`,
+      expEach: 0, growthTitle: '戦った仲間', growth: growthFrom(snapTeam(team), 0),
+      buttons: [{ label: 'ロビーへ', primary: true, run: () => { B.stop(); showLobby(); } }] });
   }
 
   /* ---------- 遊び方 ---------- */

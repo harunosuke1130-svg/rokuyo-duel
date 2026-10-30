@@ -12,7 +12,7 @@
   const FAST = params.has('fast');
   const DELAY = FAST
     ? { roll: 40, cpuThink: 30, after: 40, replace: 30, result: 30, fxGap: 0, initiative: 60 }
-    : { roll: 560, cpuThink: 750, after: 1000, replace: 900, result: 1000, fxGap: 120, initiative: 1600 };
+    : { roll: 560, cpuThink: 750, after: 1000, replace: 900, result: 900, fxGap: 120, initiative: 1600 };
   const rng = E.createRng(params.get('seed'));
 
   const $ = sel => document.querySelector(sel);

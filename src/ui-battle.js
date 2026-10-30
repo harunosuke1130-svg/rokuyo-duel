@@ -99,7 +99,8 @@
     $('#battle-title').textContent = opts.title || '決闘';
     $('#ally-title').textContent = '味方';
     $('#enemy-title').textContent = $('#enemy-title2').textContent = foeIsCpu() ? '敵' : '相手';
-    $('#screen-battle').dataset.bg = opts.bg || 'arena'; // 背景（ダンジョンごと）。操作部分の位置は共通
+    $('#screen-battle').dataset.bg = opts.bg || 'arena';
+    $('#screen-battle').classList.remove('ending'); // 背景（ダンジョンごと）。操作部分の位置は共通
     U.showScreen('battle');
     if (bt.mode !== 'cpu') startRoomLink();
     if (isHost()) pushState(null); // 対戦開始時の状態をゲストに渡す
@@ -258,7 +259,12 @@
   function advance() {
     const s = bt.state;
     if (!s || !bt.active) return;
-    if (s.phase === 'over') { bt.locked = true; render(); if (!bt.finished) { bt.finished = true; schedule(finish, DELAY.result); } return; }
+    if (s.phase === 'over') {
+      bt.locked = true; render();
+      // 決着：盤面をゆっくり暗くしてから、結果を自動で表示（報酬の確定は finish で1回だけ）
+      if (!bt.finished) { bt.finished = true; $('#screen-battle').classList.add('ending'); schedule(finish, DELAY.result); }
+      return;
+    }
     if (s.phase === 'formation') {
       if (!s.front[bt.me].length) { bt.locked = false; render(); if (!bt.formationShown) { bt.formationShown = true; showFormationModal(); } }
       else { bt.locked = true; render(); }
@@ -452,7 +458,7 @@
     let phase = '', sub = '';
     if (s.phase === 'formation') { phase = '戦闘準備'; sub = s.front[bt.me].length ? `${foe}が配置を決めています…` : '前衛とリーダーを決めてください'; }
     else if (s.phase === 'initiative') { phase = '先攻・後攻'; sub = 'サイコロで決めています…'; }
-    else if (s.phase === 'over') { phase = s.winner === bt.me ? '勝利！' : '敗北…'; sub = 'サイコロを押すと結果を見られます'; }
+    else if (s.phase === 'over') { phase = s.winner === bt.me ? '勝利！' : '敗北…'; sub = '結果を表示します（サイコロで何度でも見られます）'; }
     else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
     else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
