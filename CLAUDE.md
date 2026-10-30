@@ -30,11 +30,12 @@
    - `id`：英小文字（例 `hoshigane`）。既存と重ならないこと。
    - `name`（○○の△△ の形が基本）、`glyph`（漢字 1 文字。絵が無いときの紋章）、`maxHp`、`element`（`fire` 猛火 / `water` 水脈 / `nature` 自然 / `holy` 聖光 / `dark` 呪闇）、`subTypes`（副属性 1〜2 個。表示のみ）。
    - `moves`：**9 個**。先頭 6 個が初期の出目 1〜6。7・8・9 個目は Lv3・6・10 で解放される技。各技は `{ name, atk, heal }`（攻撃しない技は `atk: 0`）。技名は重複させない。
-   - `skill`：固有スキル `{ name, cd, text, effects }`。`effects` の種類は `data.js` 冒頭のコメント（`atkMultiplier` / `atkBonus` / `heal` / `barrier` / `reroll` / `damage`）から選ぶ。`text` には対象範囲（「敵前衛全員」「味方前衛全員」など）を必ず書く。
-   - `leaderSkill`：`{ name, text, effects }`。種類は `maxHp` / `atkBonus` / `healBonus` / `skillDamageBonus` / `skillHealBonus` / `startBarrier`。
+   - `skill`：固有スキル `{ name, cd, text, effects }`。`effects` の種類は `data.js` 冒頭のコメント（`atkMultiplier` / `atkBonus` / `heal` / `barrier` / `reroll` / `damage` / `fatigueReset`）から選ぶ。`text` には対象範囲（「敵前衛全員」「味方前衛全員」など）を必ず書く。
+   - `leaderSkill`：`{ name, text, effects }`。種類は `maxHp` / `atkBonus` / `healBonus` / `skillDamageBonus` / `skillHealBonus` / `startBarrier` / `regen`。
 3. **強さを既存に合わせる**。
    - ランク（★）は自動で決まる：基礎 HP ＋ 初期 6 技の攻撃の平均 ＋ 回復の平均（`E.rankParts`）。`RANKS` の境界（★3 は 130 以上）。
-     ★1 は合計 110 未満（目安 90〜107）、★2 は 110〜129（目安 112〜127）、★3 は 130 以上（目安 135〜180）。境界ぎりぎりは避ける。作ったら `node -e` で `E.rankParts` と `E.starsOf` を出して確かめる。
+     ★1 は合計 110 未満（目安 90〜107）、★2 は 110〜129（目安 112〜127）、★3 は 130〜194（目安 135〜180）、★4 は 195 以上。境界ぎりぎりは避ける。
+     ★4 は回復の平均を上げすぎると勝ちすぎる・決着しなくなる。作ったら CPU 同士で試し、片側だけにいるときの勝率が 60〜65% くらい（★3 最強の琥珀の守人で約 57%）に収まるようにする（例：蒼泉の聖女は HP168・攻撃の平均12・回復の平均16で約62%）。作ったら `node -e` で `E.rankParts` と `E.starsOf` を出して確かめる。
    - 技力の上限（初期 6 技の攻撃＋回復の合計 ＋ 5）を超える技構成は初期構成にできない。`E.loadoutError(id, E.defaultLoadout(id))` が `null` になること。
    - 既存キャラの HP は 95〜160、技 1 つの攻撃はおおむね 0〜40、回復は 0〜39。極端な値にしない。
 4. **絵を入れる**（利用者から絵をもらったとき）。

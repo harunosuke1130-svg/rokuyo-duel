@@ -1857,7 +1857,7 @@ body[data-screen="dungeon"] .topbar {
    */
   const RANKS = {
     base: 1,
-    thresholds: [{ stars: 3, minScore: 130 }, { stars: 2, minScore: 110 }]
+    thresholds: [{ stars: 4, minScore: 195 }, { stars: 3, minScore: 130 }, { stars: 2, minScore: 110 }]
   };
 
   // 攻撃側 → 有利を取れる防御側の属性
@@ -1880,6 +1880,7 @@ body[data-screen="dungeon"] .topbar {
    *   skillDamageBonus {value}                     固有スキルの直接ダメージに加算
    *   skillHealBonus   {value}                     固有スキルの回復に加算
    *   startBarrier                                 戦闘開始時、味方前衛全員に結界
+   *   regen            {value}                     自分のターンの開始時、味方の生存前衛全員をそれぞれ回復（回復疲労の影響を受ける）
    * skill.effects の種類:
    *   atkMultiplier {value}          このターンの通常技の攻撃を value 倍
    *   atkBonus      {value}          このターンの通常技の攻撃に加算（攻撃0の技には加算しない）
@@ -1887,6 +1888,8 @@ body[data-screen="dungeon"] .topbar {
    *   barrier                        味方の生存前衛全員に結界（すでに持つキャラは変化なし）
    *   reroll                         確定した数字を振り直す
    *   damage        {amount, ignoreDefense}  敵の生存前衛全員にそれぞれ直接ダメージ（属性倍率なし）
+   *   fatigueReset  {rounds}         味方の回復疲労をなくす（この巡から数え直し。回復量が100%に戻る）。rounds があればその巡数ぶんだけ戻す。
+   *                                  1戦に1回まで（陣営ごと。2回目以降は何もしない）。heal より前に書くと、その回復にも効く
    * 通常技の攻撃は「敵の生存前衛全員」、回復は「味方の生存前衛全員」に、それぞれ全量が入ります。
    * subTypes: 副属性（表示・分類のみ。複数追加可）
    */
@@ -2057,6 +2060,29 @@ body[data-screen="dungeon"] .topbar {
         name: '潮のめぐり', cd: 3,
         text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ16回復する。',
         effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'heal', amount: 16 }]
+      }
+    },
+    {
+      // ★4（合計 HP168＋攻撃の平均12＋回復の平均16＝196）。回復役：疲労を消すスキル（1戦に1回）と、毎ターン少し回復するリーダー
+      // CPU同士300戦の試算：片側だけにいると勝率約62%（★3で最も高い琥珀の守人は約57%）。決着しない戦闘なし
+      id: 'aoizumi', name: '蒼泉の聖女', glyph: '蒼', maxHp: 168, element: 'water',
+      subTypes: ['聖女', '治癒師'],
+      leaderSkill: { name: '泉のめぐみ', text: '自分のターンの開始時に、味方前衛全員をそれぞれ5回復する（回復疲労の影響を受ける）。', effects: [{ type: 'regen', value: 5 }] },
+      moves: [
+        { name: 'さざ波の杖', atk: 12, heal: 16 },
+        { name: '清めの雫', atk: 0, heal: 24 },
+        { name: '蒼の波紋', atk: 16, heal: 14 },
+        { name: '泉の祈り', atk: 0, heal: 28 },
+        { name: '水鏡の一閃', atk: 24, heal: 6 },
+        { name: '潮騒の裁き', atk: 20, heal: 8 },
+        { name: '霧雨の恵み', atk: 0, heal: 30 },
+        { name: '渦潮の矛', atk: 28, heal: 2 },
+        { name: '蒼泉の奇跡', atk: 14, heal: 18 }
+      ],
+      skill: {
+        name: '蒼泉の再生', cd: 4,
+        text: '味方の回復疲労をなくし（この巡から数え直し、回復量が100%に戻る。1戦に1回まで）、さらに味方前衛全員をそれぞれ20回復する。',
+        effects: [{ type: 'fatigueReset' }, { type: 'heal', amount: 20 }]
       }
     }
   ];
@@ -2241,6 +2267,10 @@ body[data-screen="dungeon"] .topbar {
 
   function fatiguedHeal(base, round) {
     return Math.floor(base * healPercent(round) / 100);
+  }
+  // 回復疲労を数える巡：その陣営が疲労を消した巡からの数え直し（消していなければ今の巡そのまま）
+  function fatigueRound(state, side) {
+    return state.round - ((state.fatigueFrom && state.fatigueFrom[side]) || 0);
   }
 
   // 通常技の攻撃を1体分計算：基礎 → 攻撃強化 → 属性倍率（対象ごと）→ 防御効果（対象ごと）→ 四捨五入
@@ -2439,6 +2469,8 @@ body[data-screen="dungeon"] .topbar {
       initiative: null,        // { player: 出目, cpu: 出目, rolls: [[p, c], ...] }
       front: { player: [], cpu: [] }, // 前衛のユニット番号（最大 FRONT_SIZE）
       leader: { player: null, cpu: null }, // リーダーのユニット番号
+      fatigueFrom: { player: 0, cpu: 0 }, // 回復疲労を消した巡（固有スキル fatigueReset）
+      fatigueResetUsed: { player: false, cpu: false }, // 疲労を消したか（1戦に1回）
       winner: null,
       log: [],
       seq: 0
@@ -2473,8 +2505,9 @@ body[data-screen="dungeon"] .topbar {
   // 味方の生存前衛全員を回復（後衛・戦闘不能は対象外）
   function healFront(state, ctx, side, base, sourceLabel) {
     if (base <= 0) return;
-    const pct = healPercent(state.round);
-    const amount = fatiguedHeal(base, state.round);
+    const fr = fatigueRound(state, side);
+    const pct = healPercent(fr);
+    const amount = fatiguedHeal(base, fr);
     const parts = [];
     frontAlive(state, side).forEach(i => {
       const unit = state.teams[side][i];
@@ -2520,6 +2553,11 @@ body[data-screen="dungeon"] .topbar {
     state.phase = 'roll';
     addLog(state, ctx, `― 第${state.round}巡　${who(state, side)}のターン ―`, 'turn');
     ctx.events.push({ type: 'turn', side });
+    // リーダースキル regen：自分のターンの開始時に前衛全員を少し回復（全員満タンなら何もしない）
+    const regen = leaderSum(state, side, 'regen');
+    if (regen > 0 && frontAlive(state, side).some(i => state.teams[side][i].hp < state.teams[side][i].maxHp)) {
+      healFront(state, ctx, side, regen, unitChar(state.teams[side][state.leader[side]]).leaderSkill.name);
+    }
   }
 
   function endTurn(state, ctx) {
@@ -2719,6 +2757,18 @@ body[data-screen="dungeon"] .topbar {
         const got = frontAlive(state, side).filter(i => !state.teams[side][i].barrier);
         got.forEach(i => { state.teams[side][i].barrier = true; ctx.events.push({ type: 'barrier', side, idx: i }); });
         addLog(state, ctx, `${team(state, side)}前衛に琥珀の結界：${got.map(i => unitName(state.teams[side][i])).join('・')}`, 'barrier');
+      } else if (eff.type === 'fatigueReset') {
+        if (!state.fatigueFrom) state.fatigueFrom = { player: 0, cpu: 0 };
+        if (!state.fatigueResetUsed) state.fatigueResetUsed = { player: false, cpu: false };
+        // 疲労を消せるのは1戦に1回（陣営ごと）。何度も消すと決着がつかなくなるため
+        if (state.fatigueResetUsed[side]) { addLog(state, ctx, `${team(state, side)}の回復疲労は、この戦闘ではもう消せない`, 'skill'); continue; }
+        state.fatigueResetUsed[side] = true;
+        const before = healPercent(fatigueRound(state, side));
+        // rounds があればその巡数ぶんだけ疲労を戻す（無ければ全部なくす）。今の巡より先には戻らない
+        state.fatigueFrom[side] = eff.rounds ? Math.min(state.round, (state.fatigueFrom[side] || 0) + eff.rounds) : state.round;
+        const after = healPercent(fatigueRound(state, side));
+        addLog(state, ctx, `${team(state, side)}の回復疲労が${after >= 100 ? 'なくなった' : 'やわらいだ'}（回復${before}%→${after}%）`, 'heal');
+        ctx.events.push({ type: 'fatigueReset', side });
       } else if (eff.type === 'reroll') {
         const before = state.dice;
         state.dice = rollDie(rng);
@@ -2822,7 +2872,7 @@ body[data-screen="dungeon"] .topbar {
       const t = state.teams[targetSide][i];
       return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, computeAttack(move.atk, boost, ch, t));
     }) : [];
-    const round = Math.max(1, state.round);
+    const round = Math.max(1, fatigueRound(state, side));
     const healBase = moveHealBase(state, side, move);
     const amount = fatiguedHeal(healBase, round);
     const heals = move.heal > 0 ? frontAlive(state, side).map(i => {
@@ -2835,9 +2885,15 @@ body[data-screen="dungeon"] .topbar {
   function previewSkill(state, side, userIdx) {
     const unit = state.teams[side][userIdx];
     const skill = unitChar(unit).skill;
-    const round = Math.max(1, state.round);
+    let round = Math.max(1, fatigueRound(state, side));
     const targetSide = opp(side);
     return skill.effects.map(e => {
+      if (e.type === 'fatigueReset') {
+        const percent = healPercent(round);
+        if (state.fatigueResetUsed && state.fatigueResetUsed[side]) return { type: 'fatigueReset', percent, after: percent, used: true };
+        round = e.rounds ? Math.max(1, round - e.rounds) : 1; // この後の回復は戻した後の割合
+        return { type: 'fatigueReset', percent, after: healPercent(round) };
+      }
       if (e.type === 'heal') {
         const base = e.amount + leaderSum(state, side, 'skillHealBonus');
         const amount = fatiguedHeal(base, round);
@@ -2859,7 +2915,7 @@ body[data-screen="dungeon"] .topbar {
   const Engine = {
     CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, SIDES,
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
-    hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
+    hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, fatigueRound, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
     rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
@@ -4478,7 +4534,7 @@ body[data-screen="dungeon"] .topbar {
 
   function renderCenter() {
     const s = bt.state;
-    const pct = E.healPercent(Math.max(1, s.round));
+    const pct = E.healPercent(Math.max(1, E.fatigueRound(s, bt.me)));
     $('#round-info').innerHTML = s.round > 0 ? `第<b>${s.round}</b>巡` : '準備中';
     $('#fatigue-info').innerHTML = pct < 100 ? `回復疲労：回復${pct}%` : '';
     const foe = whoName(bt.foe);
@@ -4701,6 +4757,12 @@ body[data-screen="dungeon"] .topbar {
       else groups.push({ type: ev.type, side: ev.side, list: [ev] });
     });
     const lead = actEv && !U.FAST ? 200 : 0;
+    // 回復疲労がなくなった：その陣営の前衛に短く表示
+    events.filter(e => e.type === 'fatigueReset').forEach(ev => schedule(() => {
+      const row = $(ev.side === bt.me ? '#ally-front' : '#enemy-front');
+      floatAt(row, '回復疲労がなくなった', 'info', -30);
+      row.querySelectorAll('.unit-card').forEach(c => cardFx(c, 'heal'));
+    }, lead));
     const gap = U.FAST ? 0 : 340;
     groups.forEach((g, k) => {
       schedule(() => {
@@ -4964,13 +5026,14 @@ body[data-screen="dungeon"] .topbar {
       if (p.type === 'barrier') return `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">結界（次の防御可能なダメージ1回を半減）</span></div><div class="chips">${p.targets.map(t => `<span class="chip">${esc(t.name)} ${t.already ? '（すでに結界あり）' : '<b>結界</b>'}</span>`).join('')}</div>`;
       if (p.type === 'atkMultiplier') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 ×${p.value}（回復は変わらない）</div>`;
       if (p.type === 'atkBonus') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 +${p.value}（攻撃0の技は除く）</div>`;
+      if (p.type === 'fatigueReset') return `<div class="pv-line"><span class="pv-range heal">味方</span>${p.used ? '回復疲労はこの戦闘ではもう消せない（1戦に1回）' : `回復疲労をなくす（今の回復${p.percent}%→${p.after}%・1戦に1回）`}</div>`;
       if (p.type === 'reroll') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} を振り直す（同じ数字の可能性あり）</div>`;
       return '';
     }).join('');
   }
   // 対象範囲を短く
   function skillRange(ch) {
-    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目' }[e.type]) || '');
+    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目', fatigueReset: '味方の回復疲労' }[e.type]) || '');
     return t.filter((x, i) => x && t.indexOf(x) === i).join('・');
   }
 

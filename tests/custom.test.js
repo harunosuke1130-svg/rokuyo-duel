@@ -166,8 +166,8 @@ test('ランク（★）：基礎HP＋初期構成の攻撃の平均＋回復の
   assert.ok(Math.abs(r.heal - 20 / 6) < 1e-9);
   const stars = Object.fromEntries(['ryogen', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'suiju', 'raimei', 'mukai'].map(id => [id, E.starsOf(id)]));
   assert.deepEqual(stars, { ryogen: 3, gessen: 2, gyakufu: 2, kohaku: 3, yoiyami: 2, suiju: 3, raimei: 2, mukai: 3 });
-  // 境界：110未満は★1、110以上は★2、130以上は★3
-  E.CHARACTERS.forEach(c => { const sc = E.rankParts(c.id).score; assert.equal(E.starsOf(c.id), sc >= 130 ? 3 : sc >= 110 ? 2 : 1, c.name); });
+  // 境界：110未満は★1、110以上は★2、130以上は★3、195以上は★4
+  E.CHARACTERS.forEach(c => { const sc = E.rankParts(c.id).score; assert.equal(E.starsOf(c.id), sc >= 195 ? 4 : sc >= 130 ? 3 : sc >= 110 ? 2 : 1, c.name); });
   // 合計値の上位側ほど星が多い（逆転しない）
   const sorted = E.CHARACTERS.slice().sort((a, b) => E.rankParts(b.id).score - E.rankParts(a.id).score);
   sorted.forEach((c, k) => { if (k) assert.ok(E.starsOf(c.id) <= E.starsOf(sorted[k - 1].id)); });

@@ -477,3 +477,45 @@ test('CPU同士の自動対戦が決着まで進む（120戦）', () => {
   rounds.sort((a, b) => a - b);
   assert.ok(rounds[rounds.length >> 1] <= 20, '中央値が長すぎる: ' + rounds[rounds.length >> 1]);
 });
+
+test('★4 蒼泉の聖女：固有スキルで回復疲労をなくす・リーダースキルで毎ターン少し回復', () => {
+  assert.equal(E.starsOf('aoizumi'), 4, '★4（合計196）');
+  const team = ['aoizumi', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
+  const s = E.createBattle(team, C);
+  assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], 0).ok); // リーダー：蒼泉の聖女
+  assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
+  assert.ok(E.rollInitiative(s, playerFirst()).ok);
+  // 回復疲労：20巡目は50%。スキルの予測では、疲労をなくした後の回復は100%
+  s.round = 20;
+  s.teams.player[1].hp = 40; s.teams.player[2].hp = 30;
+  assert.ok(E.roll(s, 'player', fixed(1)).ok);
+  assert.equal(E.healPercent(E.fatigueRound(s, 'player')), 50);
+  const pv = E.previewSkill(s, 'player', 0);
+  assert.deepEqual([pv[0].type, pv[0].percent, pv[1].amount], ['fatigueReset', 50, 20]);
+  const r = E.useSkill(s, 'player', 0);
+  assert.ok(r.ok, r.error);
+  assert.equal(s.fatigueFrom.player, 20);
+  assert.equal(E.healPercent(E.fatigueRound(s, 'player')), 100, '自分の回復は100%に戻る');
+  assert.equal(E.healPercent(E.fatigueRound(s, 'cpu')), 50, '相手の疲労はそのまま');
+  assert.ok(r.events.some(e => e.type === 'fatigueReset' && e.side === 'player'));
+  assert.deepEqual([s.teams.player[1].hp, s.teams.player[2].hp], [60, 50], '疲労なしで20回復');
+  // 疲労を消せるのは1戦に1回：2回目の予測・実行では疲労は変わらない
+  assert.equal(s.fatigueResetUsed.player, true);
+  const s2 = JSON.parse(JSON.stringify(s));
+  s2.skillUsed = false; s2.teams.player[0].cd = 0; s2.round = 30;
+  assert.equal(E.previewSkill(s2, 'player', 0)[0].used, true);
+  assert.ok(E.useSkill(s2, 'player', 0).ok);
+  assert.equal(s2.fatigueFrom.player, 20, '2回目は疲労を消さない');
+  assert.ok(E.useMove(s, 'player', 2).ok);
+  // 相手の行動のあと、自分のターンの開始時に前衛全員を5回復（満タンのキャラは0）
+  s.teams.player[1].hp = 60;
+  const before = s.teams.player.map(u => u.hp);
+  assert.ok(E.roll(s, 'cpu', fixed(6)).ok);
+  const r2 = E.useMove(s, 'cpu', s.front.cpu[2]);
+  assert.ok(r2.ok, r2.error);
+  assert.equal(s.turnSide, 'player');
+  const regen = r2.events.filter(e => e.type === 'heal' && e.side === 'player');
+  assert.ok(regen.length >= 1 && regen.every(e => e.amount <= 5), 'リーダーの回復は5まで');
+  assert.ok(r2.logs.some(l => l.text.includes('泉のめぐみ')));
+  void before;
+});

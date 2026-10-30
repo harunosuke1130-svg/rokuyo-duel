@@ -83,6 +83,10 @@
   function fatiguedHeal(base, round) {
     return Math.floor(base * healPercent(round) / 100);
   }
+  // 回復疲労を数える巡：その陣営が疲労を消した巡からの数え直し（消していなければ今の巡そのまま）
+  function fatigueRound(state, side) {
+    return state.round - ((state.fatigueFrom && state.fatigueFrom[side]) || 0);
+  }
 
   // 通常技の攻撃を1体分計算：基礎 → 攻撃強化 → 属性倍率（対象ごと）→ 防御効果（対象ごと）→ 四捨五入
   function computeAttack(base, boost, attackerChar, defenderUnit) {
@@ -280,6 +284,8 @@
       initiative: null,        // { player: 出目, cpu: 出目, rolls: [[p, c], ...] }
       front: { player: [], cpu: [] }, // 前衛のユニット番号（最大 FRONT_SIZE）
       leader: { player: null, cpu: null }, // リーダーのユニット番号
+      fatigueFrom: { player: 0, cpu: 0 }, // 回復疲労を消した巡（固有スキル fatigueReset）
+      fatigueResetUsed: { player: false, cpu: false }, // 疲労を消したか（1戦に1回）
       winner: null,
       log: [],
       seq: 0
@@ -314,8 +320,9 @@
   // 味方の生存前衛全員を回復（後衛・戦闘不能は対象外）
   function healFront(state, ctx, side, base, sourceLabel) {
     if (base <= 0) return;
-    const pct = healPercent(state.round);
-    const amount = fatiguedHeal(base, state.round);
+    const fr = fatigueRound(state, side);
+    const pct = healPercent(fr);
+    const amount = fatiguedHeal(base, fr);
     const parts = [];
     frontAlive(state, side).forEach(i => {
       const unit = state.teams[side][i];
@@ -361,6 +368,11 @@
     state.phase = 'roll';
     addLog(state, ctx, `― 第${state.round}巡　${who(state, side)}のターン ―`, 'turn');
     ctx.events.push({ type: 'turn', side });
+    // リーダースキル regen：自分のターンの開始時に前衛全員を少し回復（全員満タンなら何もしない）
+    const regen = leaderSum(state, side, 'regen');
+    if (regen > 0 && frontAlive(state, side).some(i => state.teams[side][i].hp < state.teams[side][i].maxHp)) {
+      healFront(state, ctx, side, regen, unitChar(state.teams[side][state.leader[side]]).leaderSkill.name);
+    }
   }
 
   function endTurn(state, ctx) {
@@ -560,6 +572,18 @@
         const got = frontAlive(state, side).filter(i => !state.teams[side][i].barrier);
         got.forEach(i => { state.teams[side][i].barrier = true; ctx.events.push({ type: 'barrier', side, idx: i }); });
         addLog(state, ctx, `${team(state, side)}前衛に琥珀の結界：${got.map(i => unitName(state.teams[side][i])).join('・')}`, 'barrier');
+      } else if (eff.type === 'fatigueReset') {
+        if (!state.fatigueFrom) state.fatigueFrom = { player: 0, cpu: 0 };
+        if (!state.fatigueResetUsed) state.fatigueResetUsed = { player: false, cpu: false };
+        // 疲労を消せるのは1戦に1回（陣営ごと）。何度も消すと決着がつかなくなるため
+        if (state.fatigueResetUsed[side]) { addLog(state, ctx, `${team(state, side)}の回復疲労は、この戦闘ではもう消せない`, 'skill'); continue; }
+        state.fatigueResetUsed[side] = true;
+        const before = healPercent(fatigueRound(state, side));
+        // rounds があればその巡数ぶんだけ疲労を戻す（無ければ全部なくす）。今の巡より先には戻らない
+        state.fatigueFrom[side] = eff.rounds ? Math.min(state.round, (state.fatigueFrom[side] || 0) + eff.rounds) : state.round;
+        const after = healPercent(fatigueRound(state, side));
+        addLog(state, ctx, `${team(state, side)}の回復疲労が${after >= 100 ? 'なくなった' : 'やわらいだ'}（回復${before}%→${after}%）`, 'heal');
+        ctx.events.push({ type: 'fatigueReset', side });
       } else if (eff.type === 'reroll') {
         const before = state.dice;
         state.dice = rollDie(rng);
@@ -663,7 +687,7 @@
       const t = state.teams[targetSide][i];
       return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, computeAttack(move.atk, boost, ch, t));
     }) : [];
-    const round = Math.max(1, state.round);
+    const round = Math.max(1, fatigueRound(state, side));
     const healBase = moveHealBase(state, side, move);
     const amount = fatiguedHeal(healBase, round);
     const heals = move.heal > 0 ? frontAlive(state, side).map(i => {
@@ -676,9 +700,15 @@
   function previewSkill(state, side, userIdx) {
     const unit = state.teams[side][userIdx];
     const skill = unitChar(unit).skill;
-    const round = Math.max(1, state.round);
+    let round = Math.max(1, fatigueRound(state, side));
     const targetSide = opp(side);
     return skill.effects.map(e => {
+      if (e.type === 'fatigueReset') {
+        const percent = healPercent(round);
+        if (state.fatigueResetUsed && state.fatigueResetUsed[side]) return { type: 'fatigueReset', percent, after: percent, used: true };
+        round = e.rounds ? Math.max(1, round - e.rounds) : 1; // この後の回復は戻した後の割合
+        return { type: 'fatigueReset', percent, after: healPercent(round) };
+      }
       if (e.type === 'heal') {
         const base = e.amount + leaderSum(state, side, 'skillHealBonus');
         const amount = fatiguedHeal(base, round);
@@ -700,7 +730,7 @@
   const Engine = {
     CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, SIDES,
     createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
-    hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, computeAttack, computeSkillDamage,
+    hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, fatigueRound, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
     rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,

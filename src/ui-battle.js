@@ -445,7 +445,7 @@
 
   function renderCenter() {
     const s = bt.state;
-    const pct = E.healPercent(Math.max(1, s.round));
+    const pct = E.healPercent(Math.max(1, E.fatigueRound(s, bt.me)));
     $('#round-info').innerHTML = s.round > 0 ? `第<b>${s.round}</b>巡` : '準備中';
     $('#fatigue-info').innerHTML = pct < 100 ? `回復疲労：回復${pct}%` : '';
     const foe = whoName(bt.foe);
@@ -668,6 +668,12 @@
       else groups.push({ type: ev.type, side: ev.side, list: [ev] });
     });
     const lead = actEv && !U.FAST ? 200 : 0;
+    // 回復疲労がなくなった：その陣営の前衛に短く表示
+    events.filter(e => e.type === 'fatigueReset').forEach(ev => schedule(() => {
+      const row = $(ev.side === bt.me ? '#ally-front' : '#enemy-front');
+      floatAt(row, '回復疲労がなくなった', 'info', -30);
+      row.querySelectorAll('.unit-card').forEach(c => cardFx(c, 'heal'));
+    }, lead));
     const gap = U.FAST ? 0 : 340;
     groups.forEach((g, k) => {
       schedule(() => {
@@ -931,13 +937,14 @@
       if (p.type === 'barrier') return `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">結界（次の防御可能なダメージ1回を半減）</span></div><div class="chips">${p.targets.map(t => `<span class="chip">${esc(t.name)} ${t.already ? '（すでに結界あり）' : '<b>結界</b>'}</span>`).join('')}</div>`;
       if (p.type === 'atkMultiplier') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 ×${p.value}（回復は変わらない）</div>`;
       if (p.type === 'atkBonus') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 +${p.value}（攻撃0の技は除く）</div>`;
+      if (p.type === 'fatigueReset') return `<div class="pv-line"><span class="pv-range heal">味方</span>${p.used ? '回復疲労はこの戦闘ではもう消せない（1戦に1回）' : `回復疲労をなくす（今の回復${p.percent}%→${p.after}%・1戦に1回）`}</div>`;
       if (p.type === 'reroll') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} を振り直す（同じ数字の可能性あり）</div>`;
       return '';
     }).join('');
   }
   // 対象範囲を短く
   function skillRange(ch) {
-    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目' }[e.type]) || '');
+    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目', fatigueReset: '味方の回復疲労' }[e.type]) || '');
     return t.filter((x, i) => x && t.indexOf(x) === i).join('・');
   }
 

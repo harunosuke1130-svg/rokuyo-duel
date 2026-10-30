@@ -90,13 +90,13 @@ test('プロフィール：初期は6体所持・石300、管理用アカウン�
   assert.equal(p.stones, 300);
   assert.equal(P.teamError(p, p.team), null);
   const a = P.newProfile({ uid: 'adm', name: '管理', isAdmin: true });
-  assert.equal(P.ownedIds(a).length, 8);
+  assert.equal(P.ownedIds(a).length, D.CHARACTERS.length);
   // 保存データからの読み込み：管理用は不足分を補う・不正値は直す
   const s = P.sanitize({ name: 'x', stones: -5, chars: { ryogen: { level: 99, exp: 'a' }, nobody: { level: 3 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5], gessen: [0, 1, 2, 3, 4, 6] } }, { uid: 'adm', isAdmin: true });
   assert.equal(s.stones, 0);
   assert.equal(s.chars.ryogen.level, D.CONFIG.LEVEL.max);
   assert.equal(s.chars.nobody, undefined);
-  assert.equal(P.ownedIds(s).length, 8);
+  assert.equal(P.ownedIds(s).length, D.CHARACTERS.length);
   assert.deepEqual(s.loadouts, { ryogen: [7, 1, 2, 3, 4, 5] }, 'Lv30なら上限内なので残し、Lv1でまだ使えない技を含む構成は捨てる');
   const lo = P.sanitize({ chars: { ryogen: { level: 13 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5] } }, { uid: 'u' });
   assert.deepEqual(lo.loadouts, {}, 'Lv13では上限超えなので捨てる');
@@ -122,7 +122,7 @@ test('経験値とレベルアップ（必要経験値は100から50ずつ増え
 test('ガチャ：石を消費し、新キャラは所持、持っているキャラは経験値に', () => {
   const p = P.newProfile({ uid: 'u' }, E.createRng(3));
   const missing = P.ALL_IDS.filter(id => !P.owns(p, id));
-  assert.equal(missing.length, 2);
+  assert.equal(missing.length, D.CHARACTERS.length - 6);
   // 未所持キャラが出る乱数
   const idx = P.ALL_IDS.indexOf(missing[0]);
   const r = P.drawGacha(p, 1, () => (idx + 0.5) / P.ALL_IDS.length);

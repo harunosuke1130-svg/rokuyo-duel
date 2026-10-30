@@ -51,7 +51,7 @@
    */
   const RANKS = {
     base: 1,
-    thresholds: [{ stars: 3, minScore: 130 }, { stars: 2, minScore: 110 }]
+    thresholds: [{ stars: 4, minScore: 195 }, { stars: 3, minScore: 130 }, { stars: 2, minScore: 110 }]
   };
 
   // 攻撃側 → 有利を取れる防御側の属性
@@ -74,6 +74,7 @@
    *   skillDamageBonus {value}                     固有スキルの直接ダメージに加算
    *   skillHealBonus   {value}                     固有スキルの回復に加算
    *   startBarrier                                 戦闘開始時、味方前衛全員に結界
+   *   regen            {value}                     自分のターンの開始時、味方の生存前衛全員をそれぞれ回復（回復疲労の影響を受ける）
    * skill.effects の種類:
    *   atkMultiplier {value}          このターンの通常技の攻撃を value 倍
    *   atkBonus      {value}          このターンの通常技の攻撃に加算（攻撃0の技には加算しない）
@@ -81,6 +82,8 @@
    *   barrier                        味方の生存前衛全員に結界（すでに持つキャラは変化なし）
    *   reroll                         確定した数字を振り直す
    *   damage        {amount, ignoreDefense}  敵の生存前衛全員にそれぞれ直接ダメージ（属性倍率なし）
+   *   fatigueReset  {rounds}         味方の回復疲労をなくす（この巡から数え直し。回復量が100%に戻る）。rounds があればその巡数ぶんだけ戻す。
+   *                                  1戦に1回まで（陣営ごと。2回目以降は何もしない）。heal より前に書くと、その回復にも効く
    * 通常技の攻撃は「敵の生存前衛全員」、回復は「味方の生存前衛全員」に、それぞれ全量が入ります。
    * subTypes: 副属性（表示・分類のみ。複数追加可）
    */
@@ -251,6 +254,29 @@
         name: '潮のめぐり', cd: 3,
         text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ16回復する。',
         effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'heal', amount: 16 }]
+      }
+    },
+    {
+      // ★4（合計 HP168＋攻撃の平均12＋回復の平均16＝196）。回復役：疲労を消すスキル（1戦に1回）と、毎ターン少し回復するリーダー
+      // CPU同士300戦の試算：片側だけにいると勝率約62%（★3で最も高い琥珀の守人は約57%）。決着しない戦闘なし
+      id: 'aoizumi', name: '蒼泉の聖女', glyph: '蒼', maxHp: 168, element: 'water',
+      subTypes: ['聖女', '治癒師'],
+      leaderSkill: { name: '泉のめぐみ', text: '自分のターンの開始時に、味方前衛全員をそれぞれ5回復する（回復疲労の影響を受ける）。', effects: [{ type: 'regen', value: 5 }] },
+      moves: [
+        { name: 'さざ波の杖', atk: 12, heal: 16 },
+        { name: '清めの雫', atk: 0, heal: 24 },
+        { name: '蒼の波紋', atk: 16, heal: 14 },
+        { name: '泉の祈り', atk: 0, heal: 28 },
+        { name: '水鏡の一閃', atk: 24, heal: 6 },
+        { name: '潮騒の裁き', atk: 20, heal: 8 },
+        { name: '霧雨の恵み', atk: 0, heal: 30 },
+        { name: '渦潮の矛', atk: 28, heal: 2 },
+        { name: '蒼泉の奇跡', atk: 14, heal: 18 }
+      ],
+      skill: {
+        name: '蒼泉の再生', cd: 4,
+        text: '味方の回復疲労をなくし（この巡から数え直し、回復量が100%に戻る。1戦に1回まで）、さらに味方前衛全員をそれぞれ20回復する。',
+        effects: [{ type: 'fatigueReset' }, { type: 'heal', amount: 20 }]
       }
     }
   ];

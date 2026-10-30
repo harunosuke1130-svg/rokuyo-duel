@@ -75,7 +75,7 @@ for (const kind of ['mobile', 'desktop']) {
     // チーム画面：未所持は選べない・技のカスタムを保存
     await page.click('[data-go="team"]');
     await page.waitForSelector('#screen-team:not(.hidden)');
-    assert.equal(await page.$$eval('.pick-card.locked', c => c.length), 2);
+    assert.equal(await page.$$eval('.pick-card.locked', c => c.length), CHAR_COUNT - 6);
     assert.equal(await page.isDisabled('#btn-team-ok'), false, '初期チーム6体が選ばれている');
     const first = p.team[0];
     await page.click(`[data-edit="${first}"]`);
@@ -420,7 +420,7 @@ test('mobile: 戦闘画面（サイコロで数字・カードの絵で詳細・
   await H.waitMyRoll(page);
   // カードに★と属性枠（属性ごとの色×ランクの濃さ）
   const cards = await page.$$eval('#screen-battle .bt-card[data-idx]', cs => cs.map(c => ({ el: c.dataset.el, st: c.dataset.stars, stars: (c.querySelector('.stars') || {}).textContent || '', border: getComputedStyle(c).borderTopColor })));
-  assert.ok(cards.length >= 6 && cards.every(c => c.el && /^[123]$/.test(c.st) && c.stars === '★'.repeat(Number(c.st))));
+  assert.ok(cards.length >= 6 && cards.every(c => c.el && /^[1-4]$/.test(c.st) && c.stars === '★'.repeat(Number(c.st))));
   const s0 = await H.state(page);
   const ids = s0.teams.player.map(u => u.charId);
   const exp = Object.fromEntries(E.CHARACTERS.map(c => [c.id, E.starsOf(c.id)]));
