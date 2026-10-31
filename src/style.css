@@ -622,13 +622,13 @@ body[data-screen="home"] { background: #2a1d14; }
   background-size: cover; background-position: center top; background-repeat: no-repeat;
 }
 /* キャラの絵の見せ方：--cx/--cy はホームのカード（上半身）、--ex/--ey は丸い紋章（顔）の位置、--es は紋章の拡大率（既定 330%） */
-[data-char="ryogen"] { --cx: 60%; --cy: 0%; --ex: 60%; --ey: 0%; }
+[data-char="ryogen"] { --cx: 59%; --cy: 4%; --ex: 59%; --ey: 4%; }
 [data-char="gessen"] { --cx: 50%; --cy: 4%; --ex: 50%; --ey: 1%; }
 [data-char="gyakufu"] { --cx: 36%; --cy: 0%; --ex: 40%; --ey: 0%; }
-[data-char="kohaku"] { --cx: 54%; --cy: 45%; --ex: 53%; --ey: 37%; }
-[data-char="mukai"] { --cx: 54%; --cy: 0%; --ex: 53%; --ey: 0%; }
+[data-char="kohaku"] { --cx: 57%; --cy: 40%; --ex: 57%; --ey: 38%; }
+[data-char="mukai"] { --cx: 62%; --cy: 5%; --ex: 62%; --ey: 5%; }
 [data-char="raimei"] { --cx: 60%; --cy: 40%; --ex: 65%; --ey: 32%; }
-[data-char="suiju"] { --cx: 44%; --cy: 0%; --ex: 46%; --ey: 0%; }
+[data-char="suiju"] { --cx: 50%; --cy: 6%; --ex: 50%; --ey: 6%; }
 [data-char="yoiyami"] { --cx: 34%; --cy: 0%; --ex: 36%; --ey: 0%; }
 [data-char="aoizumi"] { --cx: 50%; --cy: 4%; --ex: 50%; --ey: 3%; }
 [data-char="benitetsu"] { --cx: 52%; --cy: 4%; --ex: 54%; --ey: 3%; }
