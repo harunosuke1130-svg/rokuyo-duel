@@ -351,7 +351,7 @@
   function previewChips(p) {
     let html = '';
     if (p.attacks.length) {
-      const b = p.boosted !== p.move.atk ? `（強化後${p.boosted}）` : '';
+      const b = p.boosted !== p.move.atk ? `（強化後${atkNum(p.boosted)}）` : '';
       html += `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">攻撃${p.move.atk}${b}</span></div><div class="chips">` +
         p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('') + '</div>';
     } else if (p.move.atk > 0) {
@@ -365,6 +365,9 @@
     if (!p.move.atk && !p.move.heal) html += '<div class="pv-line muted">何も起こらない</div>';
     return html;
   }
+
+  // 強化後の攻撃の表示（1.4倍などで出る 16.799999… のような端数の誤差を消す。計算には使わない）
+  const atkNum = v => Math.round(v * 100) / 100;
 
   // HPの状態：色だけでなく文字（ピンチ）でも示す
   const hpState = u => (u.hp <= 0 ? 'ko' : u.hp / u.maxHp <= 0.25 ? 'low' : u.hp / u.maxHp <= 0.5 ? 'mid' : '');
@@ -380,7 +383,7 @@
     const healVal = p.heals.length ? p.heals[0].amount : p.healBase;
     const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
     const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: '効果なし' }[kind];
-    const main = kind === 'both' ? `攻${p.boosted}＋回${healVal}` : kind === 'atk' ? `攻撃 ${p.boosted}` : kind === 'heal' ? `回復 ${healVal}` : '—';
+    const main = kind === 'both' ? `攻${atkNum(p.boosted)}＋回${healVal}` : kind === 'atk' ? `攻撃 ${atkNum(p.boosted)}` : kind === 'heal' ? `回復 ${healVal}` : '—';
     return `<button type="button" class="mo-btn ${kind}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
       <span class="mo-kind">${head}</span><b class="mo-main">${esc(main)}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>`;
   }

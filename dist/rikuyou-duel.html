@@ -2605,6 +2605,133 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
         text: '味方前衛全員に結界を付ける（各自、次に受ける防御可能なダメージ1回を半減）。',
         effects: [{ type: 'barrier' }]
       }
+    },
+    // ---- 自動追加 2026-10-31 ----
+    {
+      id: 'wakakusa', name: '若草の羊飼い', glyph: '草', maxHp: 92, element: 'nature',
+      subTypes: ['牧人'],
+      leaderSkill: { name: '牧場の朝', text: '味方全員の通常技の回復+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      moves: [
+        { name: '牧杖の一打', atk: 8, heal: 0 },
+        { name: '草笛', atk: 0, heal: 8 },
+        { name: '羊の頭突き', atk: 12, heal: 0 },
+        { name: '草むらの休息', atk: 0, heal: 10 },
+        { name: '羊毛の盾', atk: 4, heal: 4 },
+        { name: '蹴り上げ', atk: 14, heal: 0 },
+        { name: '若草の祈り', atk: 0, heal: 14 },
+        { name: '群れの突進', atk: 18, heal: 0 },
+        { name: '牧草の恵み', atk: 6, heal: 12 }
+      ],
+      skill: {
+        name: '羊飼いの見張り', cd: 3,
+        text: '確定した数字を振り直す（自分の出目のみ）。',
+        effects: [{ type: 'reroll' }]
+      }
+    },
+    {
+      id: 'okibi', name: '熾火の小鬼', glyph: '熾', maxHp: 88, element: 'fire',
+      subTypes: ['小鬼'],
+      leaderSkill: { name: '小鬼のいたずら', text: '猛火属性の味方の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 2 }] },
+      moves: [
+        { name: '熾りの爪', atk: 10, heal: 0 },
+        { name: '小鬼の引っかき', atk: 8, heal: 0 },
+        { name: '熾火投げ', atk: 16, heal: 0 },
+        { name: 'うたた寝', atk: 0, heal: 9 },
+        { name: '小さな炎', atk: 12, heal: 0 },
+        { name: '燃えさし', atk: 6, heal: 3 },
+        { name: '熾火の跳躍', atk: 20, heal: 0 },
+        { name: '灰かぶり', atk: 0, heal: 12 },
+        { name: '火の手', atk: 24, heal: 0 }
+      ],
+      skill: {
+        name: '熾火の悪戯', cd: 3,
+        text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'amadare', name: '雨垂れの吟遊詩人', glyph: '雨', maxHp: 105, element: 'water',
+      subTypes: ['詩人', '術士'],
+      leaderSkill: { name: '雨宿りの軒', text: '戦闘開始時、味方前衛全員に結界を付ける。', effects: [{ type: 'startBarrier' }] },
+      moves: [
+        { name: '雨音の調べ', atk: 0, heal: 12 },
+        { name: '水しぶきの弦', atk: 14, heal: 0 },
+        { name: '驟雨の歌', atk: 18, heal: 0 },
+        { name: '休符', atk: 0, heal: 10 },
+        { name: '雨垂れの一撃', atk: 22, heal: 0 },
+        { name: '霧雨の旋律', atk: 6, heal: 6 },
+        { name: '虹の歌', atk: 0, heal: 18 },
+        { name: '豪雨の調べ', atk: 28, heal: 0 },
+        { name: '雨上がりの詩', atk: 10, heal: 10 }
+      ],
+      skill: {
+        name: '雨乞いの歌', cd: 4,
+        text: '味方前衛全員を、それぞれ14回復する。',
+        effects: [{ type: 'heal', amount: 14 }]
+      }
+    },
+    {
+      id: 'yogarasu', name: '夜鴉の占い師', glyph: '鴉', maxHp: 100, element: 'dark',
+      subTypes: ['占い師', '術士'],
+      leaderSkill: { name: '夜の占い', text: '味方の固有スキルの直接ダメージ+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      moves: [
+        { name: '鴉の爪', atk: 14, heal: 0 },
+        { name: '不吉な予言', atk: 20, heal: 0 },
+        { name: '黒羽の舞', atk: 16, heal: 0 },
+        { name: '占いの休息', atk: 0, heal: 10 },
+        { name: '闇の囁き', atk: 24, heal: 0 },
+        { name: '星読み', atk: 0, heal: 6 },
+        { name: '夜鴉の群れ', atk: 28, heal: 0 },
+        { name: '水晶の癒し', atk: 0, heal: 18 },
+        { name: '凶星', atk: 32, heal: 0 }
+      ],
+      skill: {
+        name: '運命の水晶', cd: 3,
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 4 }]
+      }
+    },
+    {
+      id: 'hakugin', name: '白銀の聖騎士', glyph: '銀', maxHp: 135, element: 'holy',
+      subTypes: ['騎士', '守護者'],
+      leaderSkill: { name: '聖騎士団の旗', text: '聖光属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 5 }] },
+      moves: [
+        { name: '銀の剣', atk: 18, heal: 0 },
+        { name: '聖なる突き', atk: 24, heal: 0 },
+        { name: '祝福の盾', atk: 8, heal: 10 },
+        { name: '白銀の斬撃', atk: 28, heal: 0 },
+        { name: '癒しの祈り', atk: 0, heal: 20 },
+        { name: '銀光の一閃', atk: 22, heal: 0 },
+        { name: '聖騎士の誓い', atk: 12, heal: 14 },
+        { name: '白銀の裁き', atk: 34, heal: 0 },
+        { name: '守りの祈り', atk: 0, heal: 26 }
+      ],
+      skill: {
+        name: '白銀の加護', cd: 4,
+        text: '味方前衛全員に結界を付け、それぞれ10回復する。',
+        effects: [{ type: 'barrier' }, { type: 'heal', amount: 10 }]
+      }
+    },
+    {
+      id: 'kashimori', name: '樫森の大熊', glyph: '樫', maxHp: 150, element: 'nature',
+      subTypes: ['獣', '守護者'],
+      leaderSkill: { name: '深き森の守り', text: '味方全員の最大HPと初期HPを8%上げる（端数切り捨て）。', effects: [{ type: 'maxHp', scope: 'all', percent: 8 }] },
+      moves: [
+        { name: '熊の爪', atk: 16, heal: 0 },
+        { name: '樫の一撃', atk: 22, heal: 0 },
+        { name: '大地の咆哮', atk: 26, heal: 0 },
+        { name: '木の実を食む', atk: 0, heal: 18 },
+        { name: 'のしかかり', atk: 30, heal: 0 },
+        { name: '森の眠り', atk: 0, heal: 12 },
+        { name: '樫の根張り', atk: 8, heal: 16 },
+        { name: '大熊の怒り', atk: 36, heal: 0 },
+        { name: '蜂蜜の癒し', atk: 0, heal: 24 }
+      ],
+      skill: {
+        name: '森の主の咆哮', cd: 4,
+        text: 'このターンの通常技の攻撃を1.4倍にする（敵前衛全員）。',
+        effects: [{ type: 'atkMultiplier', value: 1.4 }]
+      }
     }
   ];
 
@@ -4993,7 +5120,7 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   function previewChips(p) {
     let html = '';
     if (p.attacks.length) {
-      const b = p.boosted !== p.move.atk ? `（強化後${p.boosted}）` : '';
+      const b = p.boosted !== p.move.atk ? `（強化後${atkNum(p.boosted)}）` : '';
       html += `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">攻撃${p.move.atk}${b}</span></div><div class="chips">` +
         p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('') + '</div>';
     } else if (p.move.atk > 0) {
@@ -5007,6 +5134,9 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     if (!p.move.atk && !p.move.heal) html += '<div class="pv-line muted">何も起こらない</div>';
     return html;
   }
+
+  // 強化後の攻撃の表示（1.4倍などで出る 16.799999… のような端数の誤差を消す。計算には使わない）
+  const atkNum = v => Math.round(v * 100) / 100;
 
   // HPの状態：色だけでなく文字（ピンチ）でも示す
   const hpState = u => (u.hp <= 0 ? 'ko' : u.hp / u.maxHp <= 0.25 ? 'low' : u.hp / u.maxHp <= 0.5 ? 'mid' : '');
@@ -5022,7 +5152,7 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     const healVal = p.heals.length ? p.heals[0].amount : p.healBase;
     const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
     const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: '効果なし' }[kind];
-    const main = kind === 'both' ? `攻${p.boosted}＋回${healVal}` : kind === 'atk' ? `攻撃 ${p.boosted}` : kind === 'heal' ? `回復 ${healVal}` : '—';
+    const main = kind === 'both' ? `攻${atkNum(p.boosted)}＋回${healVal}` : kind === 'atk' ? `攻撃 ${atkNum(p.boosted)}` : kind === 'heal' ? `回復 ${healVal}` : '—';
     return `<button type="button" class="mo-btn ${kind}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
       <span class="mo-kind">${head}</span><b class="mo-main">${esc(main)}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>`;
   }
