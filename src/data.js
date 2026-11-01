@@ -532,6 +532,133 @@
         text: 'このターンの通常技の攻撃を1.4倍にする（敵前衛全員）。',
         effects: [{ type: 'atkMultiplier', value: 1.4 }]
       }
+    },
+    // ---- 自動追加 2026-11-01 ----
+    {
+      id: 'kaihiroi', name: '浜辺の貝拾い', glyph: '貝', maxHp: 94, element: 'water',
+      subTypes: ['漁師'],
+      leaderSkill: { name: '浜の歓迎', text: '味方全員の最大HPと初期HPを4%上げる（端数切り捨て）。', effects: [{ type: 'maxHp', scope: 'all', percent: 4 }] },
+      moves: [
+        { name: '貝殻投げ', atk: 10, heal: 0 },
+        { name: '砂浜の休憩', atk: 0, heal: 9 },
+        { name: '網打ち', atk: 12, heal: 0 },
+        { name: '潮風の歌', atk: 0, heal: 6 },
+        { name: '波よけ', atk: 4, heal: 4 },
+        { name: '銛突き', atk: 14, heal: 0 },
+        { name: '潮騒の祈り', atk: 0, heal: 14 },
+        { name: '大漁の一撃', atk: 18, heal: 0 },
+        { name: '浜の恵み', atk: 6, heal: 12 }
+      ],
+      skill: {
+        name: '引き潮', cd: 3,
+        text: '味方前衛全員を、それぞれ10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
+    },
+    {
+      id: 'kuroneko', name: '墓守の黒猫', glyph: '猫', maxHp: 86, element: 'dark',
+      subTypes: ['獣'],
+      leaderSkill: { name: '夜歩き', text: '味方の固有スキルの直接ダメージ+1（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 1 }] },
+      moves: [
+        { name: '猫パンチ', atk: 10, heal: 0 },
+        { name: '闇夜の跳躍', atk: 14, heal: 0 },
+        { name: '丸くなる', atk: 0, heal: 8 },
+        { name: '爪とぎ', atk: 6, heal: 0 },
+        { name: '影の尾', atk: 12, heal: 0 },
+        { name: '毛づくろい', atk: 4, heal: 4 },
+        { name: '墓場の鳴き声', atk: 18, heal: 0 },
+        { name: '月見の昼寝', atk: 0, heal: 12 },
+        { name: '九つの命の一撃', atk: 22, heal: 0 }
+      ],
+      skill: {
+        name: '不吉な横切り', cd: 3,
+        text: '敵前衛全員に、それぞれ9ダメージ（属性倍率なし・結界を無視）。',
+        effects: [{ type: 'damage', amount: 9, ignoreDefense: true }]
+      }
+    },
+    {
+      id: 'akatsuki', name: '暁の鐘つき', glyph: '鐘', maxHp: 102, element: 'holy',
+      subTypes: ['僧侶'],
+      leaderSkill: { name: '朝告げの鐘', text: '味方の固有スキルの回復+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
+      moves: [
+        { name: '鐘の響き', atk: 12, heal: 0 },
+        { name: '朝の祈り', atk: 0, heal: 12 },
+        { name: '鐘槌', atk: 18, heal: 0 },
+        { name: '暁光', atk: 8, heal: 6 },
+        { name: '夜明けの一打', atk: 20, heal: 0 },
+        { name: '鐘楼の休息', atk: 0, heal: 10 },
+        { name: '黎明の鐘', atk: 26, heal: 0 },
+        { name: '祝福の音色', atk: 0, heal: 18 },
+        { name: '大鐘の轟き', atk: 10, heal: 10 }
+      ],
+      skill: {
+        name: '目覚めの鐘', cd: 3,
+        text: 'このターンの通常技の攻撃に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'atkBonus', value: 5 }]
+      }
+    },
+    {
+      id: 'enbu', name: '炎舞の踊り子', glyph: '舞', maxHp: 104, element: 'fire',
+      subTypes: ['踊り子'],
+      leaderSkill: { name: '舞台の熱気', text: '猛火属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 3 }] },
+      moves: [
+        { name: '火の扇', atk: 14, heal: 0 },
+        { name: '炎のステップ', atk: 18, heal: 0 },
+        { name: '情熱の舞', atk: 22, heal: 0 },
+        { name: '一息の休憩', atk: 0, heal: 10 },
+        { name: '火輪の回転', atk: 12, heal: 4 },
+        { name: '喝采', atk: 0, heal: 6 },
+        { name: '紅蓮の舞台', atk: 28, heal: 0 },
+        { name: '拍手の癒し', atk: 0, heal: 18 },
+        { name: '焔の旋回', atk: 32, heal: 0 }
+      ],
+      skill: {
+        name: '熱狂の舞', cd: 4,
+        text: 'このターンの通常技の攻撃を1.3倍にする（敵前衛全員）。',
+        effects: [{ type: 'atkMultiplier', value: 1.3 }]
+      }
+    },
+    {
+      id: 'fukashio', name: '深潮の槍騎士', glyph: '槍', maxHp: 140, element: 'water',
+      subTypes: ['騎士', '戦士'],
+      leaderSkill: { name: '潮騎士の号令', text: '水脈属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 5 }] },
+      moves: [
+        { name: '潮槍の突き', atk: 20, heal: 0 },
+        { name: '渦の薙ぎ', atk: 24, heal: 0 },
+        { name: '深海の構え', atk: 0, heal: 18 },
+        { name: '激流の一撃', atk: 28, heal: 0 },
+        { name: '波の盾', atk: 8, heal: 10 },
+        { name: '潮流の穿ち', atk: 22, heal: 0 },
+        { name: '大海嘯', atk: 34, heal: 0 },
+        { name: '潮の加護', atk: 12, heal: 14 },
+        { name: '海神の癒し', atk: 0, heal: 26 }
+      ],
+      skill: {
+        name: '渦潮の陣', cd: 4,
+        text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員に結界を付ける。',
+        effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'barrier' }]
+      }
+    },
+    {
+      id: 'tenbin', name: '天秤の裁定者', glyph: '秤', maxHp: 125, element: 'holy',
+      subTypes: ['裁定者', '術士'],
+      leaderSkill: { name: '天秤の加護', text: '味方全員の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 2 }] },
+      moves: [
+        { name: '裁きの光', atk: 16, heal: 0 },
+        { name: '均衡の祈り', atk: 0, heal: 22 },
+        { name: '天秤の一撃', atk: 24, heal: 0 },
+        { name: '光の鎖', atk: 10, heal: 8 },
+        { name: '正義の剣', atk: 26, heal: 0 },
+        { name: '公正の光刃', atk: 28, heal: 0 },
+        { name: '天の裁き', atk: 34, heal: 0 },
+        { name: '慈悲の祈り', atk: 0, heal: 26 },
+        { name: '均衡の調べ', atk: 14, heal: 14 }
+      ],
+      skill: {
+        name: '均衡の審判', cd: 4,
+        text: '味方前衛全員を、それぞれ12回復する。さらに、このターンの通常技の攻撃に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'heal', amount: 12 }, { type: 'atkBonus', value: 4 }]
+      }
     }
   ];
 
