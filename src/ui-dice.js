@@ -17,12 +17,13 @@
   const TILT = 17;                 // 盤面の傾き（度）。上の面と手前の側面が見える
   const COS_T = Math.cos(TILT * Math.PI / 180);
   // 置き場所（盤面の幅・高さに対する割合）。me＝自分が投げる位置（手前）、foe＝相手が投げる位置（奥）、center＝止まる位置
+  // サイコロは戦闘画面全体（.dice-layer）を動くが、待つ場所と出目を大きく出す場所（center）は盤面の帯で決める
   const ANCHORS = {
-    narrow: { me: [0.13, 0.74], center: [0.31, 0.52], foe: [0.45, 0.24] },
-    wide: { me: [0.08, 0.74], center: [0.5, 0.52], foe: [0.92, 0.26] }
+    narrow: { me: [0.13, 0.72], center: [0.5, 0.5], foe: [0.5, 0.24] },
+    wide: { me: [0.08, 0.74], center: [0.5, 0.5], foe: [0.92, 0.26] }
   };
   // 時間（ms）：タップのときの溜め・止まった面を見せる・拡大（行き過ぎて戻る）・大きく見せる・縮める
-  const T = { pre: 90, hold: 100, pop: 290, show: 380, shrink: 200 };
+  const T = { pre: 90, hold: 100, pop: 290 };
   // 投げ方の判定
   const SWIPE_MIN = 12;        // これより小さい動きは指のぶれ（タップ扱い）
   const STD_POWER = 0.55;      // タップ・キーボード・相手の投げ方が分からないときの勢い
@@ -117,21 +118,28 @@
 
   /* ---------- 部品 ---------- */
   const D = {
-    stage: null, btn: null, body: null, shadow: null, fx: null, pop: null, faces: {},
+    stage: null, layer: null, btn: null, body: null, shadow: null, fx: null, pop: null, faces: {},
     pose: { at: 'center', value: 1, q: restQ(1, 0) },
-    anim: null,       // 再生中の演出 { token, finish, tail }（tail＝出目は出し終えて、平らな面を縮めている途中）
+    anim: null,       // 再生中の演出 { token, finish }
     token: 0,
     drag: null,       // つかんでいる最中の情報
     release: null,    // 投げた（指を離した）位置 { x, y, t }。結果が来たらそこから飛ぶ
     opts: null        // { canThrow(), onThrow(throwInput|null) }
   };
-  const size = () => (D.stage ? parseFloat(getComputedStyle(D.stage).getPropertyValue('--die')) || 44 : 44);
-  const popSize = () => (D.stage ? parseFloat(getComputedStyle(D.stage).getPropertyValue('--pop')) || 112 : 112);
+  const cssPx = (name, def) => (D.layer ? parseFloat(getComputedStyle(D.layer).getPropertyValue(name)) || def : def);
+  const size = () => cssPx('--die', 44);
+  const popSize = () => cssPx('--pop', 104);
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   function mount(stage) {
     D.stage = stage;
+    // サイコロの層：戦闘画面全体に重ね、カードより手前に描く（つかむ・投げる・転がるはこの層の上）
+    D.layer = document.createElement('div');
+    D.layer.className = 'dice-layer';
+    D.layer.id = 'dice-layer';
+    (stage.closest('.bt-layout') || stage.parentNode).appendChild(D.layer);
     D.btn = stage.querySelector('#btn-roll');
+    D.layer.appendChild(D.btn);
     D.btn.innerHTML = `<span class="die-cam"><span class="die-world">
         <span class="die-shadow" aria-hidden="true"></span>
         <span class="die-fx" aria-hidden="true"></span>
@@ -143,25 +151,34 @@
     D.pop = document.createElement('span');
     D.pop.className = 'die-pop';
     D.pop.setAttribute('aria-hidden', 'true');
-    stage.appendChild(D.pop);
+    D.layer.appendChild(D.pop);
     D.body = D.btn.querySelector('.die-body');
     D.shadow = D.btn.querySelector('.die-shadow');
     D.fx = D.btn.querySelector('.die-fx');
     D.body.querySelectorAll('.die-face').forEach(f => { D.faces[f.dataset.n] = f; });
     bindPointer();
-    window.addEventListener('resize', () => { cancelDrag(); finish(); place(D.pose.at, false); if (D.stage.classList.contains('flat')) compact(D.pose.value); }, { passive: true });
+    window.addEventListener('resize', () => { cancelDrag(); finish(); place(D.pose.at, false); if (D.layer.classList.contains('flat')) bigFace(D.pose.value); }, { passive: true });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); finish(); } });
     place('center', false);
     draw(D.pose.q, 0, 0, 0);
   }
 
-  // 置き場所の座標（盤面の左上から px）
+  // 座標はすべてサイコロの層の左上から（px）
+  const isWide = () => !!(window.matchMedia && window.matchMedia('(min-width: 960px) and (orientation: landscape)').matches);
   function anchor(at) {
-    const r = D.stage.getBoundingClientRect();
+    const r = D.stage.getBoundingClientRect(), l = D.layer.getBoundingClientRect();
     // PC の横長レイアウト（文字は右の欄）だけ広い置き方。スマホは横にしても右側に文字が重なるので狭い置き方
-    const wide = window.matchMedia && window.matchMedia('(min-width: 960px) and (orientation: landscape)').matches;
-    const a = ANCHORS[wide ? 'wide' : 'narrow'][at] || ANCHORS.narrow.center;
-    return [r.width * a[0], r.height * a[1]];
+    const a = ANCHORS[isWide() ? 'wide' : 'narrow'][at] || ANCHORS.narrow.center;
+    return [r.left - l.left + r.width * a[0], r.top - l.top + r.height * a[1]];
+  }
+  // 画面に見えている範囲（層の座標）。サイコロはこの中を動き、端で跳ね返る
+  function bounds(margin) {
+    const l = D.layer.getBoundingClientRect();
+    const m = margin || 0;
+    const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
+    const minX = Math.max(0, -l.left) + m, maxX = Math.min(l.width, vw - l.left) - m;
+    const minY = Math.max(0, -l.top) + m, maxY = Math.min(l.height, vh - l.top) - m;
+    return { minX, maxX: Math.max(minX, maxX), minY, maxY: Math.max(minY, maxY) };
   }
   function placeXY(x, y, glide) {
     D.btn.classList.toggle('glide', !!glide);
@@ -203,11 +220,11 @@
 
   /* ---------- 平らな出目（立体の上の面を、画面と平行な正方形にしたもの） ---------- */
   // 立体を隠して平らな面だけを出す（2つが同時に残らない）
-  function setFlat(on) { D.stage.classList.toggle('flat', !!on); }
+  function setFlat(on) { D.layer.classList.toggle('flat', !!on); }
   const popTf = (dx, dy, persp, rx, rz, sc) => `translate(-50%, -50%) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) perspective(${persp}px) rotateX(${rx.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg) scale(${sc.toFixed(4)})`;
-  // 盤面の中央に、サイコロと同じ大きさの平らな出目を置く（技を選んでいる間も見える）
-  function compact(n) {
-    const [x, y] = anchor('center'), S = size();
+  // 盤面の中央に、大きな平らな出目を置く（そのターンの間ずっと見える。押しても下のカード・技に届く）
+  function bigFace(n) {
+    const [x, y] = anchor('center'), S = popSize();
     D.pop.getAnimations().forEach(a => a.cancel());
     D.pop.dataset.n = n;
     D.pop.classList.remove('glow');
@@ -220,14 +237,14 @@
   function show(opts) {
     if (!D.stage || D.drag) return;
     const o = opts || {};
-    // 出目を大きく見せている途中：同じ出目のままなら邪魔しない。別の場面（次のターンなど）になったらすぐ収める
-    if (D.anim && D.anim.tail && !(o.at === 'center' && o.value === D.pose.value)) finish();
     if (D.anim) return;
     if (o.value && o.value !== D.pose.value) { D.pose.value = o.value; D.pose.q = restQ(o.value, 0); }
     if (o.at === 'center' && o.value) {
       place('center', false);
       draw(D.pose.q, 0, 0, 0);
-      if (!D.stage.classList.contains('flat') || D.pop.dataset.n !== String(o.value)) compact(o.value);
+      // 描き直しのたびに盤面の中央へ置き直す（画面の並びが変わってもずれない。グローの演出は消さない）
+      if (!D.layer.classList.contains('flat') || D.pop.dataset.n !== String(o.value)) bigFace(o.value);
+      else { const [x, y] = anchor('center'); D.pop.style.left = x.toFixed(1) + 'px'; D.pop.style.top = y.toFixed(1) + 'px'; }
     } else {
       setFlat(false);
       // 投げて結果を待っている間（対人戦のゲスト）は、離した場所に置いたまま
@@ -256,14 +273,14 @@
       done = true;
       try { opts.onDone && opts.onDone(); } catch (e) { setTimeout(() => { throw e; }); }
     };
-    // 最後の姿：盤面の中央に平らな出目
+    // 最後の姿：盤面の中央に大きな平らな出目（立体は隠れる）
     const settleFinal = () => {
       if (D.anim && D.anim.token === token) D.anim = null;
       D.btn.classList.remove('throwing');
       D.pose.value = value; D.pose.q = qEnd; D.release = null;
       place('center', false);
       draw(qEnd, 0, 0, 0);
-      compact(value);
+      bigFace(value);
       D.btn.classList.remove('unrolled');
       $value().textContent = `出目 ${value}`;
     };
@@ -291,24 +308,37 @@
     if (from === 'me' && D.release && Date.now() - D.release.t < 6000) { x0 = D.release.x; y0 = D.release.y; } else [x0, y0] = anchor(from);
     D.pose.at = from;
     placeXY(x0, y0, false);
-    const [x1, y1] = anchor('center');
-    const sr = D.stage.getBoundingClientRect();
-    const dx = x1 - x0, dy = y1 - y0;
-    // 軌道：投げた向きへ飛び出し、盤面の中央へ曲がって止まる（2次ベジェ）。制御点は盤面の中に収める
+    // 軌道：離した場所から投げた向きへまっすぐ進み、画面の端（見えている範囲）で跳ね返る。カードの上も通り、どこで止まってもよい
+    const bd = bounds(half + 2);
+    x0 = clamp(x0, bd.minX, bd.maxX); y0 = clamp(y0, bd.minY, bd.maxY);
+    placeXY(x0, y0, false);
     let ux, uy;
     if (t && Number.isFinite(t.angle)) { ux = Math.cos(t.angle * Math.PI / 180); uy = Math.sin(t.angle * Math.PI / 180); }
     else {
-      const l = Math.hypot(dx, dy) || 1, r = (Math.random() * 2 - 1) * 0.45;
-      const bx = dx / l, by = dy / l;
+      // 投げ方が分からないとき（タップ・相手）：画面の中ほどへ向けて、少しばらつかせる
+      const [cx0, cy0] = anchor('center');
+      let bx = cx0 - x0, by = cy0 - y0;
+      const l = Math.hypot(bx, by);
+      if (l < 2) { bx = Math.random() * 2 - 1; by = -0.6; } else { bx /= l; by /= l; }
+      const r = (Math.random() * 2 - 1) * 0.5;
       ux = bx * Math.cos(r) - by * Math.sin(r); uy = bx * Math.sin(r) + by * Math.cos(r);
-      if (Math.hypot(dx, dy) < 2) { ux = Math.random() * 2 - 1; uy = -0.5; }
     }
-    const reach = 26 + 150 * power;
-    const cx = clamp(x0 + ux * reach, half, sr.width - half) - x0;
-    const cy = clamp(y0 + uy * reach * 0.7, half - 14, sr.height - half + 14) - y0;
-    const path = s => [2 * s * (1 - s) * cx + s * s * dx, 2 * s * (1 - s) * cy + s * s * dy];
+    const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+    // 進む距離：勢いで決まる（上限・下限あり。PC の広い画面では少し長く）
+    const reach = (90 + 430 * power) * (isWide() ? 1.25 : 1);
+    // 端で折り返す（鏡のように跳ね返る）
+    const fold = (v, lo, hi) => {
+      const w = hi - lo;
+      if (w <= 0) return lo;
+      let k = (v - lo) % (2 * w);
+      if (k < 0) k += 2 * w;
+      return lo + (k <= w ? k : 2 * w - k);
+    };
+    const path = s => [fold(x0 + ux * reach * s, bd.minX, bd.maxX) - x0, fold(y0 + uy * reach * s, bd.minY, bd.maxY) - y0];
+    const [dx, dy] = path(1);
+    const cx = ux, cy = uy;
     // 転がる軸＝飛び出す向きと盤面の上向きの外積。2本目の軸で横回転も混ぜる
-    let tx = cx || dx, ty = cy || dy;
+    let tx = cx, ty = cy;
     const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
     const axA = [ty, -tx, 0];
     const axB = [tx, ty, 0.7];
@@ -357,15 +387,14 @@
     // 描画が止まっても（裏に回ったなど）必ず結果を出す
     const guard = setTimeout(finishNow, tStop + T.hold + T.pop + 900);
 
-    // 停止 → 上の面を少し見せる → 平らな正方形にして「バンッ」と拡大（行き過ぎて戻る） → 大きく見せる → 中央の小さな出目へ
+    // 停止 → 上の面を少し見せる → その面だけが盤面の中央へ移りながら、平らな大きな正方形に「バンッ」と（行き過ぎて戻る）。そのまま残す
     function popOut() {
       if (popped) return;
       popped = true;
-      const face = D.faces[value].getBoundingClientRect();
+      const face = D.faces[value].getBoundingClientRect(), lr = D.layer.getBoundingClientRect();
       const B = popSize();
-      const fx = face.left + face.width / 2 - sr.left, fy = face.top + face.height / 2 - sr.top;
-      // 大きな面は盤面の中（横）に収め、縦は少しだけはみ出してよい
-      const px = clamp(fx, B / 2 + 4, sr.width - B / 2 - 4), py = clamp(fy, B / 2 - 24, sr.height - B / 2 + 24);
+      const fx = face.left + face.width / 2 - lr.left, fy = face.top + face.height / 2 - lr.top;
+      const [px, py] = anchor('center');
       D.pop.getAnimations().forEach(a => a.cancel());
       D.pop.dataset.n = value;
       Object.assign(D.pop.style, { left: px.toFixed(1) + 'px', top: py.toFixed(1) + 'px', width: B + 'px', height: B + 'px', transform: popTf(0, 0, 2000, 0, 0, 1) });
@@ -379,20 +408,8 @@
       D.pop.classList.remove('glow'); void D.pop.offsetWidth; D.pop.classList.add('glow');
       chime();
       $value().textContent = `出目 ${value}`;
-      // 拡大しきったら、ゲームは次へ（技を選べる）。大きな面は少し残してから中央へ縮む（その間も操作は遮らない）
-      later(() => {
-        D.pose.value = value; D.pose.q = qEnd;
-        if (D.anim && D.anim.token === token) D.anim.tail = true;
-        later(() => {
-          const [ax, ay] = anchor('center'), S2 = size();
-          const a = D.pop.animate([
-            { transform: popTf(0, 0, 2000, 0, 0, 1) },
-            { transform: popTf(ax - px, ay - py, 2000, 0, 0, S2 / B) }
-          ], { duration: T.shrink, easing: 'cubic-bezier(.5, 0, .3, 1)', fill: 'forwards' });
-          a.onfinish = () => { if (token === D.token && D.anim && D.anim.token === token) { stopAll(); settleFinal(); } };
-        }, T.show);
-        callDone();
-      }, T.pop);
+      // 拡大しきったら、ゲームは次へ（技を選べる）。大きな面はそのターンの間、中央に残す（押しても下のカード・技に届く）
+      later(() => { stopAll(); settleFinal(); callDone(); }, T.pop);
     }
 
     function frame(now) {
@@ -467,8 +484,9 @@
       if (!d.moved && Math.hypot(ox, oy) < SWIPE_MIN) return;   // 小さなぶれは動かさない
       if (!d.moved) { d.moved = true; b.classList.add('dragging'); }
       // サイコロは指について動く（盤面の中に収める）。動かす向きへ少し傾け、わずかに持ち上げる
-      const sr = D.stage.getBoundingClientRect(), half = size() / 2;
-      const x = clamp(d.bx + ox, half, sr.width - half), y = clamp(d.by + oy, half - 10, sr.height - half + 10);
+      // 画面に見えている範囲ならどこへでも（自分のカードの上まで引いてもよい）
+      const bd = bounds(size() / 2 + 2);
+      const x = clamp(d.bx + ox, bd.minX, bd.maxX), y = clamp(d.by + oy, bd.minY, bd.maxY);
       placeXY(x, y, false);
       d.x = x; d.y = y;
       const v = velocity(d);
@@ -528,13 +546,13 @@
     mount, show, roll, finish,
     // { canThrow(): 今投げてよいか, onThrow(throwInput | null): 投げた（null＝タップ・標準の投げ方） }
     bindThrow: opts => { D.opts = opts; },
-    playing: () => !!D.anim && !D.anim.tail,
+    playing: () => !!D.anim,
     sfxOn,
     setSfx: on => { try { localStorage.setItem(SFX_KEY, on ? 'on' : 'off'); } catch (e) { /* 保存できなくても動く */ } },
     // テスト用
     lastThrow: () => D.lastThrow || null,
     flatFace: () => {
-      if (!D.stage || !D.stage.classList.contains('flat')) return null;
+      if (!D.layer || !D.layer.classList.contains('flat')) return null;
       const r = D.pop.getBoundingClientRect();
       return { n: Number(D.pop.dataset.n), w: r.width, h: r.height };
     },

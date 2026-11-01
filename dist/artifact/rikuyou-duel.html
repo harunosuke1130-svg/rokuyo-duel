@@ -1845,14 +1845,18 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
  * ==================================================================== */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
 .bt-stage {
-  --die: 44px; --pop: 108px;
   grid-area: center; position: relative; z-index: 3; height: 108px; margin: 0 -2px;
   pointer-events: none;
   /* 盤の面：背景の絵は見せたまま、サイコロの転がる場所をうっすら落ち着かせる */
-  background: radial-gradient(ellipse 40% 62% at 30% 54%, rgba(236, 218, 180, .26), rgba(236, 218, 180, .1) 58%, transparent 80%);
+  background: radial-gradient(ellipse 34% 62% at 50% 54%, rgba(236, 218, 180, .22), rgba(236, 218, 180, .08) 58%, transparent 80%);
 }
+/* サイコロの層：戦闘画面全体に重ねる（カードより手前）。押せるのはサイコロだけ */
+#screen-battle { --die: 44px; --pop: 100px; }
+#screen-battle .bt-layout { position: relative; }
+.dice-layer { position: absolute; inset: 0; z-index: 20; pointer-events: none; overflow: visible; }
+.dice-layer .bt-dice-btn:disabled { pointer-events: none; }
 #screen-battle .bt-center {
-  grid-area: center; position: relative; z-index: 2; align-self: center; justify-self: end; width: 50%;
+  grid-area: center; position: relative; z-index: 2; align-self: center; justify-self: end; width: 34%;
   display: block; margin: 0; padding: 6px 10px 6px 18px; border: 0; pointer-events: none;
   background: linear-gradient(90deg, transparent, rgba(14, 20, 32, .74) 22%, rgba(14, 20, 32, .74));
   border-radius: 4px 0 0 4px;
@@ -1929,9 +1933,10 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 
 /* PC・横長：盤の列の真ん中に広い盤面。文字は右の欄 */
 @media (min-width: 960px) and (orientation: landscape) {
+  #screen-battle { --die: 46px; --pop: 112px; }
   .bt-layout { grid-template-areas: "head head" "conn conn" "enemy side" "stage side" "ally side"; }
   .bt-stage {
-    --die: 46px; --pop: 124px; grid-area: stage; height: 76px; margin: -8px 0;
+    grid-area: stage; height: 76px; margin: -8px 0;
     background: radial-gradient(ellipse 50% 70% at 50% 52%, rgba(236, 218, 180, .24), rgba(236, 218, 180, .09) 58%, transparent 80%);
   }
   #screen-battle .bt-center {
@@ -1961,8 +1966,8 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 .die-pop[data-n="5"] { background-image: url("data:image/webp;base64,UklGRrQVAABXRUJQVlA4IKgVAAAQRwCdASqgAKAAPkkejEQioaEkqvPOCJAJCU1cFBGT0J1aBMW/4TT619cPSG5P7EvP9pPLqff/23qc25vmi86f0t/4DovfZE9ADpc/7p/3vSwuj/hL+L/Rv6H8x/XQz99fWop8n+/37rze8C/i9qF/kn9G/zPBd2d9AX2J+0/73w8dafwd7Af5fevHfo/ef+F7A38z/uX/l9ln+h/8f+Z/Mv2xfnX+F/7/+W+Aj+Z/2L/of4T22fY/+z/sz/suCgs+4i1R/frGClQTcp47ivB81RBwoKuT0iDPXe4vBzAC3wIfFmZQT61LL3JoTUGd7U4BhQ4SfjHdrJv6eRS6bQFjts7Fl32A321CalUzXX4Tv7LhJ3G5JZlOBqgyqklyyGaylp8p8fFrDIzzeLrPbphG5P4vALNjmTpbCYoax9UXe1Of6vW9A/+nCamxg6aSMb0DkDMPuNgk92MkHI0EUZQn/SZN57ierFCfk5DSwPHowOZXy2Z6254w837b902dJ4uPIQLIzqeqZ3WrzZfcKLjva5JmAB+hiAZzH0JXIIzOqK/2wnWmFrCPIa7epM9gsh2COyurWUqtU1ZPNSnseC5dgKV6SHWsvEP8o3/RoL3EpjD3t+kgTDtjgCl2biCujOgxOBnPlzsBtop1KmXi95ZsAIBQaJoGyimQ3R8Pzqng3ukoBDoYoFJGJEAxmy93ofRB5FuHC4SLivfbxw8ADU9ztxDcYItbBIF+c0gRSPGKhvb8IzAUUHlqJIK3w47yumYAAP7wt/LW/zTSq00pfLkZOXLwLdGtRF9v2eUVvvYvrtIyKbiUzsm+fyOtCXN/R9vHWHQmHXb2sYrQy8DNpfxdA1V9f/vmTNEb+1jLvXQSFrNbqCSAE0Yt+qJG33jR/VABxJs+MR7/+shN3zCLafVRrZpSozf4vokbY8TqtyfxvGoIvfx321rQTFV+eufZ7+Jmkozh6rx2ga3ih01JLp2PrAgXJPCfI8J3ioQmA2JWOJ+VAJuz8nYvOXfkz2FVc1j3bkth3GlSkpcaubqOX9EQJ27mlSfhIm7cCSrjv0PwP4k1yxmAbt8WRa7vpWp+0wWhD1RSYXx7BR/f+WxWtLnGjygW22PUZCE2VZtLVHAqQjBORIIOny8JBkRO107OZ88PfGo+LDcxO55QxBfvo9i8+MFt966rd8LQxvM6k6W6aA5hxVzTdrXVCND+9tjou8beJd8A8N+5qKmW09k+NGmxjIMLe4ec3xOk0RiS+WRUVnTCn4ZqrQsAnf2e9SRvLkvgpWp/hdjaWsn5NQg2so5lFyd3MfkXjigtXpz65d+8MTihKD5g+IfkAAyDKm8XJ2/NnqFq2/lnbYOipQYktf48OueDSL+N9Wkmddhq51feZ5CfKCvpYY9HivW/NurkTEqrnIFd8gC9JwY/kcKx8BzjZhAA8xRAvqyfNCyGpe8ZbO4Wykst2y7ztEq2Tjvo4p8nqoTOiUIkOiZ64WpJpr3IwlaJfeLO+wah3dheTjT4pAOmnGecjJZy0CXfzr2HzsT3Gpzjvp2rmU17c3oYhpfKXUBwK/2o3IcUruii4e6AGG3vHw+aAxL1bbDj9Il6ULRCzetH+r7zTtQ/y/0S3+tRa+3o2nUBkg8k+cIXnJ3AHZdNkCx6ATGDUb4zLBa4u1nGOLuTNHPpjjSZh6bryH3J7xwEzWL/z1sHPZYymUMHAhMvlzzp99yjJT9NWYngHbvXPf19lRUa6FIlnLh9b/9bjkcDfJmfbuLfbbqb62OI1bJIChsUJSDRyKOqf0/6owlH1f5jPmiSrdvLls0QDFW/CYTrESIESUrtTIVeiQx2+2g7eZWmvFNQU0Vbwg9IZXfjvlDuQOwup0RMQ4kVj3ta4dxAbUgWxJmF3l4orXfDUyYA997qk5eCjmupjxpx7r9G1WrwaY2w0zB5P+IXD6476v9fAH6jmTfiHk4O4PXrkILAYQUncQl1w4nDfjH8rVTc+lQQHpy0kBOsvuAQkF9HKlP5/L2TyPM1c5YYbpEYAPC7vZoEL44bcfcrE6iVrt/5mypMyWxlvgNbmUC80TsUwmVRmzJZbl9X2FgUlV8U1duONTdNqsKpliM/F+cVh/UBzZGDeQNEFh8npSWDVve1NDFcnycDW2bpn6hm9Z4mWSOHaRIEgw3TvrRjZWUJbkUB/+Z8Vx3/v9vCcr6k5Qk437dm5b75PC2LHMFAYV/dGbab3YRay81ydaipRBl7yHWn7PgY4IP2ZT7FnnWZ2aIpxf+sqw5wzzKB/CFco/mJQFzqvpYIgWKLnQy0G49/gHNyrA4QdxAtUdfbKUHoJocynyyFcmRPHQWa5hdKX/GUZOZ29f/FE+8CwrKjkz0CYKCgO4TYZGDbw4oHcjQneX7XOZtwfIQ6uDshdAoRFg6oP9tAEiZcjC8pNM/qhsVhAT9/Js5bK0mSvRkaYFu9vX6L00c4s3ozHVlv7vdJd4iMDVQQVsNx3Sz6/OuLOski+WjXLrJjYY6D422Hnc44sIzKior2fwNBIcwEMiAcDpk9Z6PoLEOLMBsvzFeXpSchrdjMi+JVSyMPhHjhyipgOVB/HCa19UvnF+apIK791Z9/HX2V6h515iOdTz6JNbfP/OfxAfpuJqcb4k4s00yufA0frNE7t4/kXVHswbX0l8rtQYwSM504IV+3mka7W8nY863NbojlLT1OHolNlSeG5MN7FeONkRXz+MJ1hunU9K0UI/x1mddXLYQsDDIOkM49Mx1OubdP/c5SB7QoUoO6Xtv/2Jbv/nTXigHMgCzr5QRFyHcfR0ky7RhUXNEaEpb055iabpTBqmhryanjyI3V4J4djN8ysMdBypv9TDggsO38Z48tOtOG67bDRHlmIoTFgvV/dv+EEooo5SSp9ALxK9QGgsoQ+eqJJGxNMuBKkjbLK0zS6WDRSoYCVahQZczQdrZlLcZTbfzA+4QP0Pd5U3gfaaMRC/1A4Bx7dfBGrcbZUKoWbHwKC8DbcboK/7Vlnj9Kx8ccaINl8ZRl6ZPRM216PvNzJ/GIkdE52XccRVCo/6Zw3bQ3b/aMfEohXRlqlbJoCeGH3VDvpz9JWTshXYGA6iBPnodhA07xYf6kjrGmMRSD0DQ7bmdidaOyBrVPy/DOdJIJfYQ9hp9hXjSbbUb9SU/AxO0z1tk+duGWqNRu39JkG4mzguKnc4q2hf5vRuS/zxaLdySoaDoC0R1A41hX4e8JQsb20RAq1QwBhHlI40FNMb0/4AqlFo27BFBtmvWZN3kwfrmRtQ/KtnmqiMQlPC86wzOa61jeDsFiuBpolB+hOozPpXy5mrYSnef3DO4n6a0QdMZ9mosZMkJ/TfGzdGblzFVcPM2JQl87qRDmz4ZIqYbpOht6ZgMFC1TG4BkHaa/XD7jfSZL6wQz1faPhpXPla7ezfTgD9IMoL/FHmopwxPDlBId199u8Hn43zuRkjZu+DDTXl5vrYoWW6K4qX53a9FwZQt/f3oSiXtha+j2FyBhGfscEn8x8p+TW6G3QoS0OG5opIa5I0ZS/rXe4/Bh3blx96bytVZNT40Ozk3k5kvPEArYmpqbbe1xRmGrcrXi7VlgnmAK0p6X+ZzbiwlWnRSP6Rc63gzVR890taLKRgNz4N3KQ98Pd3T+hvWwDgxsCQLAlpzsw+1J1W6Kirf0IZGtkSwyR1coODGpuuwtiDieTFNS/WY+kE/QOsn87MgfLLWuvZE3U56Q2T0U7szHcLifemLBRoY4xOc0Ei7M+1hJk9y5EMZION8AF27QkdN5Kknoyx2NhfeW6W4LJlZFPnJX/z7PH+GcdupJ6tiidg+YQeF+TIRWYFxhHVys+GabIto0LbXW0VhejwJFoOFMe3SeXC3MJY7hpoZQJgAoDCx394GUdH5qrcZK5W3J3pGZsG+jcuYiu5auCA4YPVgcFnhi/pU2SdEMC3Hm7W+KsXSHdfBOOp3P66O1BOSDLoNeuQG6/C35iU/kV5l9fklRL5JHYOblJbspbNTow32a4VHSBEnafQYv4vGXIctX7exvTm4Fzf0FSAwW4cUrRUooDobJhNsLLB/QsoaUI9TE0B4eZnvdqMyAIqr4Dx/VIxAKExfLc03T55qpsFBKgkjvL6cEjQ4cv8u5HcPvQEcJj6mNm4HU535vek8oiJVb5JFXcd0sGxLW237GKrgo1mHa+Zhgs2fjoeKRN3J9s2rZ8n3roXGuMIzZtJxj0DeKiVgrvKvoUm04Vok2FT+g9kOZU/VgldGyWJ3xmNfMjxELkz0FORQ7MVAA8ODLpDURjtwYadXKt8zu6kZD+BAIWftvv7k0Q6T9b83lKQ9H+kzHKcHDdCDms9YXTaEV2++V7hBLeWNka0P30jdc9tdTUd+2TrKvURO08FBZe9MhvEhWy5TgFQPP8vCmHpZHc85h9JN07/suKdAhSuXXtHx6mZtGayFI1eKBGfxbVOofjLT0VwRTDvd+IBxG/2yRFOaOK9uMxU6In5xkk17nb5NffRoI2zKOthoWLYaRDufwkWnO3OQLI5FN60Hs7DrX+nHO84pwRs6JtjhJKHXjheZQEp+14qGdE6s7h+7wNauY1DGvuhMKEwCnbxThRgW/A5VpoJHUhEDKZp+64lcmKGElsj02Z55ohLZnXE1t2ifdl4jiP8fY9dPrf7plz72LbjdthiiYaPf1WA2f9aw+lBW6Aei52iOmraDLCV6OrrEutn5XrmBKrA/GKsmhsfr4lfNYw+dq17YyusLJ846eObFNGuGukqI0tawjRH7JpW7Hr/nqiGWC9kpUxaU4Gw9Vm70l1fEFeqQ++iwN2x8U1XQU+C1X5mvaORnKafQS1umrcugcydZANrt6mmMllDYvGF8XxFUAYFx6RQkn+BchIqp0EFzYntm9tLKRM5LLN4eFPe5+uf82yxOWJjG4ZMhtO2MyZek0DnUre5abgmfbifA77a0UDyzR7iVJ2Sq1qJn0Y2EsXfIR2A4ADVEj43p+oXrWIC20i8iPwLyr6Vpig0/xIjqYnyDCUcKqolYNrE58QfpwYw0IR9/Fx9rFQPbTYjfC9wBJsvB2CdGk7R8U6d4uq5xnYMWJlY7Rrku+sRZx96o9wPg/gnx5BoIa8HVHZezxW0f86qadUusMEC+Y+5JnjsKGGRMDmAVJ97U1exgAlM5jbRTos+5XKoWnC4v19kc8fB62MEk2IJcs9fDneVA0wU5adn3MihU3KtsMBZmHxyleHpgwqmYUJCOiqbCdJ3YpVVbvXDAetE9kj8crzRzeoKAY6hHs5fIYDwhLXSKePpcSRTJ6tuGxt6v9YFlnfXnrhxVV7G0F9uSX3vimv1l+cNC6/It4olkYtQgC502P4v5akAzO+C3ERk7tpnoIG3c0O9a2Ghz/MhN+FmPCGKPT9e9sf7D+pP31eOfpARhfcJS10ji7sfKGUXBe4GQpABglahzlhUKLgQWu8UTxJOh/3cJ4gK0I+5fdFt9GT9XanIWmZmD6d5AgxgMHj9K0W/OarbYK9tAbYRjwSalwE0ML1jedNoL2YW+O4K09LjhgKnuScSV9yPjQBy0KLuU7YcUNcUlS626L//R88dUy7Ek23ClH/mS+Orq/99Kepj/vwQE+S24vph/09UuEinHTR+rInxTP+7H0Z79aDXTetzCsGxmihwkJiM1KJ1FS7NLX79wzlLcT8MWs/tDVPn4FoSgkyzMtdb8jZTt5G5XT2dMzPOApkTpxJ0EdaOWQZ941nFeBgHz7nIGHrts+NduZgdCSsZsiapVi8jRK7PjaycoEVYH2zTfHmTdacvSYwao7N38ctlfFtjFFg1BBjlvQAiYElGBakn8+zlUJHfwX6MZrzEAjXrg0aMRafErC0UpIIgCm+3XwI60ONssWOIagIQ3KFjOgJQw2LFQTbhHsXEq1Eof6BU4J/Mqm5e9skoZz6v0KSbGeegfKRIvvWDkP8vvqkR/Bco/dMm6xQJKUJ22W+R4aWEAAzMivg3U23U0Unq+zM2+BI42OOOq40fBKO/64jKY0esoZpN1f5q8rJ+O5kNRDUNDPsNdbvj3p6+P3VxLgPhts5W1bZbWhYrOKK81Cow9eveuX0Tre8vQla1uAn6cBH3krWSoF/d+vWVpAQN4rCkcwrlRhV4hSAgiFholDhFbpBe7zKRizWUeYQebpBxWsXETsZ1HT9yvty0drcKflTTM4NQhUoH9y5GrjPLQNkBmf+xeIpuEZIg5wLp0CcRXKOtqcWRffD/uxfe13uDRmaSMEb+z1TUNWL9tkJxP5CBeaXOoGieshZS3eohw1UuwkT4m581OyPToWO1KXzKa9Iqf10+/7a89fR2Yjb+7KgJ/YX+GzicH3NzMGwLrMVtGaFTkmvnV4otD55uXjSRlpTHLH6NMACGsONgyr2gLBeWCvS3zMxJpIO4ZJpR3PUvkSEze5vOnfbnWYRZWr+S87+Srgm36fkhUCF4u0KQk49jR6fnyF7Ihqe9xaqvZXNtXCBlxZbJEMBR/w9hUxI/hk+gw2LFelIm022kZd+JwdsOOzfAWLsuzVbKRHcgt2MqTn/0M/0Z7UAy94bUVsl7aMy7q/1ZJxfYlVyMby+9Nsp1SWJHWcnGwq01lrFEO7lUDc8/iEoaBeukyjRJsX8NJgLqeqLJe+Vbz60QyrYOXjqd73PWU0s7ct2zOvnvXu1sp5dUdF2flrSlS+arYaKWqeJYIvFGiwctEHSVj+mubbKjIGhXRMatls2KQuJBqe2Exdb1u2xqusUVv5naD8OR8XD/HxdGwN5xZA6GSUG7gK38fj1nfnjtpuIfXPNVQogbmTsCSSZcXSCZ+ydHTmNKJnqCrp1NMJNzrq09lM2JhYjnqjdW9OfEdfiT9S98gpU7mqTv3i1rNYoX///mItOxZh/QuOUfjHTnUvN9/oSzbtveoFm/y/WsRMD0tpq2S8TIUmlDisVksCGN5Wk2BblpKnVIZClChF+KQpG/MAdwYtNuSJNBXuO093Y3GBPavkCelbHSbWEA1ZmLld2x7XExe5FOV1BKUmhojmUUMXzNgpezw9zpio+EnT3/fGKAN4M1CO+sNt5RJ1oIiRAuJi68xWDhrn4w2g77+Aaakxth9j6U6UaJlH/A3MGtR4HJMsvIHITfxsvN7HpyXyEx3ygSGmto6Zp/hwlIJV4Ec2JHi4u7STNmnpLj4a73XgI/H3pFFgfzd62P7FXB5ob3Dv6mffxxWTa/Hi14HqbHULD9/bIi6uYiMgTd26Ni/4jcB73VHQ6kkz1auy3WimttqPvWBrs/re84QuK2pV9RK2VWicdYpykop1UJLxdPAXfzoBDUt/FiWzj4w6a+GVOmCfbNo3ic2tY20dWubt/rt/6ow9XCWnYXyRTsJbTlF/P4pg26lXqQJyAAAA="); }
 .die-pop[data-n="6"] { background-image: url("data:image/webp;base64,UklGRhQYAABXRUJQVlA4IAgYAABQUQCdASqgAKAAPkkei0QioaEiK5Y9+FAJCUfd4KvRs5gbjP7cv+1s2frjy3+h/tXnD7bOsvK4fq/2HqZ/TPsI88LzUft3+yvu/+lv+++oB/Yeps9ADy8PZo/tP/f/ZL2qro34T/j/0X+Y/L72DM3fYxqI/Jfwh+9/wfpD/zPE/486hH5R/Sv9L+ZvvRfQd1/tP+T/5nqI+3/2n/g+IZq7+H/YA/nP9i/4vr/4QH4P/f+wJ/PP75/5v8t7rn9H/5P83/m/3X9un6D/f//D/lfgG/nP9f/53+K9sT2hei3+v3/bBxd5H5MdiR3d+/7Q3CItFOKdeWtx4cRx6q5ocBXGreBg6kgvzvKaOybp05PhMCCa12n46V1Q0AdYGDe5fOEwsP0fpOAzCol28BcR53Qofhtcz8xe1qwxCi4CbRy4zVUR6UkEHr1EfAnirCoAxKLAG8xAaXg/77WUoTXW8kquzWQqDZ+cjGBSnJh91cCB4Nm7I3MAOSQCh4t2di5zszbcUFcm1WRLPjFPCh5M0U8ErYeL/4/PdsBUeS4s3JksX9svap0T5qDwrw4ioH98HW2Z89vX+k1lYewBf7QtggFyl5fg+s9RU7/6IYtuh7Jc2tUPy2Ii5B9vYx7fDHfQDcu3zUnX8WVWTysGEH8+loHkp6UMMvI8mVmFwasg06i+VxUN1GV0sApLc3/uMTeZcHshdA5fVEibBL3a1bH2QsAF4xUy4N6YStU9uZCLwl/95ZLEANJ4m++uPruZoBNS4uTg9jC0WsxE+akGdjQseu3heb6I56CxLZKoyPjK8AMJSXVXoAW/QUrLFGuhV0YbkuY7xZggy5W7QP5UJk4P381xR4jtKf+pbqsTonyrt2Z/Z+aCAAD+9BcAa/8gCkogG1uqJ6i3n7x7vGu6De18Yy9adIZcpT2LUuG50wZwakFt2uXRtj2u6tIU6+dcuxyMoUjlpGjUH52sWGSS+MvmwWHtg2p/wCLTsjrSgrrqArHewbwcSDZd8LiylJ/9ToyfLLHhkv1jU4E0NHv9scDdCHA38Ggwt17kuc66XgkezfZnw7tB98F8fj7gvG3pbjAyKNwlCevnK6if6JvJZ4yNtyOSlExWbsjZUGoi0UQEKiy2LCTdS7C+lQqVKrdgJcYVgk+uQ1lCOjeTaQgMhAW5hF0e9XwyghxMZ9MNbZi7gVZTWxjXhIn9THXMRjIvlmBvEXF+TN01Gb+Gb4WwZmzfbjISQtizy91/SvqqMUFjBhhFDNv7xXnncvkZZuCnW7T1p0zbI6YgdehapjnLpdoFmW4kIpWSzxu36vRDj5shdju6nP2NEk2AjU+5nB7Y7MgF6EzuTvEyqKrqvA1YMK8rQBKehH2diBHbQlyRWiesHNzxQdBmvzHrBKPyn6tqDx29iYW2LVd+iNK0NHELzRheYX7dYUNL3sX98dcXOIlDhWAGZaYliA4/fgTJfPnvjZd4kNEBFiHKDDBKFKTwHed8Xp35I9YBYnR59EBK7z0Rhlp8dZfYx1lWyIHc5plPfy7SJgPMEyLqk7f93uvH159j1Yzlhc36nEpuV5IfCWKhPPGXSVxVpG56Mi32qcEEcZXORHnXNdVNJ4+ju+EMGA8KpOv01cHtHiTLmYRGsNHA0R2j0YbdVsB15kP2TlhCykQyGCxb2loXq2YTFboLs7S+edlSQgk1byA2Rgh8I0CzBUW8r495aWpc1B484AlGGGGt4kA1scHYflo3+HJ+byoM0GMVn6pimdgwfU74R2hw6USrIy9/vOyN3Fe8WkAlYGI4jVd8pjrG2pRWAgQeri7tt6KoFE8ikeQBx+K01DX1/JuAkH3wltbBT8NS9J7XsdohC3rKnvG++AuvHwHRbdMaatj0vgI962glI+Fe9GrB6IoZCKPjU5TQC/rPJwR5mYBNJs3DlY95sj3YoWrlys3bxAc0kemkYHyBeZ/8/23G9xa1lBj6DzdT/tYx+/BzSxx29ji/pQX5O6z6zuiwNkwbZ/pyqFWT4M+7cnY97y1KGq4BodT64Hk8XxbZCl8wgCeWuxparTRLkDXygOzTxbIds9rgglymqEdtuVto9vcFLtGhpX5Q3Aveeg8YLN5aPijekW11s0SiVKcY0f1Ahp2HXvLsRPSvLEHMzUqU1CNuwF6pUfHsfltNzcLwFM6nAWi+4XwaekIbefSoY7FBTFMhImwZls2fa6BUfinICRjCK2KsI/Ok8SifAn8uJ7IdUDPyozHreRu3bKHM6jg8Mj//6g2UdpexL/EvWS+gDlNShgSsoB1sfoVrL8Vn4O+QvGHcpOXuyhHgnvOr35sOv1VNGRfDM9YcQZb6r8Ma0Oa96J6kUFmvNZD07LjShMnnD0lRzW4Crw7/R+pVFLBekB6DWYgI3aD/WV12aqO3HZl1rW56EKQu6mrJddNhPDf/1QjjnnkizbfU89LpUMeFGqygPuqLGx+QpCONUmwyKIE/QA4dgorRVdSeej/xyVzYbsCwpKYYS3syy6aN+TjyBdegVMDM8iRtW0OfqLHujd3VX5QRItGC5RIxP+MWVeoP3SEjxLu00sUiEXMmbTr48D3WaI8eXhpxo6U0iTWE22dSLCGEpW4HQMPwhlCbIHjM0PZjrX76cM1xDK3Fr5SV4VM9Ep7XBtRjscgFT5gjSFd/5BZchNjkfrohODGBeydKZQYdyPl9Z28Ua+ncBQgiHWudwN18cPVe2WKzl5A084z0o9FQdggg/ij3TIm3DPDKrqDnV9qb1QpAPbecQUqP8Z7KWW5yuek2mtw4jR8Jn2svfKwyHnZnK2pvcX+sSnUI3/1onjOMc/jgPT/R0rPefEG8Y+8qmUogmVS9r7JRPKZBD7PGed77/wNfPjHFEiGkpVMqNWaiXJL0WMQ8BYrgzGBTOuOJyIuAtQHjHZ5VWjHVgNKq1J778X7tC5outiwJLZFvh+SmMf/wN75vWizCEIcHQwnhoWVVZEtfTTfiAjQqOCPz+z1tYmgcq9zwhYPVze07nz8pm0FNVGJ2UwtxmheThGKAIfd0AvE5yWqQ0y8nAXsRG+FqlmRzAKvJAjbzRGVfq1Krx60c0PFPxl9PHhKmGTCZV++kl3prJSLHzFQREJJ2lobvFlf7zSw6P+Ja04+sT9VELoQn59g0svkGCDfmYs7fdKYyO7uLlbeatGk2oEUqaKxqpzpCev/aFja+Q4C5a5dCqLykUnW4i+5oXLTgH0JMdM6hNuwHtW/9aeg2t7KwLA2heu40lKFaTV8trgIwDlMQgxGj6sxmRpHsDKlSJj4wk84Ha+dPl2W+jWIzjW08fyJvnPs5xTap8SmrhhGTsmoGJeLtu0QW4+wkG35SADC99vSOQB/shSFGaNJmmm5e0Q89Ea1C0hWw3AvImFAxo8QmmTMcZImfZw+wuxiCLiTxahGpIWn9xkF9PuD9KB/QmtCSm6qz2oX7rTmosSlAg+YADIEvKGOoBIrCHXeB3YRCwBZKxypYjFaBmHs40s6WTvFt0TpGHM6UicwD4Xodrce7jYA/FC6K6+pbdwlZLM7JELNUnDj8qWXVgYX3IVlIZ9Qlegr0UAomn+pbKBLV92elVVCFBdyCBKrJRifnKEjIfsI4xsq3dQj0ZQZ43tj2kjTeGPIoR5tA8M2XpBkbDINFU8U+oh0jU2HSH10WOgAm22k/myIZFY38bsEYuSVDb0LUXqyp1b+pYkpSYw5juW/TZwOwMTBl5deKy1fNRJs1TzT0bczBhtXt7LgQ/A//GLLjIzOri/Tp8s+yxHqnNe1nJUBw5TXw+y9vjsN3NBr8DEcJYSP7EmiF9W9cw5Tk7nZN91kyJzM73aOQlmm8Ik4evQVl/mI4SiZY5rviVv4osuKFLNG/fBCSzCJ2FkHv0/y0w16qcXU41NjNTlNtfDUdLYniM9hEo3wdSWfByD8DIlNgFkHc9fRS0dyKyuDxoFrmEnAzhUUqyI1B3n/dDjNMi271CkWwr6phsvHToO5F+xg5VIzGnon0aIiMLm3y5VKdY6G/v35odYrVpHf5cfrHfv5LvzGRC9Rv/ug5bu9XxWJx/euRIoOhyePjdJgyTy1824KXot6kKrih/DX4kxY8NLz/NDLe0LIC01SR+vq3SKjfNZw0028m82zOLZ81l7ByU/quddSeg3F3kj1qinKIjKU5f0HjkWISmGpsxkFOsSCQBrlYvYJBAct5F6VtpRWv1WnF+8YCjbiQLTKUQH4phQfzuPi6iTIgw5GLzxZV/+JBvjgBBe0kATIWqRvkutLyth0tggNUhp8eqNWM03Go7qukAOPJ0EwCYeKwVptb/cnl6/0KVEuJXeg16SuqZIKoppc9DdpffN7Dt/RR1IBH0N5GDExeF45lvruS1Hq2ldWSMYweeKlpx1UO1hGrW732jXkk8I9b/KUc8cQHw8iyre+kUKeKVKQaiSP/xP6KWVLRX/5C1qTAK39G4gU8pNIt7DQXMq4KvL6a05vPPGNpPaPxBSkCWuFhNwVuHIBLDCkXi+G3zdtx+EUj0sGQZMNba5Bvs+qrEYGaXlVWLYLaONIrPoLBRZjHkvgaJMxzpCf8Uu9MAoKf5HHrOONSywGPv+jg0z1hC6ZqUsd8/Lg1bQ2shPx4dwRoHRoHA7pLNJx4YZC0mPPxJLhrn3UMD1d6tgS0mSvS/b/dTsDZaeGJXGppe5wsMy2qQSZ9ihCMWa6Dx/GhDDjm/5fpo+pn/zY2PAUkxrVeecTnsEcsjfkIJ10d749i/J6jiI44+iHAQ5DbUjx8MBifEViFI6UKGWHKRDh5uS1i8K3q+Ge3RGGHt+eGP6SFY6Ev1iKf3gJIQw6BClWt8llSoNw8uAQ3sSL1RqvcQCx+NhSeCVgSGCh4oCTQ/xQOi4pCH8aC2e16vdcdzLRI7phtW0Ixhjh4yOL7/ylnbMoKyckeMTbk/Eh6//W9e6kUDFKPNOGM4VJ8fquDiEqSkojeVB46ItnTFoG+EHxmW9dU8q28YsT21Lpy9q/Kph1uJYgVp0tDJzOei2yAlaNfPOWHC0rWx81KvdRzpmteatk0KrvamV6oaPTH43A7r32cfr1iNQAOs5SAxj9KENga0OGwE+lZhmg7S8+6wHJUV5JC7Yap5x7fX+bog0XKoifS6AHvV6Kxp+hg2jBecteZ/jqHVkpq7MoTa/ILkGiqhOHsdC/5F2jj+LSsaZlD6+flisQHalZunupqIB3mqskXqUxSPbItAtQ8nKtV6yG+TFctMnaA3i73LMCNeMOkF5CTS4HRH/+icEtEbqhLgzLXgDs3PJ6D/c3/yejhed5yE0Hy+8/gjTSgl2h/T8Yk/tDzF/ag8PIfApv7xDHfSs0CwLQCKfZcI+7N/sToEkUKMVdJwC4UdKFSbVErTn0GZc0kniY39Wg5JY0+PB++UsaMfIjFsmrwNGjNO5eZ8f0+XFvwri4bib9h1e1Iy2fwRlGMwcFDb/Wk2l9/WH016tdnNhKugIl8jePfg06qnYeP2FR4Mid6Ol4QXHp2JjJ/cYxdvbDaDWvBGUSUmrW12p+bOa6vypYsg1WWq+OXbU/LeKM1q5Yx7P9znORrG/E0Ac1nX+1RHyngX+z/vQxciWha6DpqIRwMHlrKChZdETPlhy5H5U4f3vVkqmhJUzzfqJJodYkIKPvz5BbdHA+3MOcSTL5TQi7XWPfWbF1A6jNDC6fdSUFBwr8cAuWbPE7CiqcsmlLINuct484A5V5sUuzsFDA2NYi/eMVZtxmrrNAmXh5CSYCskU2MFt+EIHvsmJQz2/gST66jAkiiNgaVt466FhT6e97qRcMJ1sEruGdWlre6AzlQACtTuQAX0c6jdaapZre2S5VZDBK0Bs1r5V+MxqLv7TcMw/+wxn8vjAUVN9ZpMqIw0a6gpMUi+2z8f2gFle/+f/+PBhjNAP8Ul1bhe3ctJXZuZypp2MYdHA/C6cd9XMQ9fmVOJunz1pOpZ327tC3C+SMkS3VMEyajidkKz0XraE0srEy4+Qa0dzjj9La/+mEatAFaSg7HBIQ++69syLGAL2/gwyYHOixI5GslFQ2v7JEGetINSTq4RHJnXe8YaONPHTBoC5YzAidFlnWbYgJejHXVXRCCS73HXlwN4SrEoKsZu/xgd5HI2ZLKMmNxkNCFd70BVgJHLzv3j8h7wxP0blcxfE1c901OPAfh29k2ruDfrhUXp8dHlmE1mNWxiPeQmuasjaRCefgLiWmYYKLS6BEnEiYiVct13Nd2HuzSSZfIVGDnLwBJB+XO++4KNSYMHR01IeGbnr2NbGz10S/KjQWwRw9uDtOYcnfDFEtSQx+yOyn97m5bQTh+Jm+WTsmWtrn0RoIpwtfNm5ri4oh2KzRDgKLfulzK3GJjFyUTljR3uok10zCVcz+aUnbO7O9fkk/jdAwFFsKsNZcD5Kci1e2penWQWtBM07j9CR2492u5gu2atoMkmmG5jUYZAWLfrgV6lPmF5us0oQC0H5KV03OLUfxQI9k+JgE0u4AQe+xl1HGCIFHliVJLqHk/zEsNXHDLhNPn+J+SRXG9VZ918/V/9oV8tjOx/PBNBIkCGf07eB4u4pRkhct3sn/ONUs3hwhOkIRm9D8PUBm4i7nxHRQSJMCF4OpZePGaCrloUqioQxHVHYLEr4zDhvj6uHfbBQ8qYa0fB3fvYh9Yv5CWv7sq9tgRBaqPNKuSAwtDETpPD0E7EihQmrCWYlh9U7f2mckPNN/489naB24gAeMjb/FBGEZXs/s2al/OnLJ8L5IW8BjIzpE29cUDtUqMhmaV/VTOVC4tQ4d7YOl1f/hMQp76s9SVSqEck9jaufefihVhYBTi+3f9HtLtdKual9Pz4qEbw+qTShHOJX9PMoT2r76evYW3zBPsLWYHQdVJuYp3bLq2zHourMTfo95XkohYmokihjd2AvDlWO1hUXcdqH/SDpL+y3UGuvvwQP9XC8VtYox24nDqeJX+i8ozEQSvX14qjDHFAn5Fjd/clmufjiX/6nT/zXbncju9REVMrvrNCEPLzG+IrkDZSh2Hg/+EbxPz/tzCpKkOR39zBI97N5UGXqenBQSZEC4kwhkB76ikEB0zdNLVw82/FvqQqSWaqsz7jq3UauYgDuOCzBO11ODAS8NSSnI8b/E/njjKFEpNKnB2YWrT/sJVXBhrDew/pF5QZ51UOI4sOWfv2/u7dmAKlxzn6UVHmAlOVZ0Hb+ErRSFLONkhlG0ZEee2uHnWQAX7vXLq+IjZYmPo6InA+pM1rEleum/Rb985ob9YzdFAMF7UVfnZB2qt4YdVfnS9OOEuPwhfF2XCY5TXeBx2Tox3G7CymEkAxLLAPsaOgOILchaOkVN6FcaF8tMO+pDYS8SfXdeQ/Ci4DerLT5+N1zcT7a2s7lw96OSlvnCIXqKqnFvSHLKuX6MOWjz23qEPHmjoGAUAGSV9yVQqMCdHvP7zILkZGvyWvv/pptC1qedvB0blOMX7uP+Yu3x5uEtzvW/3dLMm890RUnL/wwPB19eAytWf30v12/c9cPuVJmGHTrgs3dWf1bNy4bRf2Lxed6UPrJoLj9/FyBt4TZ+woT5wWZaCExkwhPK8JY+oqkMXcD2TfprHNL53Qe599QaSe15D7+TCi0wdJbfWXOS98Cwp9G1vZ4rgQXe2T7dw3AH5Y2DQ/Fu+2VNVGtKT5/eeLBHQ3k92nZH7QcoA30mMEO43tVV1zvNA6+VdH/QLdUbG+GOUFOYNmeZbR99ua/y4X4bpEQntfmbgbcpqaC5K0rDNVU8Y9IViX6HS839QV1A4hv9pSfs0DqrE0w5DmUIa6/ZlnuydbJxCahA/7VtIc2NBk54ydDVVuVAdoyjssjzPA5D8G6Vq5UdVhpHHk7M94+APskpTYJymkQopWqdv6qdzBAWTUm8qzTmctBITFbcK23cZiw0uIh0NveagDqY4Rd8Mad/FvL79SUN/7KqX0pyHO0xfiezoQP7w1sh2jlFpvbdA+9tMM+ukrx6zdHtbaYaXLqUuemxSG+z/V3IEzyuwbunYW17KAm2wVaA+kH4sa+CqmzWFjtxoXshMWfeBnYj5LlRplwvdmD4GmdTrZVHbHQBcqcV/PxrcMm7FCshuzLSQxgm7vB7YUMjcv1/mXADs7jpOXzC+G63rmSeu52YlcVjdpwciUFzNPAAMUAO2cnIIr+9ig9Y7wh1yoWzYwSUArR6AITFk+IAAAA=="); }
 /* 立体と平らな面は、どちらか一方だけを出す */
-.bt-stage.flat .die-pop { display: block; }
-.bt-stage.flat .die-cam { visibility: hidden; }
+.dice-layer.flat .die-pop { display: block; }
+.dice-layer.flat .die-cam { visibility: hidden; }
 /* 飛び出した瞬間だけ、控えめな金色の光 */
 .die-pop.glow::after {
   content: ""; position: absolute; inset: -6px; border-radius: 16%; pointer-events: none;
@@ -5132,12 +5137,13 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   const TILT = 17;                 // 盤面の傾き（度）。上の面と手前の側面が見える
   const COS_T = Math.cos(TILT * Math.PI / 180);
   // 置き場所（盤面の幅・高さに対する割合）。me＝自分が投げる位置（手前）、foe＝相手が投げる位置（奥）、center＝止まる位置
+  // サイコロは戦闘画面全体（.dice-layer）を動くが、待つ場所と出目を大きく出す場所（center）は盤面の帯で決める
   const ANCHORS = {
-    narrow: { me: [0.13, 0.74], center: [0.31, 0.52], foe: [0.45, 0.24] },
-    wide: { me: [0.08, 0.74], center: [0.5, 0.52], foe: [0.92, 0.26] }
+    narrow: { me: [0.13, 0.72], center: [0.5, 0.5], foe: [0.5, 0.24] },
+    wide: { me: [0.08, 0.74], center: [0.5, 0.5], foe: [0.92, 0.26] }
   };
   // 時間（ms）：タップのときの溜め・止まった面を見せる・拡大（行き過ぎて戻る）・大きく見せる・縮める
-  const T = { pre: 90, hold: 100, pop: 290, show: 380, shrink: 200 };
+  const T = { pre: 90, hold: 100, pop: 290 };
   // 投げ方の判定
   const SWIPE_MIN = 12;        // これより小さい動きは指のぶれ（タップ扱い）
   const STD_POWER = 0.55;      // タップ・キーボード・相手の投げ方が分からないときの勢い
@@ -5232,21 +5238,28 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 
   /* ---------- 部品 ---------- */
   const D = {
-    stage: null, btn: null, body: null, shadow: null, fx: null, pop: null, faces: {},
+    stage: null, layer: null, btn: null, body: null, shadow: null, fx: null, pop: null, faces: {},
     pose: { at: 'center', value: 1, q: restQ(1, 0) },
-    anim: null,       // 再生中の演出 { token, finish, tail }（tail＝出目は出し終えて、平らな面を縮めている途中）
+    anim: null,       // 再生中の演出 { token, finish }
     token: 0,
     drag: null,       // つかんでいる最中の情報
     release: null,    // 投げた（指を離した）位置 { x, y, t }。結果が来たらそこから飛ぶ
     opts: null        // { canThrow(), onThrow(throwInput|null) }
   };
-  const size = () => (D.stage ? parseFloat(getComputedStyle(D.stage).getPropertyValue('--die')) || 44 : 44);
-  const popSize = () => (D.stage ? parseFloat(getComputedStyle(D.stage).getPropertyValue('--pop')) || 112 : 112);
+  const cssPx = (name, def) => (D.layer ? parseFloat(getComputedStyle(D.layer).getPropertyValue(name)) || def : def);
+  const size = () => cssPx('--die', 44);
+  const popSize = () => cssPx('--pop', 104);
   const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   function mount(stage) {
     D.stage = stage;
+    // サイコロの層：戦闘画面全体に重ね、カードより手前に描く（つかむ・投げる・転がるはこの層の上）
+    D.layer = document.createElement('div');
+    D.layer.className = 'dice-layer';
+    D.layer.id = 'dice-layer';
+    (stage.closest('.bt-layout') || stage.parentNode).appendChild(D.layer);
     D.btn = stage.querySelector('#btn-roll');
+    D.layer.appendChild(D.btn);
     D.btn.innerHTML = `<span class="die-cam"><span class="die-world">
         <span class="die-shadow" aria-hidden="true"></span>
         <span class="die-fx" aria-hidden="true"></span>
@@ -5258,25 +5271,34 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     D.pop = document.createElement('span');
     D.pop.className = 'die-pop';
     D.pop.setAttribute('aria-hidden', 'true');
-    stage.appendChild(D.pop);
+    D.layer.appendChild(D.pop);
     D.body = D.btn.querySelector('.die-body');
     D.shadow = D.btn.querySelector('.die-shadow');
     D.fx = D.btn.querySelector('.die-fx');
     D.body.querySelectorAll('.die-face').forEach(f => { D.faces[f.dataset.n] = f; });
     bindPointer();
-    window.addEventListener('resize', () => { cancelDrag(); finish(); place(D.pose.at, false); if (D.stage.classList.contains('flat')) compact(D.pose.value); }, { passive: true });
+    window.addEventListener('resize', () => { cancelDrag(); finish(); place(D.pose.at, false); if (D.layer.classList.contains('flat')) bigFace(D.pose.value); }, { passive: true });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); finish(); } });
     place('center', false);
     draw(D.pose.q, 0, 0, 0);
   }
 
-  // 置き場所の座標（盤面の左上から px）
+  // 座標はすべてサイコロの層の左上から（px）
+  const isWide = () => !!(window.matchMedia && window.matchMedia('(min-width: 960px) and (orientation: landscape)').matches);
   function anchor(at) {
-    const r = D.stage.getBoundingClientRect();
+    const r = D.stage.getBoundingClientRect(), l = D.layer.getBoundingClientRect();
     // PC の横長レイアウト（文字は右の欄）だけ広い置き方。スマホは横にしても右側に文字が重なるので狭い置き方
-    const wide = window.matchMedia && window.matchMedia('(min-width: 960px) and (orientation: landscape)').matches;
-    const a = ANCHORS[wide ? 'wide' : 'narrow'][at] || ANCHORS.narrow.center;
-    return [r.width * a[0], r.height * a[1]];
+    const a = ANCHORS[isWide() ? 'wide' : 'narrow'][at] || ANCHORS.narrow.center;
+    return [r.left - l.left + r.width * a[0], r.top - l.top + r.height * a[1]];
+  }
+  // 画面に見えている範囲（層の座標）。サイコロはこの中を動き、端で跳ね返る
+  function bounds(margin) {
+    const l = D.layer.getBoundingClientRect();
+    const m = margin || 0;
+    const vw = document.documentElement.clientWidth || window.innerWidth, vh = window.innerHeight;
+    const minX = Math.max(0, -l.left) + m, maxX = Math.min(l.width, vw - l.left) - m;
+    const minY = Math.max(0, -l.top) + m, maxY = Math.min(l.height, vh - l.top) - m;
+    return { minX, maxX: Math.max(minX, maxX), minY, maxY: Math.max(minY, maxY) };
   }
   function placeXY(x, y, glide) {
     D.btn.classList.toggle('glide', !!glide);
@@ -5318,11 +5340,11 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 
   /* ---------- 平らな出目（立体の上の面を、画面と平行な正方形にしたもの） ---------- */
   // 立体を隠して平らな面だけを出す（2つが同時に残らない）
-  function setFlat(on) { D.stage.classList.toggle('flat', !!on); }
+  function setFlat(on) { D.layer.classList.toggle('flat', !!on); }
   const popTf = (dx, dy, persp, rx, rz, sc) => `translate(-50%, -50%) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) perspective(${persp}px) rotateX(${rx.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg) scale(${sc.toFixed(4)})`;
-  // 盤面の中央に、サイコロと同じ大きさの平らな出目を置く（技を選んでいる間も見える）
-  function compact(n) {
-    const [x, y] = anchor('center'), S = size();
+  // 盤面の中央に、大きな平らな出目を置く（そのターンの間ずっと見える。押しても下のカード・技に届く）
+  function bigFace(n) {
+    const [x, y] = anchor('center'), S = popSize();
     D.pop.getAnimations().forEach(a => a.cancel());
     D.pop.dataset.n = n;
     D.pop.classList.remove('glow');
@@ -5335,14 +5357,14 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   function show(opts) {
     if (!D.stage || D.drag) return;
     const o = opts || {};
-    // 出目を大きく見せている途中：同じ出目のままなら邪魔しない。別の場面（次のターンなど）になったらすぐ収める
-    if (D.anim && D.anim.tail && !(o.at === 'center' && o.value === D.pose.value)) finish();
     if (D.anim) return;
     if (o.value && o.value !== D.pose.value) { D.pose.value = o.value; D.pose.q = restQ(o.value, 0); }
     if (o.at === 'center' && o.value) {
       place('center', false);
       draw(D.pose.q, 0, 0, 0);
-      if (!D.stage.classList.contains('flat') || D.pop.dataset.n !== String(o.value)) compact(o.value);
+      // 描き直しのたびに盤面の中央へ置き直す（画面の並びが変わってもずれない。グローの演出は消さない）
+      if (!D.layer.classList.contains('flat') || D.pop.dataset.n !== String(o.value)) bigFace(o.value);
+      else { const [x, y] = anchor('center'); D.pop.style.left = x.toFixed(1) + 'px'; D.pop.style.top = y.toFixed(1) + 'px'; }
     } else {
       setFlat(false);
       // 投げて結果を待っている間（対人戦のゲスト）は、離した場所に置いたまま
@@ -5371,14 +5393,14 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
       done = true;
       try { opts.onDone && opts.onDone(); } catch (e) { setTimeout(() => { throw e; }); }
     };
-    // 最後の姿：盤面の中央に平らな出目
+    // 最後の姿：盤面の中央に大きな平らな出目（立体は隠れる）
     const settleFinal = () => {
       if (D.anim && D.anim.token === token) D.anim = null;
       D.btn.classList.remove('throwing');
       D.pose.value = value; D.pose.q = qEnd; D.release = null;
       place('center', false);
       draw(qEnd, 0, 0, 0);
-      compact(value);
+      bigFace(value);
       D.btn.classList.remove('unrolled');
       $value().textContent = `出目 ${value}`;
     };
@@ -5406,24 +5428,37 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     if (from === 'me' && D.release && Date.now() - D.release.t < 6000) { x0 = D.release.x; y0 = D.release.y; } else [x0, y0] = anchor(from);
     D.pose.at = from;
     placeXY(x0, y0, false);
-    const [x1, y1] = anchor('center');
-    const sr = D.stage.getBoundingClientRect();
-    const dx = x1 - x0, dy = y1 - y0;
-    // 軌道：投げた向きへ飛び出し、盤面の中央へ曲がって止まる（2次ベジェ）。制御点は盤面の中に収める
+    // 軌道：離した場所から投げた向きへまっすぐ進み、画面の端（見えている範囲）で跳ね返る。カードの上も通り、どこで止まってもよい
+    const bd = bounds(half + 2);
+    x0 = clamp(x0, bd.minX, bd.maxX); y0 = clamp(y0, bd.minY, bd.maxY);
+    placeXY(x0, y0, false);
     let ux, uy;
     if (t && Number.isFinite(t.angle)) { ux = Math.cos(t.angle * Math.PI / 180); uy = Math.sin(t.angle * Math.PI / 180); }
     else {
-      const l = Math.hypot(dx, dy) || 1, r = (Math.random() * 2 - 1) * 0.45;
-      const bx = dx / l, by = dy / l;
+      // 投げ方が分からないとき（タップ・相手）：画面の中ほどへ向けて、少しばらつかせる
+      const [cx0, cy0] = anchor('center');
+      let bx = cx0 - x0, by = cy0 - y0;
+      const l = Math.hypot(bx, by);
+      if (l < 2) { bx = Math.random() * 2 - 1; by = -0.6; } else { bx /= l; by /= l; }
+      const r = (Math.random() * 2 - 1) * 0.5;
       ux = bx * Math.cos(r) - by * Math.sin(r); uy = bx * Math.sin(r) + by * Math.cos(r);
-      if (Math.hypot(dx, dy) < 2) { ux = Math.random() * 2 - 1; uy = -0.5; }
     }
-    const reach = 26 + 150 * power;
-    const cx = clamp(x0 + ux * reach, half, sr.width - half) - x0;
-    const cy = clamp(y0 + uy * reach * 0.7, half - 14, sr.height - half + 14) - y0;
-    const path = s => [2 * s * (1 - s) * cx + s * s * dx, 2 * s * (1 - s) * cy + s * s * dy];
+    const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
+    // 進む距離：勢いで決まる（上限・下限あり。PC の広い画面では少し長く）
+    const reach = (90 + 430 * power) * (isWide() ? 1.25 : 1);
+    // 端で折り返す（鏡のように跳ね返る）
+    const fold = (v, lo, hi) => {
+      const w = hi - lo;
+      if (w <= 0) return lo;
+      let k = (v - lo) % (2 * w);
+      if (k < 0) k += 2 * w;
+      return lo + (k <= w ? k : 2 * w - k);
+    };
+    const path = s => [fold(x0 + ux * reach * s, bd.minX, bd.maxX) - x0, fold(y0 + uy * reach * s, bd.minY, bd.maxY) - y0];
+    const [dx, dy] = path(1);
+    const cx = ux, cy = uy;
     // 転がる軸＝飛び出す向きと盤面の上向きの外積。2本目の軸で横回転も混ぜる
-    let tx = cx || dx, ty = cy || dy;
+    let tx = cx, ty = cy;
     const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
     const axA = [ty, -tx, 0];
     const axB = [tx, ty, 0.7];
@@ -5472,15 +5507,14 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     // 描画が止まっても（裏に回ったなど）必ず結果を出す
     const guard = setTimeout(finishNow, tStop + T.hold + T.pop + 900);
 
-    // 停止 → 上の面を少し見せる → 平らな正方形にして「バンッ」と拡大（行き過ぎて戻る） → 大きく見せる → 中央の小さな出目へ
+    // 停止 → 上の面を少し見せる → その面だけが盤面の中央へ移りながら、平らな大きな正方形に「バンッ」と（行き過ぎて戻る）。そのまま残す
     function popOut() {
       if (popped) return;
       popped = true;
-      const face = D.faces[value].getBoundingClientRect();
+      const face = D.faces[value].getBoundingClientRect(), lr = D.layer.getBoundingClientRect();
       const B = popSize();
-      const fx = face.left + face.width / 2 - sr.left, fy = face.top + face.height / 2 - sr.top;
-      // 大きな面は盤面の中（横）に収め、縦は少しだけはみ出してよい
-      const px = clamp(fx, B / 2 + 4, sr.width - B / 2 - 4), py = clamp(fy, B / 2 - 24, sr.height - B / 2 + 24);
+      const fx = face.left + face.width / 2 - lr.left, fy = face.top + face.height / 2 - lr.top;
+      const [px, py] = anchor('center');
       D.pop.getAnimations().forEach(a => a.cancel());
       D.pop.dataset.n = value;
       Object.assign(D.pop.style, { left: px.toFixed(1) + 'px', top: py.toFixed(1) + 'px', width: B + 'px', height: B + 'px', transform: popTf(0, 0, 2000, 0, 0, 1) });
@@ -5494,20 +5528,8 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
       D.pop.classList.remove('glow'); void D.pop.offsetWidth; D.pop.classList.add('glow');
       chime();
       $value().textContent = `出目 ${value}`;
-      // 拡大しきったら、ゲームは次へ（技を選べる）。大きな面は少し残してから中央へ縮む（その間も操作は遮らない）
-      later(() => {
-        D.pose.value = value; D.pose.q = qEnd;
-        if (D.anim && D.anim.token === token) D.anim.tail = true;
-        later(() => {
-          const [ax, ay] = anchor('center'), S2 = size();
-          const a = D.pop.animate([
-            { transform: popTf(0, 0, 2000, 0, 0, 1) },
-            { transform: popTf(ax - px, ay - py, 2000, 0, 0, S2 / B) }
-          ], { duration: T.shrink, easing: 'cubic-bezier(.5, 0, .3, 1)', fill: 'forwards' });
-          a.onfinish = () => { if (token === D.token && D.anim && D.anim.token === token) { stopAll(); settleFinal(); } };
-        }, T.show);
-        callDone();
-      }, T.pop);
+      // 拡大しきったら、ゲームは次へ（技を選べる）。大きな面はそのターンの間、中央に残す（押しても下のカード・技に届く）
+      later(() => { stopAll(); settleFinal(); callDone(); }, T.pop);
     }
 
     function frame(now) {
@@ -5582,8 +5604,9 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
       if (!d.moved && Math.hypot(ox, oy) < SWIPE_MIN) return;   // 小さなぶれは動かさない
       if (!d.moved) { d.moved = true; b.classList.add('dragging'); }
       // サイコロは指について動く（盤面の中に収める）。動かす向きへ少し傾け、わずかに持ち上げる
-      const sr = D.stage.getBoundingClientRect(), half = size() / 2;
-      const x = clamp(d.bx + ox, half, sr.width - half), y = clamp(d.by + oy, half - 10, sr.height - half + 10);
+      // 画面に見えている範囲ならどこへでも（自分のカードの上まで引いてもよい）
+      const bd = bounds(size() / 2 + 2);
+      const x = clamp(d.bx + ox, bd.minX, bd.maxX), y = clamp(d.by + oy, bd.minY, bd.maxY);
       placeXY(x, y, false);
       d.x = x; d.y = y;
       const v = velocity(d);
@@ -5643,13 +5666,13 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     mount, show, roll, finish,
     // { canThrow(): 今投げてよいか, onThrow(throwInput | null): 投げた（null＝タップ・標準の投げ方） }
     bindThrow: opts => { D.opts = opts; },
-    playing: () => !!D.anim && !D.anim.tail,
+    playing: () => !!D.anim,
     sfxOn,
     setSfx: on => { try { localStorage.setItem(SFX_KEY, on ? 'on' : 'off'); } catch (e) { /* 保存できなくても動く */ } },
     // テスト用
     lastThrow: () => D.lastThrow || null,
     flatFace: () => {
-      if (!D.stage || !D.stage.classList.contains('flat')) return null;
+      if (!D.layer || !D.layer.classList.contains('flat')) return null;
       const r = D.pop.getBoundingClientRect();
       return { n: Number(D.pop.dataset.n), w: r.width, h: r.height };
     },
@@ -6138,7 +6161,7 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
     else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロをつかんで投げる（タップでも振れる）'; }
     else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
-    else { phase = '技を選ぶ'; sub = '使う技を選んでください（スキルは絵を押す・長押しで技一覧）'; }
+    else { phase = '技を選ぶ'; sub = '使う技を選んでください'; }
     $('#phase-text').textContent = phase;
     $('#phase-sub').textContent = sub;
     $('#screen-battle').classList.toggle('my-turn', s.turnSide === bt.me && (s.phase === 'roll' || s.phase === 'action'));

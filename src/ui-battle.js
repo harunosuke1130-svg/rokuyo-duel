@@ -471,7 +471,7 @@
     else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロをつかんで投げる（タップでも振れる）'; }
     else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
-    else { phase = '技を選ぶ'; sub = '使う技を選んでください（スキルは絵を押す・長押しで技一覧）'; }
+    else { phase = '技を選ぶ'; sub = '使う技を選んでください'; }
     $('#phase-text').textContent = phase;
     $('#phase-sub').textContent = sub;
     $('#screen-battle').classList.toggle('my-turn', s.turnSide === bt.me && (s.phase === 'roll' || s.phase === 'action'));

@@ -1000,7 +1000,8 @@ for (const kind of ['mobile', 'desktop']) {
     for (let i = 0; i < 5; i++) {
       const d = await dieState(page);
       assert.ok(d.rect.x >= 0 && d.rect.r <= vw, 'サイコロが横にはみ出さない');
-      await page.click('#btn-roll', { force: true }).catch(() => {});
+      // 投げている間はサイコロを押せない（押す・つかむの操作を直接送っても1回のまま）
+      await page.$eval('#btn-roll', b => { b.dispatchEvent(new PointerEvent('pointerdown', { bubbles: true, pointerId: 9, isPrimary: true })); b.dispatchEvent(new PointerEvent('pointerup', { bubbles: true, pointerId: 9, isPrimary: true })); b.click(); });
       await page.waitForTimeout(120);
     }
     await H.waitMyAction(page);
@@ -1010,11 +1011,22 @@ for (const kind of ['mobile', 'desktop']) {
     assertFlat(await dieState(page), s.dice, 'スワイプ');
     assert.ok(await page.$('#ally-front.picking'), '前衛の技を選ぶ場面へ進む');
     assert.ok((await page.textContent('#phase-sub')).includes('使う技を選んでください'));
-    // 大きな面は少し見せてから、中央の小さな出目へ（技を選んでいる間も残る）
+    // 大きな出目は盤面の中央に残ったまま（縮まない）。その上からでも前衛の技を押せる
     await page.waitForTimeout(900);
-    const small = await dieState(page);
-    assertFlat(small, s.dice, '技を選ぶ間');
-    assert.ok(small.flat.w < 60, '中央の小さな出目に収まる');
+    const big = await dieState(page);
+    assertFlat(big, s.dice, '技を選ぶ間');
+    assert.ok(big.flat.w >= 90, '大きいまま残る ' + big.flat.w);
+    const center = await page.evaluate(() => {
+      const p = document.querySelector('.die-pop').getBoundingClientRect(), st = document.querySelector('#dice-stage').getBoundingClientRect();
+      return { dx: Math.abs(p.left + p.width / 2 - (st.left + st.width / 2)), dy: Math.abs(p.top + p.height / 2 - (st.top + st.height / 2)) };
+    });
+    assert.ok(center.dx < 2 && center.dy < 2, '盤面の中央 ' + JSON.stringify(center));
+    const through = await page.evaluate(() => {
+      const p = document.querySelector('.die-pop').getBoundingClientRect();
+      const pts = [[0.5, 0.5], [0.5, 0.95], [0.5, 0.05], [0.1, 0.5], [0.9, 0.5]];
+      return pts.every(([a, b]) => { const el = document.elementFromPoint(p.left + p.width * a, p.top + p.height * b); return el && !el.closest('.die-pop') && !el.closest('.dice-layer'); });
+    });
+    assert.ok(through, '大きな出目は押しても下のカード・技に届く');
     // 1〜6 すべて：投げて止まる面と拡大する面が指定どおり（見た目だけの確認。ゲームの状態は変えない）
     for (let n = 1; n <= 6; n++) {
       await page.evaluate(v => new Promise(res => window.RikuyouDice.roll({ value: v, from: v % 2 ? 'me' : 'foe', throw: { power: v / 6, angle: v * 50 - 150, dist: 100 }, onDone: res })), n);
