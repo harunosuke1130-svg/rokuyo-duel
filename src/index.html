@@ -176,10 +176,14 @@
         <div class="bt-leader" id="enemy-leader"></div>
       </div>
 
+      <!-- 盤面：敵と味方の間をサイコロが転がる場所。サイコロ自体を押して振る（中身は ui-dice.js が作る） -->
+      <div class="bt-stage" id="dice-stage">
+        <button type="button" class="bt-dice-btn" id="btn-roll" aria-describedby="roll-cap"></button>
+        <span class="bt-dice-cap" id="roll-cap"></span>
+      </div>
+
       <div class="bt-side">
         <div class="bt-center">
-          <!-- 数字を出す：中央のサイコロ自体を押す -->
-          <button type="button" class="bt-dice-btn" id="btn-roll" aria-describedby="roll-cap"><span id="dice" class="dice" aria-live="polite"><span>？</span></span><span class="bt-dice-cap" id="roll-cap"></span></button>
           <div class="bt-phase"><b id="phase-text" class="phase-text"></b><span id="phase-sub" class="bt-phase-sub"></span></div>
         </div>
         <div class="bt-flags"><span id="turn-flags" class="boost-info"></span><span id="fatigue-info"></span></div>
@@ -223,6 +227,7 @@
 <script src="profile.js"></script>
 <script src="backend.js"></script>
 <script src="ui-core.js"></script>
+<script src="ui-dice.js"></script>
 <script src="ui-battle.js"></script>
 <script src="ui-app.js"></script>
 </body>

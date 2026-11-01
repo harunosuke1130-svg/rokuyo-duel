@@ -13,6 +13,7 @@
 
   const U = window.RikuyouUI;
   const CPU = window.RikuyouCPU;
+  const Dice = window.RikuyouDice;
   const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, openModal, closeModal, toast } = U;
 
   const bt = {
@@ -68,6 +69,7 @@
     bt.timers.clear();
     bt.session++;
     bt.diceAnim = false;
+    if (window.RikuyouDice) window.RikuyouDice.finish();
     bt.lastLogs = [];
     bt.active = false;
     bt.hpShown = {}; bt.hpHold = {}; bt.pickKey = '';
@@ -228,7 +230,7 @@
     const initEv = r.events.find(e => e.type === 'initiative');
     if (initEv) { showInitiative(initEv, r); return; }
     if (rollEv) {
-      animateDice(rollEv.value, rollEv.side, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined));
+      animateDice(rollEv.value, rollEv.side, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined), !!rollEv.reroll);
       return;
     }
     void fromRoom;
@@ -465,31 +467,30 @@
     else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
     else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
-    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロを押して数字を出す'; }
-    else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = '数字を出しています…'; }
+    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロをタップして振る'; }
+    else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
-    else { phase = '技を選ぶ'; sub = '前衛の技を1つ選ぶ（スキルは絵を押す・長押しで技一覧）'; }
+    else { phase = '技を選ぶ'; sub = '使う技を選んでください（スキルは絵を押す・長押しで技一覧）'; }
     $('#phase-text').textContent = phase;
     $('#phase-sub').textContent = sub;
     $('#screen-battle').classList.toggle('my-turn', s.turnSide === bt.me && (s.phase === 'roll' || s.phase === 'action'));
     $('#range-note').classList.toggle('hidden', !(myActing(s) && !bt.waiting));
 
-    const dice = $('#dice');
+    // サイコロ自体が「振る」ボタン。振る番の側の手前（自分）／奥（相手）で待ち、出目が出たら盤面の中央に残る
     if (!bt.diceAnim) {
-      dice.className = 'dice' + (s.dice ? '' : ' empty') + (s.turnSide === bt.foe && s.dice ? ' cpu' : '');
-      dice.innerHTML = `<span>${s.dice || '？'}</span>`;
+      const at = s.phase === 'roll' ? (s.turnSide === bt.me ? 'me' : 'foe') : 'center';
+      Dice.show({ at, value: s.phase === 'roll' ? null : s.dice, glide: !reduced() && !U.FAST });
     }
-    // サイコロ自体が「数字を出す」ボタン
     const btn = $('#btn-roll');
     let cap = '';
     if (s.phase === 'over') { btn.disabled = !!U.ui.modal; cap = '結果を見る'; }
     else {
-      btn.disabled = bt.locked || bt.waiting || s.turnSide !== bt.me || s.phase !== 'roll';
-      cap = btn.disabled ? '' : 'タップして数字を出す';
+      btn.disabled = bt.locked || bt.waiting || bt.diceAnim || s.turnSide !== bt.me || s.phase !== 'roll';
+      cap = btn.disabled ? '' : 'タップして振る';
     }
     $('#roll-cap').textContent = cap;
-    btn.classList.toggle('ready', !btn.disabled);
-    btn.setAttribute('aria-label', s.phase === 'over' ? '結果を見る' : !btn.disabled ? '数字を出す' : (s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません'));
+    btn.classList.toggle('ready', !btn.disabled && s.phase !== 'over');
+    btn.setAttribute('aria-label', s.phase === 'over' ? '結果を見る' : !btn.disabled ? 'サイコロを振る' : (s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません'));
     // 交代できるか（できない理由）を短く出す
     const hint = $('#drag-hint');
     const swapReason = bt.locked || bt.waiting ? '処理中' : E.swapBlockReason(s, bt.me);
@@ -748,29 +749,27 @@
     });
   }
 
-  // サイコロ：短く転がって、Engine が決めた出目で止まる（転がる間の数字は決まった順の飾りで、抽選はしない）
-  function animateDice(value, side, then) {
-    const dice = $('#dice');
+  // サイコロ：Engine が決めた出目を、立体のサイコロを投げて見せる（ここでは抽選しない。演出が失敗・中断しても出目を出して進める）
+  function animateDice(value, side, then, reroll) {
+    const token = bt.session;
     bt.diceAnim = true;
     render();
-    const foe = side === bt.foe ? ' cpu' : '';
-    const land = () => {
+    let called = false;
+    const done = () => {
+      if (called) return;
+      called = true;
+      if (token !== bt.session) return;
       bt.diceAnim = false;
-      dice.className = 'dice landed' + foe;
-      dice.innerHTML = `<span>${value}</span>`;
       then();
     };
-    if (reduced()) { dice.className = 'dice' + foe; dice.innerHTML = `<span>${value}</span>`; schedule(land, U.FAST ? DELAY.roll : 120); return; }
-    dice.className = 'dice rolling' + foe;
-    const faces = [2, 5, 3, 6, 1, 4].map(n => ((n + value) % CONFIG.DICE_SIDES) + 1);
-    let k = 0;
-    const token = bt.session;
-    const iv = setInterval(() => {
-      if (token !== bt.session) { clearInterval(iv); return; }
-      dice.innerHTML = `<span>${faces[k++ % faces.length]}</span>`;
-    }, 80);
-    bt.timers.add(iv);
-    schedule(() => { clearInterval(iv); bt.timers.delete(iv); land(); }, DELAY.roll);
+    const fast = U.FAST;
+    try {
+      Dice.roll({
+        value, from: reroll ? 'center' : side === bt.me ? 'me' : 'foe',
+        still: fast || reduced(), instant: fast,
+        onDone: () => (fast ? schedule(done, DELAY.roll) : done())
+      });
+    } catch (e) { done(); }
   }
 
   // 先攻・後攻のサイコロの結果を見せる
@@ -1039,6 +1038,7 @@
 
   /* ---------- イベント登録 ---------- */
   function bind() {
+    Dice.mount($('#dice-stage'));
     // 中央のサイコロ＝数字を出す（決着後は結果を見る）
     $('#btn-roll').addEventListener('click', () => {
       if (!bt.state) return;

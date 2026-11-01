@@ -1015,6 +1015,7 @@
 
   /* ---------- 遊び方 ---------- */
   /* ---------- 設定（遊び方・ログアウト） ---------- */
+  const sfxLabel = () => `効果音：${window.RikuyouDice.sfxOn() ? 'オン' : 'オフ'}`;
   function showSettings() {
     const p = app.profile;
     openModal(`<h3>設定</h3>
@@ -1025,10 +1026,19 @@
       </div>
       <p class="muted">${esc(p.name)}・${esc(app.backend.label)}</p>
       <div class="modal-actions">
+        <button type="button" class="btn btn-ghost btn-block" id="btn-settings-sfx" aria-pressed="${window.RikuyouDice.sfxOn()}">${sfxLabel()}<small class="btn-sub">サイコロが盤に当たる音（この端末だけの設定）</small></button>
         <button type="button" class="btn btn-ghost btn-block" id="btn-settings-help">遊び方</button>
         <button type="button" class="btn btn-ghost btn-block" data-go="logout">ログアウト<small class="btn-sub">${app.backend.mode === 'local' ? '別のプレイヤーに切り替える' : 'このアカウントからログアウト'}</small></button>
         <button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button>
-      </div>`, { kind: 'settings', bind: b => b.querySelector('#btn-settings-help').addEventListener('click', () => { closeModal(true); showHelp(); }) });
+      </div>`, { kind: 'settings', bind: b => {
+      b.querySelector('#btn-settings-help').addEventListener('click', () => { closeModal(true); showHelp(); });
+      const sfx = b.querySelector('#btn-settings-sfx');
+      sfx.addEventListener('click', () => {
+        window.RikuyouDice.setSfx(!window.RikuyouDice.sfxOn());
+        sfx.setAttribute('aria-pressed', String(window.RikuyouDice.sfxOn()));
+        sfx.firstChild.textContent = sfxLabel();
+      });
+    } });
   }
 
   /* ---------- 図鑑 ---------- */
