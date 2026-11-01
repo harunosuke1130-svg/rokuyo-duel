@@ -445,7 +445,7 @@ test('mobile: 戦闘画面（サイコロで数字・カードの絵で詳細・
   for (const [i, id] of ids.entries()) assert.equal(await page.getAttribute(`#ally-front .bt-card[data-idx="${i}"], #ally-back .bt-card[data-idx="${i}"]`, 'data-stars'), String(exp[id]));
   // 数字を出す前：技の欄はない。サイコロに案内
   assert.equal(await page.$$eval('#ally-front [data-move]', b => b.length), 0);
-  assert.ok((await page.textContent('#roll-cap')).includes('タップして振る'));
+  assert.ok((await page.textContent('#roll-cap')).includes('タップで振る'));
   await page.click('#btn-roll');
   await H.waitMyAction(page);
   await page.waitForTimeout(470);
@@ -945,33 +945,60 @@ test('mobile: 戦闘結果（ダンジョン：途中の階・敗北の到達階
   await ctx.close();
 });
 
-// 立体サイコロ：演出は見た目だけ。止まった面＝Engine の出目、投げている間は押せない、途中で止めても進む
-const dieTop = page => page.evaluate(() => {
-  const cam = document.querySelector('#btn-roll .die-cam');
+// 立体サイコロ：投げ方（スワイプ）は Engine に渡り、出目は1回だけ決まる。止まった面＝拡大した平らな面＝出目
+const dieState = page => page.evaluate(() => {
   const b = document.querySelector('#btn-roll .die-body').getBoundingClientRect();
-  cam.style.pointerEvents = 'auto';   // 面を拾うためだけに一時的に当たり判定を付ける
-  const el = document.elementFromPoint(b.x + b.width / 2, b.y + b.height * 0.42);
-  cam.style.pointerEvents = '';
-  const f = el && el.closest('.die-face');
-  return { what: f ? '' : (el ? el.outerHTML.slice(0, 120) : 'none') + ' @' + JSON.stringify([b.x, b.y, b.width, b.height]), model: window.RikuyouDice.topFace(), hit: f ? Number(f.dataset.n) : 0, rect: { x: b.x, y: b.y, r: b.right, b: b.bottom } };
+  return { model: window.RikuyouDice.topFace(), flat: window.RikuyouDice.flatFace(), rect: { x: b.x, r: b.right } };
 });
+const startFree = async (page, name) => {
+  await H.startLocal(page, name, { claim: false });
+  await page.click('[data-go="match"]');
+  await page.click('[data-match="free"]');
+  await H.formation(page, [0, 1, 2], 0);
+  await page.waitForFunction(() => { const s = window.RikuyouApp.getState(); return s && s.phase === 'roll' && s.turnSide === 'player' && !window.RikuyouBattle.isLocked() && !window.RikuyouDice.playing(); }, null, { timeout: 30000 });
+  await page.waitForTimeout(500);
+  await page.$eval('#dice-stage', e => e.scrollIntoView({ block: 'center' }));
+};
+const dieCenter = async page => { const b = await (await page.$('#btn-roll')).boundingBox(); return { x: b.x + b.width / 2, y: b.y + b.height / 2 }; };
+const myRolls = s => s.log.filter(l => l.kind === 'dice' && l.text.startsWith('あなたの出目')).length;
+// 平らな出目：出目と同じ面・正方形（1:1）
+const assertFlat = (d, n, msg) => {
+  assert.ok(d.flat, msg + '：平らな出目がある');
+  assert.equal(d.flat.n, n, msg + '：平らな面＝出目');
+  assert.ok(Math.abs(d.flat.w - d.flat.h) < 0.5, msg + '：正方形');
+  assert.equal(d.model, n, msg + '：立体の上の面＝出目');
+};
+
 for (const kind of ['mobile', 'desktop']) {
-  test(`${kind}: 立体サイコロ（止まる面が出目と一致・画面内・連打で1回・途中で止めても進む）`, async () => {
+  test(`${kind}: サイコロをスワイプで投げる（投げ方が Engine に渡る・1回だけ・止まる面と拡大する面が出目と一致）`, async () => {
     const { ctx, page, errors } = await open(kind, 'seed=7');
-    await H.startLocal(page, '投げ手', { claim: false });
-    await page.click('[data-go="match"]');
-    await page.click('[data-match="free"]');
-    await H.formation(page, [0, 1, 2], 0);
-    await page.waitForFunction(() => { const s = window.RikuyouApp.getState(); return s && s.phase === 'roll' && s.turnSide === 'player' && !window.RikuyouBattle.isLocked() && !window.RikuyouDice.playing(); }, null, { timeout: 30000 });
+    await startFree(page, '投げ手');
+    assert.ok((await page.textContent('#roll-cap')).includes('スワイプで投げる'));
+    // 小さく動かして元に戻して離す → 取り消し（振らない）
+    let c = await dieCenter(page);
+    await page.mouse.move(c.x, c.y); await page.mouse.down();
+    await page.mouse.move(c.x + 30, c.y - 10, { steps: 4 }); await page.mouse.move(c.x + 2, c.y + 1, { steps: 4 });
+    await page.mouse.up();
     await page.waitForTimeout(500);
-    assert.ok((await page.textContent('#roll-cap')).includes('タップして振る'));
-    // 投げる：演出中は押せず、何度押しても出目は1回
-    await page.click('#btn-roll');
-    await page.waitForTimeout(150);
-    assert.equal(await page.isDisabled('#btn-roll'), true, '転がっている間は押せない');
+    assert.equal(myRolls(await H.state(page)), 0, '元の場所に戻して離すと振らない');
+    // Esc で取り消し
+    c = await dieCenter(page);
+    await page.mouse.move(c.x, c.y); await page.mouse.down();
+    await page.mouse.move(c.x + 40, c.y - 20, { steps: 4 });
+    await page.keyboard.press('Escape');
+    await page.mouse.up();
+    await page.waitForTimeout(500);
+    assert.equal(myRolls(await H.state(page)), 0, 'Esc で取り消すと振らない');
+    // 速いスワイプ → 投げる。投げている間に何度押しても1回
+    c = await dieCenter(page);
+    await page.mouse.move(c.x, c.y); await page.mouse.down();
+    for (let i = 1; i <= 5; i++) { await page.mouse.move(c.x + i * 18, c.y - i * 8); await page.waitForTimeout(10); }
+    await page.mouse.up();
+    const thrown = await page.evaluate(() => window.RikuyouDice.lastThrow());
+    assert.ok(thrown && thrown.power > 0.3 && thrown.dist > 50, '速さと距離から勢いを計算 ' + JSON.stringify(thrown));
     const vw = await page.evaluate(() => innerWidth);
-    for (let i = 0; i < 6; i++) {
-      const d = await dieTop(page);
+    for (let i = 0; i < 5; i++) {
+      const d = await dieState(page);
       assert.ok(d.rect.x >= 0 && d.rect.r <= vw, 'サイコロが横にはみ出さない');
       await page.click('#btn-roll', { force: true }).catch(() => {});
       await page.waitForTimeout(120);
@@ -979,48 +1006,69 @@ for (const kind of ['mobile', 'desktop']) {
     await H.waitMyAction(page);
     await page.waitForFunction(() => !window.RikuyouDice.playing());
     const s = await H.state(page);
-    assert.equal(s.log.filter(l => l.kind === 'dice' && l.text.startsWith('あなたの出目')).length, 1, '連打しても1回');
-    let d = await dieTop(page);
-    assert.equal(d.model, s.dice, '止まった面が出目');
-    assert.equal(d.hit, s.dice, '画面で上を向いている面が出目');
+    assert.equal(myRolls(s), 1, '連打しても1回');
+    assertFlat(await dieState(page), s.dice, 'スワイプ');
     assert.ok(await page.$('#ally-front.picking'), '前衛の技を選ぶ場面へ進む');
     assert.ok((await page.textContent('#phase-sub')).includes('使う技を選んでください'));
-    // 1〜6 すべて：投げて止まる面が指定どおり（見た目だけの確認。ゲームの状態は変えない）
+    // 大きな面は少し見せてから、中央の小さな出目へ（技を選んでいる間も残る）
+    await page.waitForTimeout(900);
+    const small = await dieState(page);
+    assertFlat(small, s.dice, '技を選ぶ間');
+    assert.ok(small.flat.w < 60, '中央の小さな出目に収まる');
+    // 1〜6 すべて：投げて止まる面と拡大する面が指定どおり（見た目だけの確認。ゲームの状態は変えない）
     for (let n = 1; n <= 6; n++) {
-      await page.evaluate(v => new Promise(res => window.RikuyouDice.roll({ value: v, from: v % 2 ? 'me' : 'foe', onDone: res })), n);
-      d = await dieTop(page);
-      assert.equal(d.model, n, `出目${n}の姿勢`);
-      assert.equal(d.hit, n, `出目${n}の面が上 ${d.what}`);
+      await page.evaluate(v => new Promise(res => window.RikuyouDice.roll({ value: v, from: v % 2 ? 'me' : 'foe', throw: { power: v / 6, angle: v * 50 - 150, dist: 100 }, onDone: res })), n);
+      assertFlat(await dieState(page), n, `出目${n}`);
     }
     // 途中で止めても、決まった面で止まる（画面の回転・裏に回ったときと同じ処理）
     const p = page.evaluate(() => new Promise(res => window.RikuyouDice.roll({ value: 3, from: 'me', onDone: () => res('done') })));
     await page.waitForTimeout(200);
     await page.setViewportSize({ width: kind === 'mobile' ? 844 : 1000, height: kind === 'mobile' ? 390 : 700 });
     assert.equal(await p, 'done');
-    assert.equal((await dieTop(page)).model, 3);
+    assertFlat(await dieState(page), 3, '中断');
     assert.equal((await H.state(page)).dice, s.dice, 'ゲームの出目は変わらない');
     assert.deepEqual(errors, []);
     await ctx.close();
   });
 }
 
-test('mobile: 動きを減らす設定でもサイコロで遊べる（跳ねずに短く表示）', async () => {
+test('mobile: 小さな指のぶれはタップ扱い（標準の勢いで1回）・キーボードでも振れる', async () => {
+  const { ctx, page, errors } = await open('mobile', 'seed=8');
+  await startFree(page, 'そっと');
+  const c = await dieCenter(page);
+  await page.mouse.move(c.x, c.y); await page.mouse.down();
+  await page.mouse.move(c.x + 4, c.y + 3, { steps: 3 });
+  await page.mouse.up();
+  await H.waitMyAction(page);
+  let s = await H.state(page);
+  assert.equal(myRolls(s), 1);
+  assert.equal(await page.evaluate(() => window.RikuyouDice.lastThrow()), null, 'ぶれは投げ方に入らない（標準）');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+  // キーボード：Enter で標準の勢いで振る
+  const k = await open('desktop', 'seed=8');
+  await startFree(k.page, 'キー');
+  await k.page.focus('#btn-roll');
+  await k.page.keyboard.press('Enter');
+  await H.waitMyAction(k.page);
+  s = await H.state(k.page);
+  assert.equal(myRolls(s), 1);
+  await k.page.waitForFunction(() => !window.RikuyouDice.playing());
+  assertFlat(await dieState(k.page), s.dice, 'キーボード');
+  assert.deepEqual(k.errors, []);
+  await k.ctx.close();
+});
+
+test('mobile: 動きを減らす設定でもサイコロで遊べる（転がり・急な拡大なしで短く表示）', async () => {
   const ctx = await browser.newContext(Object.assign({ reducedMotion: 'reduce' }, H.VIEWPORTS.mobile));
   const { page, errors } = await open('mobile', 'seed=9', ctx);
-  await H.startLocal(page, '静か', { claim: false });
-  await page.click('[data-go="match"]');
-  await page.click('[data-match="free"]');
-  await H.formation(page, [0, 1, 2], 0);
-  await H.waitMyRoll(page);
-  await page.waitForTimeout(400);
+  await startFree(page, '静か');
   const t0 = Date.now();
   await page.click('#btn-roll');
   await H.waitMyAction(page);
   assert.ok(Date.now() - t0 < 1500, '短く終わる');
   const s = await H.state(page);
-  const d = await dieTop(page);
-  assert.equal(d.model, s.dice);
-  assert.equal(d.hit, s.dice);
+  assertFlat(await dieState(page), s.dice, '動きを減らす');
   assert.deepEqual(errors, []);
   await ctx.close();
 });

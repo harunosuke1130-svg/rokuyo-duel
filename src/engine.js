@@ -42,6 +42,33 @@
     return Math.min(CONFIG.DICE_SIDES, Math.floor(r * CONFIG.DICE_SIDES) + 1);
   }
 
+  /*
+   * 投げ方（スワイプ・フリック）と出目
+   *   throwInput = { power: 0〜1（速さと距離から作る勢い）, angle: -180〜180（向き・度）, dist: 0〜2000（動かした距離・px） }
+   *   値は丸めて検証し、不正・指定なし（タップ・キーボード・CPU）は null ＝標準の投げ方。
+   *   出目 ＝ 乱数で選んだ 1〜6（均等） を、投げ方から決まる 0〜5 だけずらしたもの（6 で割った余り）。
+   *   乱数の目が均等なので、どんな投げ方でも 1〜6 の確率は同じ（強く投げると大きい目、のような関係はない）。
+   *   投げ方が変われば結果も変わるが、どの投げ方も有利にはならない。null のときはずらしなし（今までの抽選と同じ）。
+   */
+  function normalizeThrow(t) {
+    if (!t || typeof t !== 'object') return null;
+    const num = (v, lo, hi) => { const n = Number(v); return Number.isFinite(n) ? Math.min(hi, Math.max(lo, n)) : null; };
+    const power = num(t.power, 0, 1), angle = num(t.angle, -180, 180), dist = num(t.dist, 0, 2000);
+    if (power === null || angle === null || dist === null) return null;
+    return { power: Math.round(power * 100) / 100, angle: Math.round(angle), dist: Math.round(dist) };
+  }
+  function throwOffset(t) {
+    if (!t) return 0;
+    let h = Math.imul(Math.round(t.power * 100) + 1, 0x9e3779b1);
+    h = Math.imul(h ^ (t.angle + 181), 0x85ebca6b);
+    h = Math.imul(h ^ ((t.dist >> 2) + 7), 0xc2b2ae35);
+    h ^= h >>> 15;
+    return (h >>> 0) % CONFIG.DICE_SIDES;
+  }
+  function throwDie(rng, throwInput) {
+    return ((rollDie(rng) - 1 + throwOffset(normalizeThrow(throwInput))) % CONFIG.DICE_SIDES) + 1;
+  }
+
   /* ---------- 基本ヘルパー ---------- */
   const opp = side => (side === 'player' ? 'cpu' : 'player');
   const getChar = id => CHAR_MAP[id];
@@ -481,15 +508,17 @@
     return done(state, ctx);
   }
 
-  function roll(state, side, rng) {
+  // 数字を出す。throwInput は投げ方（normalizeThrow を参照）。1ターンに1回だけ（phase で二重の抽選を防ぐ）
+  function roll(state, side, rng, throwInput) {
     if (state.phase === 'over') return fail('勝敗はすでに決まっています');
     if (state.turnSide !== side) return fail('相手のターンです');
     if (state.phase !== 'roll') return fail(state.dice ? '数字はすでに出ています' : '今は数字を出せません');
     const ctx = newCtx();
-    state.dice = rollDie(rng);
+    const t = normalizeThrow(throwInput);
+    state.dice = throwDie(rng, t);
     state.phase = 'action';
     addLog(state, ctx, `${who(state, side)}の出目：${state.dice}`, 'dice');
-    ctx.events.push({ type: 'roll', side, value: state.dice });
+    ctx.events.push(t ? { type: 'roll', side, value: state.dice, throw: t } : { type: 'roll', side, value: state.dice });
     return done(state, ctx);
   }
 
@@ -729,7 +758,7 @@
 
   const Engine = {
     CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, CHARACTERS, SIDES,
-    createRng, rollDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
+    createRng, rollDie, normalizeThrow, throwOffset, throwDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, fatigueRound, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
     rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,

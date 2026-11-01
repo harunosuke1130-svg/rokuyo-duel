@@ -519,3 +519,56 @@ test('★4 蒼泉の聖女：固有スキルで回復疲労をなくす・リー
   assert.ok(r2.logs.some(l => l.text.includes('泉のめぐみ')));
   void before;
 });
+
+// 投げ方（スワイプ）と出目：投げ方は入力に入るが、どの速さ帯でも 1〜6 は均等。不正な値は標準の投げ方
+test('投げ方つきの出目：速さ帯ごとに1〜6が均等・不正な値は検証・同じ入力と乱数なら同じ・1ターン1回', () => {
+  const bands = [[0, 0.33], [0.33, 0.66], [0.66, 1]];
+  const N = 12000;
+  const pick = (r, lo, hi) => lo + r() * (hi - lo);
+  for (const [lo, hi] of bands) {
+    const counts = [0, 0, 0, 0, 0, 0];
+    const gameRng = E.createRng(1234 + lo * 100);
+    const inputRng = E.createRng(99 + hi * 100);   // 投げ方は別の乱れで作る（人の手のばらつきの代わり）
+    for (let i = 0; i < N; i++) {
+      const t = { power: pick(inputRng, lo, hi), angle: pick(inputRng, -180, 180), dist: pick(inputRng, 0, 400) };
+      counts[E.throwDie(gameRng, t) - 1]++;
+    }
+    // 期待値 2000。±7% を超える偏りがないこと（カイ二乗でも確認：自由度5、有意水準0.1%の境界 20.5 未満）
+    const exp = N / 6;
+    counts.forEach((c, k) => assert.ok(Math.abs(c - exp) < exp * 0.07, `速さ ${lo}〜${hi} の ${k + 1}：${c}`));
+    const chi = counts.reduce((a, c) => a + (c - exp) ** 2 / exp, 0);
+    assert.ok(chi < 20.5, `速さ ${lo}〜${hi} のカイ二乗 ${chi.toFixed(2)}`);
+  }
+  // 決まった1つの投げ方を繰り返しても、出目は均等（特定の投げ方が有利にならない）
+  for (const t of [{ power: 1, angle: 0, dist: 400 }, { power: 0.1, angle: 90, dist: 20 }, { power: 0.55, angle: -45, dist: 120 }]) {
+    const counts = [0, 0, 0, 0, 0, 0];
+    const rng = E.createRng(77);
+    for (let i = 0; i < 6000; i++) counts[E.throwDie(rng, t) - 1]++;
+    counts.forEach(c => assert.ok(Math.abs(c - 1000) < 90, JSON.stringify(t) + ' ' + counts));
+  }
+  // 速さで出目が単純に決まらない：同じ乱数で、勢いだけ変えると別の目になることがある
+  const seen = new Set();
+  for (let p = 0; p <= 100; p += 5) seen.add(E.throwDie(() => 0.5, { power: p / 100, angle: 30, dist: 100 }));
+  assert.ok(seen.size >= 4, '勢いを変えると出目が変わる');
+  // 入力の検証：数でない・範囲外は丸めるか標準の投げ方（null）
+  assert.equal(E.normalizeThrow(null), null);
+  assert.equal(E.normalizeThrow({ power: 'abc', angle: 0, dist: 0 }), null);
+  assert.equal(E.normalizeThrow({ power: NaN, angle: 0, dist: 0 }), null);
+  assert.deepEqual(E.normalizeThrow({ power: 5, angle: 999, dist: -3 }), { power: 1, angle: 180, dist: 0 });
+  assert.deepEqual(E.normalizeThrow({ power: 0.123456, angle: 12.6, dist: 33.4 }), { power: 0.12, angle: 13, dist: 33 });
+  // 標準の投げ方（タップ・CPU）は今までの抽選と同じ
+  for (let i = 0; i < 50; i++) { const a = E.createRng(i), b = E.createRng(i); assert.equal(E.throwDie(a, null), E.rollDie(b)); }
+  // 同じ投げ方・同じ乱数なら同じ出目（ホストが1回だけ決め、ゲストは結果を受け取る）
+  const t = { power: 0.7, angle: -120, dist: 210 };
+  assert.equal(E.throwDie(E.createRng(5), t), E.throwDie(E.createRng(5), t));
+  // 1ターンに1回：同じ依頼を再送しても2回目は失敗し、出目は変わらない
+  const s = battle();
+  assert.equal(s.turnSide, 'player');
+  const r1 = E.roll(s, 'player', E.createRng(3), t);
+  assert.ok(r1.ok);
+  assert.deepEqual(r1.events.find(e => e.type === 'roll').throw, E.normalizeThrow(t));
+  const d = s.dice;
+  const r2 = E.roll(s, 'player', E.createRng(4), t);
+  assert.equal(r2.ok, false);
+  assert.equal(s.dice, d);
+});

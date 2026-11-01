@@ -186,7 +186,7 @@
   function apply(state, side, type, a) {
     switch (type) {
       case 'formation': return E.chooseFormation(state, side, a.front, a.leader);
-      case 'roll': return E.roll(state, side, rng);
+      case 'roll': return E.roll(state, side, rng, a.throw);
       case 'swap': return E.swap(state, side, a.out, a.in);
       case 'skill': return E.useSkill(state, side, a.user, rng);
       case 'move': return E.useMove(state, side, a.unit);
@@ -230,7 +230,8 @@
     const initEv = r.events.find(e => e.type === 'initiative');
     if (initEv) { showInitiative(initEv, r); return; }
     if (rollEv) {
-      animateDice(rollEv.value, rollEv.side, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined), !!rollEv.reroll);
+      bt.lastRoll = rollEv;
+      animateDice(rollEv, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined));
       return;
     }
     void fromRoom;
@@ -467,7 +468,7 @@
     else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
     else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
-    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロをタップして振る'; }
+    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロをつかんで投げる（タップでも振れる）'; }
     else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
     else { phase = '技を選ぶ'; sub = '使う技を選んでください（スキルは絵を押す・長押しで技一覧）'; }
@@ -486,11 +487,11 @@
     if (s.phase === 'over') { btn.disabled = !!U.ui.modal; cap = '結果を見る'; }
     else {
       btn.disabled = bt.locked || bt.waiting || bt.diceAnim || s.turnSide !== bt.me || s.phase !== 'roll';
-      cap = btn.disabled ? '' : 'タップして振る';
+      cap = btn.disabled ? '' : 'スワイプで投げる・タップで振る';
     }
     $('#roll-cap').textContent = cap;
     btn.classList.toggle('ready', !btn.disabled && s.phase !== 'over');
-    btn.setAttribute('aria-label', s.phase === 'over' ? '結果を見る' : !btn.disabled ? 'サイコロを振る' : (s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません'));
+    btn.setAttribute('aria-label', s.phase === 'over' ? '結果を見る' : !btn.disabled ? 'サイコロを振る（つかんで投げる・Enter で振る）' : (s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません'));
     // 交代できるか（できない理由）を短く出す
     const hint = $('#drag-hint');
     const swapReason = bt.locked || bt.waiting ? '処理中' : E.swapBlockReason(s, bt.me);
@@ -750,7 +751,8 @@
   }
 
   // サイコロ：Engine が決めた出目を、立体のサイコロを投げて見せる（ここでは抽選しない。演出が失敗・中断しても出目を出して進める）
-  function animateDice(value, side, then, reroll) {
+  // ev.throw は投げ方（自分・対人戦の相手がスワイプしたとき）。無ければ標準の勢いで見せる
+  function animateDice(ev, then) {
     const token = bt.session;
     bt.diceAnim = true;
     render();
@@ -765,7 +767,8 @@
     const fast = U.FAST;
     try {
       Dice.roll({
-        value, from: reroll ? 'center' : side === bt.me ? 'me' : 'foe',
+        value: ev.value, from: ev.reroll ? 'center' : ev.side === bt.me ? 'me' : 'foe',
+        throw: ev.throw || null, tap: !ev.throw && ev.side === bt.me && !ev.reroll,
         still: fast || reduced(), instant: fast,
         onDone: () => (fast ? schedule(done, DELAY.roll) : done())
       });
@@ -1040,10 +1043,18 @@
   function bind() {
     Dice.mount($('#dice-stage'));
     // 中央のサイコロ＝数字を出す（決着後は結果を見る）
-    $('#btn-roll').addEventListener('click', () => {
+    // 振る：サイコロをつかんで投げる（スワイプ・フリック）か、タップ・クリック（標準の勢い）。投げ方は Engine に渡して出目を決める
+    const canThrow = () => {
+      const s = bt.state;
+      return !!s && bt.active && !bt.locked && !bt.waiting && !bt.diceAnim && !U.ui.modal
+        && s.turnSide === bt.me && s.phase === 'roll';
+    };
+    Dice.bindThrow({ canThrow, onThrow: t => perform('roll', t ? { throw: t } : {}) });
+    // キーボード（Enter・スペース）は標準の勢いで振る。指・マウスの操作は上で扱うので、ここでは受けない
+    $('#btn-roll').addEventListener('click', e => {
       if (!bt.state) return;
       if (bt.state.phase === 'over') { if (bt.opts && bt.opts.onShowResult) bt.opts.onShowResult(); return; }
-      perform('roll', {});
+      if (e.detail === 0 && canThrow()) perform('roll', {});
     });
     $('#btn-battle-menu').addEventListener('click', showBattleMenu);
     // 前衛⇄後衛のドラッグ交代（判定はすべて Engine。対人戦のゲストはホストに依頼し、結果の状態で描き直す）
@@ -1090,6 +1101,7 @@
     isActive: () => bt.active,
     // テスト・デバッグ用（ゲーム進行には使わない）
     getState: () => bt.state,
+    lastRoll: () => bt.lastRoll || null,
     isLocked: () => bt.locked || bt.waiting,
     getSession: () => bt.session,
     me: () => bt.me,

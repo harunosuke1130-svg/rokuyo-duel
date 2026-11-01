@@ -1,7 +1,10 @@
 /*
- * 六耀の決闘 — 戦闘画面の立体サイコロ（見た目だけ）
- * 出目は Engine が1回だけ決める。ここは決まった数字を「投げて、跳ねて、転がって止まる」演出で見せるだけで、
- * 抽選・状態には触れない（軌道のゆらぎは Math.random で、ゲームの乱数は使わない）。
+ * 六耀の決闘 — 戦闘画面の立体サイコロ（操作と見た目）
+ * 操作：サイコロを指／マウスでつかんで動かし、離すと投げる（スワイプ・フリック）。速さ・距離・向きを「投げ方」として
+ *   ui-battle → Engine（E.roll）へ渡す。出目は Engine が投げ方と乱数から1回だけ決める（ここでは抽選しない）。
+ *   タップ・クリック・キーボードは標準の投げ方。小さな指のぶれは投げたことにしない。取り消したドラッグでは振らない。
+ * 見た目：決まった出目を「投げて、跳ねて、転がって止まる」演出で見せ、止まった上の面を平らな正方形にして「バンッ」と拡大し、
+ *   少し見せてから盤面の中央の小さな出目表示へ縮める（軌道のゆらぎは Math.random。ゲームの乱数は使わない）。
  *
  * 盤面（.bt-stage）の上に、6面の立方体（.die-body）と接地影（.die-shadow）を置く。
  *   座標：盤面の平面が x・y、盤面から浮く高さが z（カメラ側が +z）。カメラは固定で、盤面を少し手前に傾けて見下ろす。
@@ -18,8 +21,11 @@
     narrow: { me: [0.13, 0.74], center: [0.31, 0.52], foe: [0.45, 0.24] },
     wide: { me: [0.08, 0.74], center: [0.5, 0.52], foe: [0.92, 0.26] }
   };
-  // 時間（ms）：溜め → 1回目の放物線 → 2回目 → 3回目 → 転がり → 収まり
-  const T = { pre: 100, f0: 380, f1: 230, f2: 140, roll: 220, settle: 230 };
+  // 時間（ms）：タップのときの溜め・止まった面を見せる・拡大（行き過ぎて戻る）・大きく見せる・縮める
+  const T = { pre: 90, hold: 100, pop: 290, show: 380, shrink: 200 };
+  // 投げ方の判定
+  const SWIPE_MIN = 12;        // これより小さい動きは指のぶれ（タップ扱い）
+  const STD_POWER = 0.55;      // タップ・キーボード・相手の投げ方が分からないときの勢い
 
   /* ---------- 四元数（回転の向きは CSS の rotate3d と同じ） ---------- */
   const qAxis = (x, y, z, deg) => {
@@ -95,14 +101,33 @@
     } catch (e) { /* 音は飾り */ }
   }
 
+  // 出目が決まって面が飛び出す瞬間の、短く明るい音
+  function chime() {
+    const ac = audio();
+    if (!ac || ac.state !== 'running') return;
+    try {
+      const t = ac.currentTime;
+      [[880, 0.12], [1320, 0.07]].forEach(([f, v]) => {
+        const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
+        const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
+        o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.24);
+      });
+    } catch (e) { /* 音は飾り */ }
+  }
+
   /* ---------- 部品 ---------- */
   const D = {
-    stage: null, btn: null, cam: null, world: null, body: null, shadow: null, fx: null, faces: {},
+    stage: null, btn: null, body: null, shadow: null, fx: null, pop: null, faces: {},
     pose: { at: 'center', value: 1, q: restQ(1, 0) },
-    anim: null,     // 再生中の演出 { token, finish }
-    token: 0
+    anim: null,       // 再生中の演出 { token, finish, tail }（tail＝出目は出し終えて、平らな面を縮めている途中）
+    token: 0,
+    drag: null,       // つかんでいる最中の情報
+    release: null,    // 投げた（指を離した）位置 { x, y, t }。結果が来たらそこから飛ぶ
+    opts: null        // { canThrow(), onThrow(throwInput|null) }
   };
   const size = () => (D.stage ? parseFloat(getComputedStyle(D.stage).getPropertyValue('--die')) || 44 : 44);
+  const popSize = () => (D.stage ? parseFloat(getComputedStyle(D.stage).getPropertyValue('--pop')) || 112 : 112);
+  const clamp = (v, lo, hi) => Math.min(hi, Math.max(lo, v));
 
   function mount(stage) {
     D.stage = stage;
@@ -114,15 +139,18 @@
           <span class="die-core x"></span><span class="die-core y"></span><span class="die-core z"></span></span>
       </span></span><span class="sr-only" id="dice-value" aria-live="polite"></span>`;
     const cap = stage.querySelector('#roll-cap');
-    if (cap) D.btn.appendChild(cap);   // 「タップして振る」はサイコロについて動く
-    D.cam = D.btn.querySelector('.die-cam');
-    D.world = D.btn.querySelector('.die-world');
+    if (cap) D.btn.appendChild(cap);   // 案内はサイコロについて動く
+    D.pop = document.createElement('span');
+    D.pop.className = 'die-pop';
+    D.pop.setAttribute('aria-hidden', 'true');
+    stage.appendChild(D.pop);
     D.body = D.btn.querySelector('.die-body');
     D.shadow = D.btn.querySelector('.die-shadow');
     D.fx = D.btn.querySelector('.die-fx');
     D.body.querySelectorAll('.die-face').forEach(f => { D.faces[f.dataset.n] = f; });
-    window.addEventListener('resize', () => { finish(); place(D.pose.at, false); }, { passive: true });
-    document.addEventListener('visibilitychange', () => { if (document.hidden) finish(); });
+    bindPointer();
+    window.addEventListener('resize', () => { cancelDrag(); finish(); place(D.pose.at, false); if (D.stage.classList.contains('flat')) compact(D.pose.value); }, { passive: true });
+    document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); finish(); } });
     place('center', false);
     draw(D.pose.q, 0, 0, 0);
   }
@@ -135,12 +163,15 @@
     const a = ANCHORS[wide ? 'wide' : 'narrow'][at] || ANCHORS.narrow.center;
     return [r.width * a[0], r.height * a[1]];
   }
+  function placeXY(x, y, glide) {
+    D.btn.classList.toggle('glide', !!glide);
+    D.btn.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+  }
   function place(at, glide) {
     if (!D.stage) return;
     D.pose.at = at;
     const [x, y] = anchor(at);
-    D.btn.classList.toggle('glide', !!glide);
-    D.btn.style.transform = `translate(${x.toFixed(1)}px, ${y.toFixed(1)}px)`;
+    placeXY(x, y, glide);
   }
   // ox, oy：置き場所からのずれ（画面上の px）。z：盤面からの高さ
   function draw(q, ox, oy, z) {
@@ -152,10 +183,6 @@
     const off = 5 + k * half * 0.8;
     D.shadow.style.transform = `translate3d(${(ox + off * 0.7).toFixed(1)}px, ${(wy + off).toFixed(1)}px, 0) scale(${(0.92 + k * 0.55).toFixed(3)})`;
     D.shadow.style.opacity = (0.95 - k * 0.7).toFixed(3);
-  }
-  function lightFace(n, on) {
-    Object.values(D.faces).forEach(f => f.classList.remove('lit'));
-    if (on && D.faces[n]) { void D.faces[n].offsetWidth; D.faces[n].classList.add('lit'); }
   }
   function sparks(ox, oy, strength) {
     if (!D.fx) return;
@@ -174,170 +201,343 @@
     setTimeout(() => box.remove(), 520);
   }
 
+  /* ---------- 平らな出目（立体の上の面を、画面と平行な正方形にしたもの） ---------- */
+  // 立体を隠して平らな面だけを出す（2つが同時に残らない）
+  function setFlat(on) { D.stage.classList.toggle('flat', !!on); }
+  const popTf = (dx, dy, persp, rx, rz, sc) => `translate(-50%, -50%) translate(${dx.toFixed(1)}px, ${dy.toFixed(1)}px) perspective(${persp}px) rotateX(${rx.toFixed(2)}deg) rotateZ(${rz.toFixed(2)}deg) scale(${sc.toFixed(4)})`;
+  // 盤面の中央に、サイコロと同じ大きさの平らな出目を置く（技を選んでいる間も見える）
+  function compact(n) {
+    const [x, y] = anchor('center'), S = size();
+    D.pop.getAnimations().forEach(a => a.cancel());
+    D.pop.dataset.n = n;
+    D.pop.classList.remove('glow');
+    Object.assign(D.pop.style, { left: x.toFixed(1) + 'px', top: y.toFixed(1) + 'px', width: S + 'px', height: S + 'px', transform: 'translate(-50%, -50%)' });
+    setFlat(true);
+  }
+
   /* ---------- 公開：止まっている姿を出す ---------- */
-  // at：'me' | 'foe' | 'center'。value が null なら今の面のまま（まだ振っていない）
+  // at：'me' | 'foe' | 'center'。value があれば出目（中央では平らな出目）。value が null なら今の面のまま（まだ振っていない）
   function show(opts) {
-    if (!D.stage || D.anim) return;
+    if (!D.stage || D.drag) return;
     const o = opts || {};
+    // 出目を大きく見せている途中：同じ出目のままなら邪魔しない。別の場面（次のターンなど）になったらすぐ収める
+    if (D.anim && D.anim.tail && !(o.at === 'center' && o.value === D.pose.value)) finish();
+    if (D.anim) return;
     if (o.value && o.value !== D.pose.value) { D.pose.value = o.value; D.pose.q = restQ(o.value, 0); }
-    if (o.at !== D.pose.at) place(o.at, !!o.glide);
-    draw(D.pose.q, 0, 0, 0);
+    if (o.at === 'center' && o.value) {
+      place('center', false);
+      draw(D.pose.q, 0, 0, 0);
+      if (!D.stage.classList.contains('flat') || D.pop.dataset.n !== String(o.value)) compact(o.value);
+    } else {
+      setFlat(false);
+      // 投げて結果を待っている間（対人戦のゲスト）は、離した場所に置いたまま
+      const waitingThrow = o.at === 'me' && D.release && Date.now() - D.release.t < 5000;
+      if (waitingThrow) D.pose.at = 'me';
+      else { if (o.at !== 'me') D.release = null; place(o.at, !!o.glide); }
+      draw(D.pose.q, 0, 0, 0);
+    }
     D.btn.classList.toggle('unrolled', !o.value);
-    const label = $value();
-    label.textContent = o.value ? `出目 ${o.value}` : '';
+    $value().textContent = o.value ? `出目 ${o.value}` : '';
   }
   const $value = () => D.btn.querySelector('#dice-value');
 
   /* ---------- 公開：投げる ---------- */
-  // { value, from: 'me'|'foe'|'center', still: true（動きを減らす）, onDone }
+  // { value, from: 'me'|'foe'|'center', throw: { power, angle, dist }（無ければ標準）, tap: タップで振った, still: 動きを減らす, instant, onDone }
   function roll(opts) {
+    cancelDrag();
     finish();
     const value = opts.value;
     const token = ++D.token;
     const yaw = (Math.random() * 2 - 1) * 12;
     const qEnd = restQ(value, yaw);
     let done = false;
-    const end = () => {
+    const callDone = () => {
       if (done) return;
       done = true;
-      if (D.anim && D.anim.token === token) D.anim = null;
-      D.btn.classList.remove('throwing');
-      D.pose.value = value; D.pose.q = qEnd;
-      place('center', false);
-      draw(qEnd, 0, 0, 0);
-      D.btn.classList.remove('unrolled');
-      $value().textContent = `出目 ${value}`;
       try { opts.onDone && opts.onDone(); } catch (e) { setTimeout(() => { throw e; }); }
     };
-    if (!D.stage) { end(); return; }
-
-    // 動きを減らす：その場で短く切り替えて、同じ結果を出す
-    if (opts.still) {
-      D.anim = { token, finish: end };
+    // 最後の姿：盤面の中央に平らな出目
+    const settleFinal = () => {
+      if (D.anim && D.anim.token === token) D.anim = null;
+      D.btn.classList.remove('throwing');
+      D.pose.value = value; D.pose.q = qEnd; D.release = null;
       place('center', false);
-      D.body.classList.add('fade');
-      D.pose.q = qEnd; D.pose.value = value;
       draw(qEnd, 0, 0, 0);
-      lightFace(value, !opts.instant);
-      setTimeout(() => { D.body.classList.remove('fade'); end(); }, opts.instant ? 0 : 200);
+      compact(value);
+      D.btn.classList.remove('unrolled');
+      $value().textContent = `出目 ${value}`;
+    };
+    const endAll = () => { settleFinal(); callDone(); };
+    if (!D.stage) { callDone(); return; }
+
+    // 動きを減らす：転がり・急な拡大はせず、平らな出目を短いフェードで出す
+    if (opts.still) {
+      D.anim = { token, finish: endAll };
+      settleFinal();
+      D.anim = { token, finish: endAll };
+      if (!opts.instant) D.pop.animate([{ opacity: 0 }, { opacity: 1 }], { duration: 200, easing: 'ease-out' });
+      setTimeout(() => { if (D.anim && D.anim.token === token) D.anim = null; callDone(); }, opts.instant ? 0 : 200);
       return;
     }
 
     const S = size(), half = S / 2;
+    const t = opts.throw || null;
+    const power = clamp(t && Number.isFinite(t.power) ? t.power : STD_POWER + (opts.tap ? 0 : (Math.random() - 0.5) * 0.3), 0.1, 1);
     const from = opts.from === 'foe' ? 'foe' : opts.from === 'center' ? 'center' : 'me';
-    place(from, false);
-    const [x0, y0] = anchor(from), [x1, y1] = anchor('center');
-    let dx = x1 - x0, dy = y1 - y0;
-    const dist = Math.hypot(dx, dy);
-    // 進む向き（振り直しで同じ場所なら、適当な向きに少しだけ転がる）
-    let ux = dist > 1 ? dx / dist : Math.random() * 2 - 1, uy = dist > 1 ? dy / dist : -0.4;
-    const ul = Math.hypot(ux, uy) || 1; ux /= ul; uy /= ul;
-    const bow = (Math.random() * 2 - 1) * Math.min(18, dist * 0.12);   // 少し斜めに曲がる軌道
-    // 転がる軸＝進む向きと盤面の上向きの外積。2本目の軸で横回転も混ぜる
-    const axA = [uy, -ux, 0];
-    const axB = [ux, uy, 0.7];
-    const spinA = 520 + Math.random() * 200 + dist / half * 40;
-    const spinB = (Math.random() < 0.5 ? -1 : 1) * (150 + Math.random() * 110);
+    setFlat(false);
+    D.pop.getAnimations().forEach(a => a.cancel());
+    // 投げ始め：指を離した場所（最近のものだけ）か、置き場所
+    let x0, y0;
+    if (from === 'me' && D.release && Date.now() - D.release.t < 6000) { x0 = D.release.x; y0 = D.release.y; } else [x0, y0] = anchor(from);
+    D.pose.at = from;
+    placeXY(x0, y0, false);
+    const [x1, y1] = anchor('center');
+    const sr = D.stage.getBoundingClientRect();
+    const dx = x1 - x0, dy = y1 - y0;
+    // 軌道：投げた向きへ飛び出し、盤面の中央へ曲がって止まる（2次ベジェ）。制御点は盤面の中に収める
+    let ux, uy;
+    if (t && Number.isFinite(t.angle)) { ux = Math.cos(t.angle * Math.PI / 180); uy = Math.sin(t.angle * Math.PI / 180); }
+    else {
+      const l = Math.hypot(dx, dy) || 1, r = (Math.random() * 2 - 1) * 0.45;
+      const bx = dx / l, by = dy / l;
+      ux = bx * Math.cos(r) - by * Math.sin(r); uy = bx * Math.sin(r) + by * Math.cos(r);
+      if (Math.hypot(dx, dy) < 2) { ux = Math.random() * 2 - 1; uy = -0.5; }
+    }
+    const reach = 26 + 150 * power;
+    const cx = clamp(x0 + ux * reach, half, sr.width - half) - x0;
+    const cy = clamp(y0 + uy * reach * 0.7, half - 14, sr.height - half + 14) - y0;
+    const path = s => [2 * s * (1 - s) * cx + s * s * dx, 2 * s * (1 - s) * cy + s * s * dy];
+    // 転がる軸＝飛び出す向きと盤面の上向きの外積。2本目の軸で横回転も混ぜる
+    let tx = cx || dx, ty = cy || dy;
+    const tl = Math.hypot(tx, ty) || 1; tx /= tl; ty /= tl;
+    const axA = [ty, -tx, 0];
+    const axB = [tx, ty, 0.7];
+    // 勢い：速いほどよく回り、高く跳ね、長く転がる。弱いと2回だけ低く跳ねる（上限・下限あり）
+    const spinA = 260 + 820 * power + Math.random() * 120;
+    const spinB = (Math.random() < 0.5 ? -1 : 1) * (90 + 200 * power);
+    const heights = [S * (0.75 + 0.95 * power), S * (0.28 + 0.3 * power), power > 0.38 ? S * (0.08 + 0.12 * power) : 0];
+    const durs = [250 + 140 * power, 160 + 70 * power, heights[2] ? 100 + 30 * power : 0];
+    const tRoll = 130 + 110 * power, tSettle = 170;
+    const z0 = S * 0.4;
+    const v = [1, 0.62, 0.38, 0.3];
+    const segD = [durs[0] * v[0], durs[1] * v[1], durs[2] * v[2], tRoll * v[3] / 2];
+    const total = segD.reduce((a, b) => a + b, 0);
+    const tFlight = durs[0] + durs[1] + durs[2], tMove = tFlight + tRoll;
+    const pre = opts.tap ? T.pre : 0;
+    const tStop = pre + tMove + tSettle;
     const qStart = D.pose.q;
-    // 投げた瞬間の姿勢から、出目の姿勢へ途切れなくつなぐための補正
     const tumble = (a, b) => qMul(qAxis(axA[0], axA[1], axA[2], a), qAxis(axB[0], axB[1], axB[2], b));
+    // 投げた瞬間の姿勢から、出目の姿勢へ途切れなくつなぐための補正
     const qFix0 = qMul(qInv(tumble(spinA, spinB)), qMul(qStart, qInv(qEnd)));
 
-    // 水平の速さ：着地のたびに落ちる。転がりで0まで減速
-    const v = [1, 0.62, 0.38, 0.3];
-    const segD = [T.f0 * v[0], T.f1 * v[1], T.f2 * v[2], T.roll * v[3] / 2];
-    const total = segD.reduce((a, b) => a + b, 0);
-    const heights = [S * 1.55, S * 0.52, S * 0.18];
-    const z0 = S * 0.45;
-    const tFlight = T.f0 + T.f1 + T.f2, tMove = tFlight + T.roll, tAll = T.pre + tMove + T.settle;
-
-    // t（溜めの後からの ms）→ 進んだ割合 s と高さ z
-    function travel(t) {
+    function travel(tt) {
       let acc = 0;
-      const durs = [T.f0, T.f1, T.f2];
       for (let i = 0; i < 3; i++) {
-        if (t < durs[i]) {
-          const u = t / durs[i];
+        if (!durs[i]) continue;
+        if (tt < durs[i]) {
+          const u = tt / durs[i];
           const z = i === 0 ? z0 * (1 - u) + 4 * (heights[0] - z0 / 2) * u * (1 - u) : 4 * heights[i] * u * (1 - u);
-          return { s: (acc + v[i] * t) / total, z };
+          return { s: (acc + v[i] * tt) / total, z };
         }
-        acc += segD[i]; t -= durs[i];
+        acc += segD[i]; tt -= durs[i];
       }
-      if (t < T.roll) { const u = t / T.roll; return { s: (acc + v[3] * T.roll * (u - u * u / 2)) / total, z: 0 }; }
+      if (tt < tRoll) { const u = tt / tRoll; return { s: (acc + v[3] * tRoll * (u - u * u / 2)) / total, z: 0 }; }
       return { s: 1, z: 0 };
     }
-    const contacts = [T.f0, T.f0 + T.f1, tFlight];
-    const strengths = [1, 0.55, 0.28];
+    const contacts = [durs[0], durs[0] + durs[1], tFlight].filter((c, i) => durs[i]);
+    const strengths = [0.55 + 0.45 * power, 0.3 + 0.3 * power, 0.25];
     let hit = 0;
 
     D.btn.classList.add('throwing');
-    lightFace(0, false);
-    let t0 = null, raf = 0;
-    const finishNow = () => { cancelAnimationFrame(raf); clearTimeout(guard); end(); };
+    let t0 = null, raf = 0, popped = false, timers = [];
+    const later = (fn, ms) => { const id = setTimeout(() => { if (token === D.token && D.anim && D.anim.token === token) fn(); }, ms); timers.push(id); };
+    const stopAll = () => { cancelAnimationFrame(raf); clearTimeout(guard); timers.forEach(clearTimeout); };
+    const finishNow = () => { stopAll(); endAll(); };
     D.anim = { token, finish: finishNow };
     // 描画が止まっても（裏に回ったなど）必ず結果を出す
-    const guard = setTimeout(finishNow, tAll + 700);
+    const guard = setTimeout(finishNow, tStop + T.hold + T.pop + 900);
+
+    // 停止 → 上の面を少し見せる → 平らな正方形にして「バンッ」と拡大（行き過ぎて戻る） → 大きく見せる → 中央の小さな出目へ
+    function popOut() {
+      if (popped) return;
+      popped = true;
+      const face = D.faces[value].getBoundingClientRect();
+      const B = popSize();
+      const fx = face.left + face.width / 2 - sr.left, fy = face.top + face.height / 2 - sr.top;
+      // 大きな面は盤面の中（横）に収め、縦は少しだけはみ出してよい
+      const px = clamp(fx, B / 2 + 4, sr.width - B / 2 - 4), py = clamp(fy, B / 2 - 24, sr.height - B / 2 + 24);
+      D.pop.getAnimations().forEach(a => a.cancel());
+      D.pop.dataset.n = value;
+      Object.assign(D.pop.style, { left: px.toFixed(1) + 'px', top: py.toFixed(1) + 'px', width: B + 'px', height: B + 'px', transform: popTf(0, 0, 2000, 0, 0, 1) });
+      setFlat(true);
+      const sc0 = Math.max(face.width, face.height) / B;
+      D.pop.animate([
+        { transform: popTf(fx - px, fy - py, 260, TILT, yaw, sc0), offset: 0, easing: 'cubic-bezier(.15, .7, .3, 1)' },
+        { transform: popTf(0, 0, 2000, 0, 0, 1.13), offset: 0.52, easing: 'cubic-bezier(.4, 0, .3, 1)' },
+        { transform: popTf(0, 0, 2000, 0, 0, 1), offset: 1 }
+      ], { duration: T.pop, fill: 'none' });
+      D.pop.classList.remove('glow'); void D.pop.offsetWidth; D.pop.classList.add('glow');
+      chime();
+      $value().textContent = `出目 ${value}`;
+      // 拡大しきったら、ゲームは次へ（技を選べる）。大きな面は少し残してから中央へ縮む（その間も操作は遮らない）
+      later(() => {
+        D.pose.value = value; D.pose.q = qEnd;
+        if (D.anim && D.anim.token === token) D.anim.tail = true;
+        later(() => {
+          const [ax, ay] = anchor('center'), S2 = size();
+          const a = D.pop.animate([
+            { transform: popTf(0, 0, 2000, 0, 0, 1) },
+            { transform: popTf(ax - px, ay - py, 2000, 0, 0, S2 / B) }
+          ], { duration: T.shrink, easing: 'cubic-bezier(.5, 0, .3, 1)', fill: 'forwards' });
+          a.onfinish = () => { if (token === D.token && D.anim && D.anim.token === token) { stopAll(); settleFinal(); } };
+        }, T.show);
+        callDone();
+      }, T.pop);
+    }
 
     function frame(now) {
-      if (done || token !== D.token) return;
+      if (done && popped) return;
+      if (token !== D.token) return;
       try {
         if (t0 === null) t0 = now;
         const el = now - t0;
-        if (el < T.pre) {
-          // 溜め：投げる向きと逆へ少しだけ傾けて、わずかに沈む（硬い物なので伸び縮みはしない）
-          const k = Math.sin(Math.PI * el / T.pre);
+        if (el < pre) {
+          // タップの溜め：投げる向きと逆へ少しだけ傾けて、わずかに沈む（硬い物なので伸び縮みはしない）
+          const k = Math.sin(Math.PI * el / pre);
           draw(qMul(qAxis(axA[0], axA[1], axA[2], -9 * k), qStart), 0, 0, -1.5 * k);
-        } else if (el < T.pre + tMove) {
-          const t = el - T.pre;
-          const p = travel(t);
-          while (hit < contacts.length && t >= contacts[hit]) {
-            const q = travel(contacts[hit]);
-            const along = q.s, perp = bow * 4 * along * (1 - along);
-            sparks(dx * along - uy * perp, dy * along + ux * perp, strengths[hit]);
+        } else if (el < pre + tMove) {
+          const tt = el - pre;
+          const p = travel(tt);
+          while (hit < contacts.length && tt >= contacts[hit]) {
+            const [hx, hy] = path(travel(contacts[hit]).s);
+            sparks(hx, hy, strengths[hit]);
             knock(strengths[hit]);
             hit++;
           }
           const rem = 1 - p.s;
           const fix = qSlerp(qFix0, [1, 0, 0, 0], Math.min(1, p.s * 1.6));
           const q = qMul(tumble(spinA * rem, spinB * Math.pow(rem, 1.6)), qMul(fix, qEnd));
-          const perp = bow * 4 * p.s * (1 - p.s);
-          // 置き場所は投げた位置（from）。中央までのずれを足して描く
-          draw(q, dx * p.s - uy * perp, dy * p.s + ux * perp, p.z);
-        } else if (el < tAll + T.pre) {
-          // 収まり：辺を支点に小さく2回揺れて止まる
-          const t = el - T.pre - tMove;
-          const w = 11 * Math.exp(-t / 75) * Math.sin(Math.PI * 2 * t / 150) * (1 - t / T.settle);
+          const [ox, oy] = path(p.s);
+          draw(q, ox, oy, p.z);
+        } else if (el < tStop) {
+          // 収まり：辺を支点に小さく揺れて止まる（勢いが強いほど少し大きく）
+          const tt = el - pre - tMove;
+          const w = (6 + 6 * power) * Math.exp(-tt / 70) * Math.sin(Math.PI * 2 * tt / 140) * (1 - tt / tSettle);
           draw(qMul(qAxis(axA[0], axA[1], axA[2], w), qEnd), dx, dy, 0);
-          if (!D.btn.dataset.lit) { D.btn.dataset.lit = '1'; lightFace(value, true); }
         } else {
-          delete D.btn.dataset.lit;
-          clearTimeout(guard);
-          end();
-          return;
+          draw(qEnd, dx, dy, 0);
+          // 止まった上の面を少し見せてから飛び出す
+          if (el >= tStop + T.hold) { popOut(); return; }
         }
         raf = requestAnimationFrame(frame);
       } catch (e) {
         // 演出に失敗しても、決まった出目を出して進める
-        delete D.btn.dataset.lit;
-        clearTimeout(guard);
-        end();
+        finishNow();
       }
     }
     raf = requestAnimationFrame(frame);
   }
 
-  // 再生中なら、すぐ最後の姿にして終える
+  // 再生中なら、すぐ最後の姿（中央の平らな出目）にして終える
   function finish() {
     if (D.anim) { const a = D.anim; D.anim = null; a.finish(); }
-    if (D.btn) delete D.btn.dataset.lit;
+  }
+
+  /* ---------- つかんで投げる（ポインター：指・マウス・ペン） ---------- */
+  function bindPointer() {
+    const b = D.btn;
+    b.addEventListener('pointerdown', e => {
+      if (e.button !== undefined && e.button !== 0) return;
+      if (!D.opts || D.anim || D.drag || !D.opts.canThrow()) return;
+      e.preventDefault();
+      try { b.setPointerCapture(e.pointerId); } catch (err) { /* 古いブラウザ */ }
+      const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(b.style.transform) || [0, 0, 0];
+      D.drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, bx: +m[1], by: +m[2], t0: performance.now(), path: 0, lx: e.clientX, ly: e.clientY, moved: false, samples: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
+    });
+    b.addEventListener('pointermove', e => {
+      const d = D.drag;
+      if (!d || e.pointerId !== d.id) return;
+      e.preventDefault();
+      const now = performance.now();
+      d.path += Math.hypot(e.clientX - d.lx, e.clientY - d.ly);
+      d.lx = e.clientX; d.ly = e.clientY;
+      d.samples.push({ x: e.clientX, y: e.clientY, t: now });
+      while (d.samples.length > 2 && now - d.samples[0].t > 140) d.samples.shift();
+      const ox = e.clientX - d.sx, oy = e.clientY - d.sy;
+      if (!d.moved && Math.hypot(ox, oy) < SWIPE_MIN) return;   // 小さなぶれは動かさない
+      if (!d.moved) { d.moved = true; b.classList.add('dragging'); }
+      // サイコロは指について動く（盤面の中に収める）。動かす向きへ少し傾け、わずかに持ち上げる
+      const sr = D.stage.getBoundingClientRect(), half = size() / 2;
+      const x = clamp(d.bx + ox, half, sr.width - half), y = clamp(d.by + oy, half - 10, sr.height - half + 10);
+      placeXY(x, y, false);
+      d.x = x; d.y = y;
+      const v = velocity(d);
+      const sp = Math.hypot(v[0], v[1]);
+      draw(sp > 0.02 ? qMul(qAxis(v[1], -v[0], 0, -Math.min(16, sp * 14)), D.pose.q) : D.pose.q, 0, 0, size() * 0.18);
+    });
+    const end = e => {
+      const d = D.drag;
+      if (!d || e.pointerId !== d.id) return;
+      D.drag = null;
+      b.classList.remove('dragging');
+      try { b.releasePointerCapture(e.pointerId); } catch (err) { /* noop */ }
+      if (e.type !== 'pointerup') { restore(); return; }        // 取り消し（OS がつかみを奪ったなど）：振らない
+      if (!d.moved) {                                          // 動かしていない＝タップ：標準の勢いで振る
+        D.release = null;
+        if (D.opts && D.opts.canThrow()) D.opts.onThrow(null);
+        return;
+      }
+      const ox = e.clientX - d.sx, oy = e.clientY - d.sy;
+      if (Math.hypot(ox, oy) < SWIPE_MIN) { restore(); return; }  // 元の場所へ戻して離した：取り消し
+      const v = velocity(d);
+      const sp = Math.hypot(v[0], v[1]);                        // px/ms
+      // 勢い：離す直前の速さ（主）と動かした距離（従）。上限・下限つき
+      const power = clamp(0.1 + 0.62 * clamp((sp - 0.08) / 1.5, 0, 1) + 0.28 * clamp(d.path / 220, 0, 1), 0.1, 1);
+      const ang = sp > 0.05 ? Math.atan2(v[1], v[0]) : Math.atan2(oy, ox);
+      const input = { power: Math.round(power * 100) / 100, angle: Math.round(ang * 180 / Math.PI), dist: Math.round(Math.min(2000, d.path)) };
+      D.release = { x: d.x, y: d.y, t: Date.now() };
+      D.lastThrow = input;
+      if (D.opts && D.opts.canThrow()) D.opts.onThrow(input);
+      else restore();
+    };
+    b.addEventListener('pointerup', end);
+    b.addEventListener('pointercancel', end);
+    b.addEventListener('lostpointercapture', e => { if (D.drag && D.drag.id === e.pointerId) end({ type: 'cancel', pointerId: e.pointerId }); });
+    // ドラッグ中の Esc は取り消し
+    document.addEventListener('keydown', e => { if (e.key === 'Escape' && D.drag) { const id = D.drag.id; end({ type: 'cancel', pointerId: id }); } });
+  }
+  function velocity(d) {
+    const s = d.samples, a = s[0], z = s[s.length - 1];
+    const dt = Math.max(16, z.t - a.t);
+    return [(z.x - a.x) / dt, (z.y - a.y) / dt];
+  }
+  // 投げずに元の場所へ戻す
+  function restore() {
+    D.release = null;
+    place(D.pose.at, true);
+    draw(D.pose.q, 0, 0, 0);
+  }
+  function cancelDrag() {
+    if (!D.drag) return;
+    D.drag = null;
+    D.btn.classList.remove('dragging');
+    restore();
   }
 
   window.RikuyouDice = {
     mount, show, roll, finish,
-    playing: () => !!D.anim,
+    // { canThrow(): 今投げてよいか, onThrow(throwInput | null): 投げた（null＝タップ・標準の投げ方） }
+    bindThrow: opts => { D.opts = opts; },
+    playing: () => !!D.anim && !D.anim.tail,
     sfxOn,
     setSfx: on => { try { localStorage.setItem(SFX_KEY, on ? 'on' : 'off'); } catch (e) { /* 保存できなくても動く */ } },
-    // テスト用：今の姿で真上を向いている面
+    // テスト用
+    lastThrow: () => D.lastThrow || null,
+    flatFace: () => {
+      if (!D.stage || !D.stage.classList.contains('flat')) return null;
+      const r = D.pop.getBoundingClientRect();
+      return { n: Number(D.pop.dataset.n), w: r.width, h: r.height };
+    },
     topFace: () => {
       const m = qMat(D.pose.q);
       const normals = { 1: [0, 0, 1], 6: [0, 0, -1], 2: [1, 0, 0], 5: [-1, 0, 0], 3: [0, -1, 0], 4: [0, 1, 0] };
