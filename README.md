@@ -79,6 +79,7 @@ rikuyou-duel/
 | ログインの背景 | `src/img/login-bg-portrait.webp`（縦画面）・`login-bg-landscape.webp`（横画面） |
 | 属性マーク | `src/img/element/<属性ID>.webp`（`fire` / `water` / `nature` / `holy` / `dark`。正方形） |
 | ホームの背景・バナーの絵 | `src/img/home-bg-portrait.webp`（縦画面）・`home-bg-landscape.webp`（横画面）・`banner-dungeon.webp`・`banner-match.webp`・`banner-gacha.webp` |
+| ダンジョン一覧のバナー | `src/img/dungeon/<ダンジョンID>.webp`（無ければ戦闘の背景の横長を使う。`scripts/dungeon-art.js` が横長背景から 2:1 で切り出す） |
 
 編集したら **`npm run build`**（`docs/firebase-config.js` は上書きしません）。
 
@@ -95,3 +96,17 @@ npm run test:online  # Firebase エミュレーター上でオンライン機能
 ```
 
 テスト用URLオプション：`?seed=数字`（乱数固定）、`?fast=1`（演出を短く）
+
+## ダンジョンの絵づくり（`scripts/dungeon-art.js`）
+
+ダンジョンの敵 3 体（1 体ずつ）とスマホ用・PC 用の背景を、指示文づくり → 生成 → 保存・軽量化 → 組み込み → スマホと PC の確認まで行う。
+
+```
+node scripts/dungeon-art.js prompts  <ID>   # art/<ID>/art.json（設定）と prompts.md（指示文）
+node scripts/dungeon-art.js generate <ID>   # 画像を生成して art/<ID>/raw/ へ（GEMINI_API_KEY か OPENAI_API_KEY が必要）
+node scripts/dungeon-art.js import   <ID>   # 縮小・圧縮して src/img/ へ（敵・縦横の背景・一覧のバナー）
+node scripts/dungeon-art.js emblem   <ID>   # 丸い紋章の顔の位置だけ書き直す
+node scripts/dungeon-art.js check    <ID>   # ビルドして、スマホ・PC の画面を撮って確かめる（art/<ID>/check/）
+```
+
+鍵が無いときは、`prompts.md` の指示文で作った絵（または手描きの絵）を `art/<ID>/raw/floor1.png`〜`floor3`・`portrait`・`landscape` に置けば、`import` から先は同じように使える。保存・軽量化には `python3` の Pillow を使う。細かい決まりは CLAUDE.md の「ダンジョンの絵づくり」。
