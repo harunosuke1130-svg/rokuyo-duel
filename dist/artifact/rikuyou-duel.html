@@ -2232,6 +2232,11 @@ body[data-screen="match"] .topbar {
   position: relative; height: 100%; overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y mandatory; scrollbar-width: none;
   padding: var(--mt-pad, 200px) 0; box-sizing: border-box; outline: none; -webkit-overflow-scrolling: touch;
 }
+/* プログラムで中央へ動かしている間は、ブラウザの吸い付きを止める（行き先の取り合いをしない）。
+   マウスの PC では、ブラウザの吸い付きを使わずプログラムだけで中央に合わせる。
+   開いている間は前後の札をずらすため、PC の Chrome が別の位置へ吸い付けようとして、大きな札の開く・閉じるをくり返していた */
+.mt-scroll.mt-moving { scroll-snap-type: none; }
+@media (hover: hover) and (pointer: fine) { .mt-scroll { scroll-snap-type: none; } }
 .mt-scroll::-webkit-scrollbar { display: none; }
 .mt-scroll:focus-visible { box-shadow: inset 0 0 0 3px rgba(255, 224, 138, .8); }
 /* 小さな札（横長）：名前・小さな絵・敵Lv・状態 */
@@ -8312,7 +8317,7 @@ body[data-screen="gacha"] .topbar {
    * 止まって落ち着いたら、中央の1枚の上に大きな対戦札（#match-open）を重ねて開く。前後の札は transform で上下へずらすだけなので、
    * スクロール位置は変わらない（開く・閉じるがスクロール操作と誤判定されない）。動かし始めたら大きな札をすぐ閉じる。 */
   const MT = { pre: 140, idle: 130, snap: 420, pop: 280 };   // 閉じる・静止の判定・吸い付きの上限・開く（ms）
-  const mw = { sel: 0, open: false, target: null, touching: false, idleT: 0, snapT: 0, lastUser: 0, starting: 0, bound: false };
+  const mw = { sel: 0, open: false, target: null, touching: false, idleT: 0, snapT: 0, lastUser: 0, inputAt: 0, starting: 0, bound: false };
   const matchState = (p, m, k) => {
     const un = P.matchUnlocked(p, m.id), won = !!p.matches.won[m.id];
     const prev = D.CPU_MATCHES[k - 1];
@@ -8369,17 +8374,39 @@ body[data-screen="gacha"] .topbar {
     sc.style.setProperty('--mt-pad', Math.max(0, Math.round(H / 2 - (S - 8) / 2)) + 'px');
     void open;
   }
-  const matchIndexAt = () => { const { sc } = wheelEls(); return Math.max(0, Math.min(D.CPU_MATCHES.length - 1, Math.round(sc.scrollTop / slotH()))); };
+  // k 番目の札が中央に来るスクロール位置。ブラウザの吸い付き（中央合わせ）と同じ計算にする。
+  // 「番号×札の高さ」で出すと、PC の拡大率などで札の高さが端数になったとき吸い付き先と数ピクセルずれ、
+  // 「ずれた→動かされたと思って閉じる→中央へ戻す→開く」がくり返されて、大きな札がチカチカしていた。
+  function matchTop(k) {
+    const { sc } = wheelEls();
+    const it = sc && sc.querySelectorAll('.mt-item')[k];
+    if (!it) return k * slotH();
+    const t = it.offsetTop + it.offsetHeight / 2 - sc.clientHeight / 2;
+    return Math.max(0, Math.min(sc.scrollHeight - sc.clientHeight, t));
+  }
+  const MT_NEAR = 4;   // この差（px）までは「その札の位置にいる」とみなす
+  const matchIndexAt = () => {
+    const { sc } = wheelEls();
+    const n = D.CPU_MATCHES.length, S = slotH(), it0 = sc.querySelector('.mt-item');
+    const base = it0 ? it0.offsetTop + it0.offsetHeight / 2 - sc.clientHeight / 2 : 0;
+    return Math.max(0, Math.min(n - 1, Math.round((sc.scrollTop - base) / S)));
+  };
   // k 番目を中央へ（smooth：動かして見せる）。着いたら開く
   function matchGo(k, smooth) {
     const { sc } = wheelEls();
     k = Math.max(0, Math.min(D.CPU_MATCHES.length - 1, k));
     mw.pending = k;
-    const top = k * slotH();
+    const top = matchTop(k);
     clearTimeout(mw.snapT);
-    if (Math.abs(sc.scrollTop - top) < 1) { mw.target = null; matchExpand(k, smooth); return; }
+    if (Math.abs(sc.scrollTop - top) < MT_NEAR) {
+      mw.target = null;
+      // もう開いている札なら何もしない（開く動きをくり返さない＝チカチカの原因だった）
+      if (mw.open && mw.sel === k) { mw.pending = null; return; }
+      matchExpand(k, smooth); return;
+    }
     if (mw.open) matchCollapse();
     mw.target = top;
+    sc.classList.add('mt-moving');
     sc.scrollTo({ top, behavior: smooth && !U.reducedMotion() ? 'smooth' : 'auto' });
     // 着かなかったとき（途中で止められた・環境の都合）でも、必ず開く
     mw.snapT = setTimeout(() => { if (mw.target === null) return; mw.target = null; sc.scrollTop = top; matchExpand(matchIndexAt(), false); }, smooth ? MT.snap : 60);
@@ -8398,6 +8425,7 @@ body[data-screen="gacha"] .topbar {
     if (!sc || document.body.dataset.screen !== 'match') return;
     const p = app.profile, m = D.CPU_MATCHES[k], st = matchState(p, m, k), ch = matchArt(m);
     mw.sel = k; mw.open = true; mw.target = null; mw.pending = null;
+    sc.classList.remove('mt-moving');
     sc.querySelectorAll('.mt-item').forEach((it, i) => { it.dataset.rel = i < k ? 'before' : i > k ? 'after' : 'sel'; it.setAttribute('aria-selected', String(i === k)); });
     sc.classList.add('opened');
     sc.setAttribute('aria-activedescendant', '');
@@ -8414,8 +8442,8 @@ body[data-screen="gacha"] .topbar {
         ${action}
       </div></div>`;
     // 中央の札の位置（一覧の中の座標）に重ねる
-    const S0 = slotH(), pad = parseFloat(getComputedStyle(sc).paddingTop) || 0;
-    open.style.top = (pad + k * S0 + (S0 - 8) / 2).toFixed(1) + 'px';
+    const selIt = sc.querySelectorAll('.mt-item')[k];
+    open.style.top = (selIt.offsetTop + selIt.offsetHeight / 2).toFixed(1) + 'px';
     clearTimeout(open._hideT);
     open.classList.remove('hidden', 'closing');
     if (animate && !U.reducedMotion()) {
@@ -8438,30 +8466,49 @@ body[data-screen="gacha"] .topbar {
       clearTimeout(mw.idleT);
       // 自分で動かしている途中（キー・タップで選んだ先へ移動中）は、吸い付きで行き先を上書きしない
       if (mw.touching || mw.target !== null || document.body.dataset.screen !== 'match') return;
-      matchGo(matchIndexAt(), true);
+      const k = matchIndexAt();
+      if (mw.open && mw.sel === k) return;   // もう中央で開いている
+      matchGo(k, true);
     };
     sc.addEventListener('scroll', () => {
       if (mw.resizing) return;   // 画面の大きさが変わっている間の位置の直しは、操作と数えない
       if (mw.target !== null) {
         // 自分で動かしている（吸い付き・選択）：着いたら開く。ほかのスクロールとは数えない
-        if (Math.abs(sc.scrollTop - mw.target) < 1.5) { clearTimeout(mw.snapT); mw.target = null; matchExpand(matchIndexAt(), true); }
+        if (Math.abs(sc.scrollTop - mw.target) < MT_NEAR) { clearTimeout(mw.snapT); mw.target = null; matchExpand(matchIndexAt(), true); }
         return;
       }
       // 選んでいる札の位置からほぼ動いていない（画面の大きさの変更などでブラウザが位置を直しただけ）なら、操作と数えない
-      if (mw.open && !mw.touching && Math.abs(sc.scrollTop - mw.sel * slotH()) < 2) return;
+      if (mw.open && !mw.touching && Math.abs(sc.scrollTop - matchTop(mw.sel)) < MT_NEAR) return;
+      // 開いている間に、人が何も操作していないのに起きた小さな位置の直し（吸い付き・拡大率の端数）は閉じる理由にしない
+      if (mw.open && !mw.touching && Date.now() - mw.inputAt > 700 && matchIndexAt() === mw.sel) return;
       mw.lastUser = Date.now();
       if (mw.open) matchCollapse();
       clearTimeout(mw.idleT);
       mw.idleT = setTimeout(idle, MT.idle);
     }, { passive: true });
-    if ('onscrollend' in window) sc.addEventListener('scrollend', () => { if (mw.target === null && !mw.touching) { clearTimeout(mw.idleT); mw.idleT = setTimeout(idle, 40); } });
+    if ('onscrollend' in window) sc.addEventListener('scrollend', () => {
+      // 開いたまま、人の操作なしに来た「止まった」の合図（ブラウザの吸い付きの直しなど）は無視する
+      if (mw.open && Date.now() - mw.inputAt > 700 && matchIndexAt() === mw.sel) return;
+      if (mw.target === null && !mw.touching) { clearTimeout(mw.idleT); mw.idleT = setTimeout(idle, 40); } });
     // 指が触れているだけでは閉じない。指を離した後も、慣性が落ち着くまで待つ
-    const userIn = () => { mw.touching = true; if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; mw.pending = null; } };
+    const userIn = () => { mw.touching = true; sc.classList.remove('mt-moving'); if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; mw.pending = null; } };
     const userOut = () => { mw.touching = false; clearTimeout(mw.idleT); mw.idleT = setTimeout(idle, MT.idle); };
     sc.addEventListener('touchstart', userIn, { passive: true });
     sc.addEventListener('touchend', userOut, { passive: true });
     sc.addEventListener('touchcancel', userOut, { passive: true });
-    sc.addEventListener('wheel', () => { mw.pending = null; if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; } }, { passive: true });
+    const markInput = () => { mw.inputAt = Date.now(); };
+    sc.addEventListener('pointerdown', markInput, { passive: true });
+    sc.addEventListener('touchstart', markInput, { passive: true });
+    sc.addEventListener('keydown', markInput);
+    sc.addEventListener('wheel', e => {
+      if (!e.deltaY) return;
+      markInput(); sc.classList.remove('mt-moving'); mw.pending = null;
+      if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; }
+      // ホイールを回し始めたら、すぐ閉じる（スクロールの最初の動きが小さくても待たない）
+      mw.lastUser = Date.now();
+      if (mw.open) matchCollapse();
+      clearTimeout(mw.idleT); mw.idleT = setTimeout(idle, MT.idle + 60);
+    }, { passive: true });
     // 小さな札のタップ・クリック：その相手を中央へ（スワイプの終わりはタップと数えない）
     sc.addEventListener('click', e => {
       const it = e.target.closest('[data-pick]');
@@ -8489,11 +8536,11 @@ body[data-screen="gacha"] .topbar {
       mw.resizing = true;
       clearTimeout(mw.idleT); clearTimeout(mw.snapT); mw.target = null;
       layoutMatchWheel();
-      sc.scrollTop = mw.resizeK * slotH();
+      sc.scrollTop = matchTop(mw.resizeK);
       clearTimeout(rT);
       rT = setTimeout(() => {
         const k = mw.resizeK;
-        if (document.body.dataset.screen === 'match') { layoutMatchWheel(); sc.scrollTop = k * slotH(); matchExpand(k, false); }
+        if (document.body.dataset.screen === 'match') { layoutMatchWheel(); sc.scrollTop = matchTop(k); matchExpand(k, false); }
         requestAnimationFrame(() => { mw.resizing = false; });
       }, 160);
     }, { passive: true });

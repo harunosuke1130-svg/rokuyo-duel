@@ -1254,6 +1254,24 @@ for (const kind of ['mobile', 'desktop']) {
     await page.waitForTimeout(1000);
     w = await wheel(page);
     assert.ok(w.open && w.top === top0, '開いたまま止まっている');
+    // ブラウザが勝手に送る「止まった」の合図や、吸い付きの小さな位置の直し（人の操作なし）では、閉じたり開く動きをくり返したりしない
+    const flick = await page.evaluate(async () => {
+      const sc = document.querySelector('#match-list'), o = document.querySelector('#match-open');
+      let changes = 0, anims = 0;
+      const mo = new MutationObserver(() => changes++); mo.observe(o, { attributes: true, attributeFilter: ['class'] });
+      const t0 = sc.scrollTop;
+      for (let i = 0; i < 6; i++) {
+        sc.scrollTop = t0 + (i % 2 ? 1 : 0);
+        sc.dispatchEvent(new Event('scroll')); sc.dispatchEvent(new Event('scrollend'));
+        await new Promise(r => setTimeout(r, 120));
+        anims += o.getAnimations().length;
+      }
+      sc.scrollTop = t0;
+      await new Promise(r => setTimeout(r, 300));
+      mo.disconnect();
+      return { changes, anims, open: !o.classList.contains('hidden') && !o.classList.contains('closing') };
+    });
+    assert.deepEqual(flick, { changes: 0, anims: 0, open: true }, '中央の1枚は開いたまま動かない');
     // ホイール（スワイプ）で動かすと、すぐ閉じて小さな札の一覧になる
     const box = await (await page.$('#match-list')).boundingBox();
     await page.mouse.move(box.x + box.width / 2, box.y + 30);
