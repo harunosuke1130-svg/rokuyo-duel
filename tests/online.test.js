@@ -150,6 +150,27 @@ test('離れた2人のプレイヤー対戦（ルーム作成→コードで参�
   const guestLast = await Bp.page.evaluate(() => window.RikuyouBattle.lastRoll());
   assert.deepEqual(guestLast, hostRoll, 'ゲストは同じ結果を受け取る（別に抽選しない）');
   assert.equal((await H.state(A.page)).log.filter(l => l.kind === 'dice').length, (await H.state(Bp.page)).log.filter(l => l.kind === 'dice').length, '出目の記録は両方で同じ数');
+  // ゲストが固有スキルを使う → ホストが確定し、両方の画面で同じ結果・演出は1回ずつ
+  await Bp.page.waitForFunction(() => { const s = window.RikuyouApp.getState(); return s.phase === 'action' && !window.RikuyouBattle.isLocked() && !window.RikuyouDice.playing(); }, null, { timeout: 15000 });
+  const gs = await H.state(Bp.page);
+  const caster = gs.teams.cpu.findIndex((u, i) => u.hp > 0 && u.cd === 0);
+  const showsA = await A.page.evaluate(() => window.RikuyouBattle.skillShows());
+  const showsB = await Bp.page.evaluate(() => window.RikuyouBattle.skillShows());
+  const csel = `#screen-battle .bt-card[data-side="cpu"][data-idx="${caster}"] .bt-art`;
+  await Bp.page.$eval(csel, e => e.scrollIntoView({ block: 'center' }));
+  await Bp.page.waitForTimeout(500);
+  await Bp.page.click(csel);
+  await Bp.page.waitForSelector('#btn-use-skill');
+  await Bp.page.click('#btn-use-skill');
+  await A.page.waitForFunction(() => window.RikuyouApp.getState().skillUsed, null, { timeout: 15000 });
+  await Bp.page.waitForFunction(() => window.RikuyouApp.getState().skillUsed, null, { timeout: 15000 });
+  await Bp.page.waitForTimeout(1500);
+  const ha = await H.state(A.page), hb = await H.state(Bp.page);
+  assert.deepEqual(ha.teams, hb.teams, 'スキルの結果が両方で同じ');
+  assert.equal(ha.dice, hb.dice);
+  assert.equal(await A.page.evaluate(() => window.RikuyouBattle.skillShows()), showsA + 1, 'ホストの演出は1回');
+  assert.equal(await Bp.page.evaluate(() => window.RikuyouBattle.skillShows()), showsB + 1, 'ゲストの演出は1回');
+  assert.equal(hb.log.filter(l => l.kind === 'skill' && l.text.includes('を使った')).length, ha.log.filter(l => l.kind === 'skill' && l.text.includes('を使った')).length);
   const ok = await H.playPvp(A.page, Bp.page);
   assert.ok(ok, '対戦が決着しなかった');
   const sa = await H.state(A.page), sb = await H.state(Bp.page);

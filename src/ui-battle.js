@@ -46,7 +46,12 @@
     // 演出（表示だけ。状態・結果には触れない）
     hpShown: {},     // 画面に出しているHP（"side:idx" → 値）
     hpHold: {},      // 当たる瞬間まで前のHPを見せておく分
-    pickKey: ''      // 技を選ぶ場面が変わったときだけ、技の欄を登場させる
+    pickKey: '',     // 技を選ぶ場面が変わったときだけ、技の欄を登場させる
+    moveBefore: {},  // 固有スキルの直前に出ていた通常技の攻撃値（強化の「前→後」を見せる）
+    barrierHold: {}, // 結界が消えた（被弾で消費）カード：当たる瞬間まで膜を残す
+    barrierWait: {}, // 結界が付いたカード：膜が届く瞬間まで出さない
+    boostShown: {},  // 画面に出している「このターン 攻撃×2」の文字（消えるときに火の粉にする）
+    fxQuick: false   // 演出をタップで短縮した（この結果の残りの演出を素早く）
   };
 
   const foeIsCpu = () => bt.mode === 'cpu';
@@ -73,6 +78,9 @@
     bt.lastLogs = [];
     bt.active = false;
     bt.hpShown = {}; bt.hpHold = {}; bt.pickKey = '';
+    bt.moveBefore = {}; bt.barrierHold = {}; bt.barrierWait = {}; bt.boostShown = {}; bt.fxQuick = false;
+    document.querySelectorAll('#screen-battle .cast-lift').forEach(c => c.classList.remove('cast-lift'));
+    $('#screen-battle').classList.remove('casting');
     if (bt.unwatch) { try { bt.unwatch(); } catch (e) { /* noop */ } }
     bt.unwatch = null;
     if (bt.heartbeat) clearInterval(bt.heartbeat);
@@ -226,16 +234,25 @@
   function onResult(r, fromRoom) {
     holdHp(r.events || []);
     captureSwap(r.events || []);
+    captureFx(r.events || []);
+    bt.fxQuick = false;
     const rollEv = r.events.find(e => e.type === 'roll');
     const initEv = r.events.find(e => e.type === 'initiative');
+    const skillEv = r.events.find(e => e.type === 'skill');
     if (initEv) { showInitiative(initEv, r); return; }
-    if (rollEv) {
-      bt.lastRoll = rollEv;
-      animateDice(rollEv, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined));
-      return;
-    }
+    const go = () => {
+      if (rollEv) {
+        bt.lastRoll = rollEv;
+        if (rollEv.reroll) windAtDice();
+        animateDice(rollEv, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined));
+        return;
+      }
+      afterAction(r);
+    };
     void fromRoom;
-    afterAction(r);
+    // 固有スキル：先に「誰が・何を」使ったかを見せてから、効果（届く・当たる・回復・結界・強化・振り直し）へ
+    if (skillEv) { bt.skillShows = (bt.skillShows || 0) + 1; skillIntro(skillEv, go); }
+    else go();
   }
 
   function afterAction(r, delay) {
@@ -387,8 +404,13 @@
     const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
     const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: '効果なし' }[kind];
     const main = kind === 'both' ? `攻${atkNum(p.boosted)}＋回${healVal}` : kind === 'atk' ? `攻撃 ${atkNum(p.boosted)}` : kind === 'heal' ? `回復 ${healVal}` : '—';
-    return `<button type="button" class="mo-btn ${kind}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
-      <span class="mo-kind">${head}</span><b class="mo-main">${esc(main)}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>`;
+    // 攻撃と回復を分けて描く（固有スキルの強化で光らせるのは攻撃の数字だけ）
+    const atkTxt = kind === 'both' ? `攻${atkNum(p.boosted)}` : `攻撃 ${atkNum(p.boosted)}`;
+    const mainHtml = kind === 'both' ? `<span class="mo-atk">${esc(atkTxt)}</span>＋<span class="mo-heal">回${healVal}</span>`
+      : kind === 'atk' ? `<span class="mo-atk">${esc(atkTxt)}</span>` : esc(main);
+    const boosted = atk && s.turnSide === bt.me && (s.boost.mult > 1 || s.boost.bonus > 0);
+    return `<button type="button" class="mo-btn ${kind}${boosted ? ' boosted' : ''}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} data-el="${esc(boostEl() || ch.element)}" aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
+      <span class="mo-kind">${head}</span><b class="mo-main">${mainHtml}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>`;
   }
 
   // カード：絵（押すと詳細）＋名前・★・HP＋（味方前衛で出目確定後は）通常技。枠は属性色×ランクの濃さ
@@ -408,11 +430,13 @@
     const tags = [];
     if (lead) tags.push('<span class="bt-tag lead" title="リーダー"><svg viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15L1 4l6 5 5-8 5 8 6-5-1 11z" fill="currentColor"/></svg><i>リーダー</i></span>');
     if (E.isBoss(u.charId)) tags.push(`<span class="bt-tag boss">${esc(ch.rank || 'ボス')}</span>`);
-    if (u.barrier && u.hp > 0) tags.push('<span class="bt-tag barrier">結界</span>');
+    // 結界：膜が届く瞬間までは出さず、被弾で消えたときは当たる瞬間まで残す（どちらも表示だけ）
+    const shield = u.hp > 0 && ((u.barrier && !(key in bt.barrierWait)) || key in bt.barrierHold);
+    if (shield) tags.push('<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
     const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${hpState(u) === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
-    return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${withMove ? ' can-act' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
+    return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${withMove ? ' can-act' : ''}${shield ? ' has-barrier' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
       <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: !E.isBoss(u.charId) })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${vu.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(vu) : ''}</span>
       ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}${starsHtml(ch)}</span><span class="bt-hpline">${hpNum(vu)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(vu)}</span>`
         : `${hpBar(vu)}<span class="bt-backline">${starsHtml(ch)}${u.hp > 0 && u.cd > 0 && !hidden ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : ''}</span>`}
@@ -447,6 +471,7 @@
     // 後衛がいない側（ボス）は「後衛」の見出しを隠す
     $('#' + pre + '-back').previousElementSibling.classList.toggle('hidden', !backIds.length);
     $('#' + pre + '-back').classList.toggle('hidden', !backIds.length);
+    renderBoost(side, pre);
     const l = s.leader[side];
     const hideLeader = side === bt.foe && s.phase === 'formation';
     const lc = l === null || l === undefined || hideLeader ? null : E.unitChar(s.teams[side][l]);
@@ -663,13 +688,218 @@
     requestAnimationFrame(step);
   }
 
+  /* ---------- 固有スキルの演出（表示だけ。結果は Engine が決めたもの） ---------- */
+  // このターンの攻撃強化を使ったキャラの属性（強化の炎・水などの色に使う）
+  const boostEl = () => { const s = bt.state; return s && s.skillUsedBy !== null && s.skillUsedBy !== undefined ? elOf(s.turnSide, s.skillUsedBy) : ''; };
+  // 「このターン 攻撃×2」の印：ゲームの状態（boost）から描く。消えるときは火の粉になって散る
+  function renderBoost(side, pre) {
+    const s = bt.state;
+    const box = $('#' + pre + '-boost');
+    if (!box) return;
+    const on = s.turnSide === side && (s.phase === 'action' || s.phase === 'replace') && (s.boost.mult > 1 || s.boost.bonus > 0);
+    const parts = [];
+    if (on && s.boost.mult > 1) parts.push(`攻撃×${atkNum(s.boost.mult)}`);
+    if (on && s.boost.bonus > 0) parts.push(`攻撃+${s.boost.bonus}`);
+    const text = parts.length ? `このターン ${parts.join('・')}` : '';
+    const prev = bt.boostShown[side] || '';
+    if (prev && !text && !reduced() && !U.FAST) embersAt(box, box.dataset.el);
+    bt.boostShown[side] = text;
+    box.dataset.el = on ? boostEl() : (box.dataset.el || '');
+    box.innerHTML = text ? `<span class="bt-boost-ico" aria-hidden="true">⚔</span>${esc(text)}<small>（回復は変わらない）</small>` : '';
+    box.classList.toggle('on', !!text);
+  }
+  function embersAt(el, elem) {
+    const r = el.getBoundingClientRect();
+    if (!r.width) return;
+    for (let i = 0; i < 6; i++) {
+      const n = document.createElement('i');
+      n.className = 'fx-ember';
+      if (elem) n.dataset.el = elem;
+      n.style.left = (r.left + r.width * (0.2 + 0.6 * Math.random())) + 'px';
+      n.style.top = (r.top + r.height / 2) + 'px';
+      n.style.setProperty('--dx', ((Math.random() - 0.5) * 40).toFixed(0) + 'px');
+      n.style.setProperty('--dy', (-20 - Math.random() * 30).toFixed(0) + 'px');
+      $('#fx-layer').appendChild(n);
+      setTimeout(() => n.remove(), 900);
+    }
+  }
+  // 結果を描き直す前に、強化前の攻撃値・結界の有無を控える（「前→後」と膜の出入りを、届く瞬間に見せるため）
+  function captureFx(events) {
+    bt.moveBefore = {};
+    document.querySelectorAll('#ally-front .mo-btn[data-move] .mo-atk').forEach(n => { bt.moveBefore[n.closest('[data-move]').dataset.move] = n.textContent; });
+    const s = bt.state;
+    if (!s || reduced() || U.FAST) return;
+    events.forEach(ev => {
+      const key = ev.side + ':' + ev.idx;
+      if (ev.type === 'barrier') bt.barrierWait[key] = true;
+      if (ev.type === 'damage') {
+        const c = cardOf(ev.side, ev.idx);
+        const u = s.teams[ev.side] && s.teams[ev.side][ev.idx];
+        if (c && c.classList.contains('has-barrier') && u && !u.barrier) bt.barrierHold[key] = true;
+      }
+    });
+  }
+  const fxRect = el => { const r = el && el.getBoundingClientRect(); return r && r.width ? { x: r.left + r.width / 2, y: r.top + r.height / 2 } : null; };
+  // 発動元から対象へ、属性の粒を飛ばす（数を抑える）
+  function trail(fromEl, toEl, elem, ms, kind) {
+    const a = fxRect(fromEl), b = fxRect(toEl);
+    if (!a || !b) return;
+    const n = 5;
+    for (let i = 0; i < n; i++) {
+      const p = document.createElement('i');
+      p.className = 'fx-mote' + (kind ? ' ' + kind : '');
+      if (elem) p.dataset.el = elem;
+      p.style.left = a.x + 'px'; p.style.top = a.y + 'px';
+      $('#fx-layer').appendChild(p);
+      const mx = (a.x + b.x) / 2 + (Math.random() - 0.5) * 70, my = (a.y + b.y) / 2 + (Math.random() - 0.5) * 50;
+      p.animate([
+        { transform: 'translate(-50%, -50%) scale(.6)', opacity: 0 },
+        { transform: `translate(calc(-50% + ${mx - a.x}px), calc(-50% + ${my - a.y}px)) scale(1)`, opacity: 1, offset: 0.45 },
+        { transform: `translate(calc(-50% + ${b.x - a.x}px), calc(-50% + ${b.y - a.y}px)) scale(.7)`, opacity: 0.2 }
+      ], { duration: ms, delay: i * 28, easing: 'cubic-bezier(.4, 0, .4, 1)', fill: 'both' });
+      setTimeout(() => p.remove(), ms + i * 28 + 60);
+    }
+  }
+  // 味方（または敵）の前衛の列に、属性の輪が広がる（攻撃強化）
+  function rowRing(side, elem) {
+    const row = $(side === bt.me ? '#ally-front' : '#enemy-front');
+    const c = fxRect(row);
+    if (!c) return;
+    const n = document.createElement('div');
+    n.className = 'fx-ring';
+    if (elem) n.dataset.el = elem;
+    n.style.left = c.x + 'px'; n.style.top = c.y + 'px';
+    $('#fx-layer').appendChild(n);
+    setTimeout(() => n.remove(), 800);
+  }
+  // 強化された通常技の攻撃値：前の値 → 新しい値（攻撃の数字だけ短く拡大。回復の数字は光らせない）
+  function popBoostedMoves() {
+    document.querySelectorAll('#ally-front .mo-btn[data-move]').forEach(btn => {
+      const n = btn.querySelector('.mo-atk');
+      const before = bt.moveBefore[btn.dataset.move];
+      if (!n || !before || before === n.textContent) return;
+      const after = n.textContent;
+      n.innerHTML = `<s class="mo-from">${esc(before)}</s>${esc(after)}`;
+      n.classList.remove('mo-pop'); void n.offsetWidth; n.classList.add('mo-pop');
+      setTimeout(() => { if (n.isConnected) { n.textContent = after; n.classList.remove('mo-pop'); } }, 900);
+    });
+    bt.moveBefore = {};
+  }
+  // 強化の数字は、炎の輪が届くまで前の値のまま見せる
+  function holdBoostedMoves() {
+    document.querySelectorAll('#ally-front .mo-btn[data-move] .mo-atk').forEach(n => {
+      const before = bt.moveBefore[n.closest('[data-move]').dataset.move];
+      if (before && before !== n.textContent) { n.dataset.after = n.textContent; n.textContent = before; }
+    });
+  }
+  function releaseBoostedMoves() {
+    document.querySelectorAll('#ally-front .mo-btn[data-move] .mo-atk[data-after]').forEach(n => { n.textContent = n.dataset.after; delete n.dataset.after; });
+  }
+  // 振り直し：風が今の出目を巻き上げる
+  function windAtDice() {
+    if (reduced() || U.FAST) return;
+    const pop = document.querySelector('#dice-layer .die-pop');
+    const c = fxRect(pop && pop.offsetParent ? pop : $('#dice-stage'));
+    if (!c) return;
+    const n = document.createElement('div');
+    n.className = 'fx-wind';
+    n.style.left = c.x + 'px'; n.style.top = c.y + 'px';
+    $('#fx-layer').appendChild(n);
+    setTimeout(() => n.remove(), 700);
+  }
+
+  // 発動の前置き：戦場を少し暗くし、発動したカードを浮かせ、キャラの絵と技名のカットインを出す（約0.75秒・タップで短縮）
+  function skillIntro(ev, next) {
+    const token = bt.session;
+    let done = false;
+    const card = cardOf(ev.side, ev.idx);
+    const u = bt.state.teams[ev.side] && bt.state.teams[ev.side][ev.idx];
+    const ch = u && E.unitChar(u);
+    const cleanup = () => {
+      document.querySelectorAll('#fx-layer .fx-cutin, #fx-layer .fx-skip').forEach(n => n.remove());
+      const dim = document.querySelector('#fx-layer .fx-dim');
+      if (dim) { dim.classList.add('out'); setTimeout(() => dim.remove(), 260); }
+    };
+    const go = quick => {
+      if (done) return;
+      done = true;
+      if (quick) bt.fxQuick = true;
+      cleanup();
+      if (token !== bt.session) return;
+      next();
+      // 浮かせたカードは効果が届くころに戻す（描き直しで新しいカードになっていれば、そちらにも付けない）
+      setTimeout(() => document.querySelectorAll('#screen-battle .cast-lift').forEach(c => c.classList.remove('cast-lift')), bt.fxQuick ? 0 : 700);
+    };
+    if (U.FAST || !ch) { go(); return; }
+    const el = ch.element;
+    const foe = ev.side !== bt.me;
+    if (card) { card.style.setProperty('--act-el', `var(--el-${el})`); card.classList.add('cast-lift'); }
+    const layer = $('#fx-layer');
+    if (reduced()) {
+      // 動きを減らす：カットインの代わりに、技名を短いフェードで
+      const n = document.createElement('div');
+      n.className = 'fx-cutin still';
+      n.dataset.el = el;
+      n.innerHTML = `<div class="ci-name"><small>${foe ? esc(whoName(bt.foe)) + 'の' : ''}${esc(ch.name)}</small><b>${esc(ch.skill.name)}</b></div>`;
+      layer.appendChild(n);
+      schedule(() => go(), 420);
+      return;
+    }
+    layer.insertAdjacentHTML('beforeend', `<div class="fx-dim"></div>
+      <div class="fx-cutin${foe ? ' foe' : ''}" data-el="${esc(el)}" role="status" aria-label="${esc(ch.name)}の固有スキル「${esc(ch.skill.name)}」">
+        <div class="ci-band"><div class="ci-art">${portrait(ch)}</div>
+          <div class="ci-name"><small>${foe ? esc(whoName(bt.foe)) + 'の' : ''}${esc(ch.name)}</small><b>${esc(ch.skill.name)}</b></div>
+          <span class="ci-motes" aria-hidden="true"><i></i><i></i><i></i><i></i><i></i></span></div>
+      </div>
+      <button type="button" class="fx-skip" aria-label="演出を短くする"></button>`);
+    const skip = layer.querySelector('.fx-skip');
+    skip.addEventListener('pointerdown', e => { e.preventDefault(); go(true); });
+    skip.addEventListener('click', () => go(true));
+    schedule(() => go(), 760);
+  }
+
+  // 1体への当たり・回復・結界（数字とHPバーは、その瞬間に動かす）
+  function hitOne(ev, actEl) {
+    const card = cardOf(ev.side, ev.idx);
+    const key = ev.side + ':' + ev.idx;
+    if (ev.type === 'damage') {
+      // 結界があった：膜が反応して砕ける（被ダメージは Engine が半減済み）
+      if (key in bt.barrierHold) {
+        delete bt.barrierHold[key];
+        if (card) { card.classList.remove('has-barrier'); const t = card.querySelector('.bt-tag.barrier'); if (t) t.remove(); }
+        cardFx(card, 'shatter');
+      }
+      cardFx(card, 'hit', actEl);
+      flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
+      floatAt(card, '-' + ev.amount, 'dmg', 0, actEl);
+    } else if (ev.type === 'heal') {
+      cardFx(card, 'heal');
+      flash(card, 'glow-heal');
+      if (ev.amount > 0) floatAt(card, '+' + ev.amount, 'heal', 14); // 満タンで回復0のときは数字を出さない
+    } else if (ev.type === 'barrier') {
+      if (key in bt.barrierWait) {
+        delete bt.barrierWait[key];
+        if (card && !card.classList.contains('has-barrier')) {
+          card.classList.add('has-barrier');
+          const tags = card.querySelector('.bt-tags');
+          if (tags) tags.insertAdjacentHTML('beforeend', '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+        }
+      }
+      cardFx(card, 'barrier');
+      floatAt(card, '結界', 'info', -10);
+    }
+    releaseHp(ev.side, ev.idx);
+  }
+
   // 行動 → 当たり。行動したキャラを短く強調し、その後で対象に当たり（全体なら同時）と数字を出す
+  // 固有スキルは、スキルの効果の順に「発動元から対象へ届く → 当たる・回復・結界・強化」を見せる
   function playEvents(events) {
     const actEv = events.find(e => e.type === 'move') || events.find(e => e.type === 'skill');
     const actEl = actEv ? elOf(actEv.side, actEv.idx) : '';
-    if (actEv) {
+    const quick = U.FAST || bt.fxQuick || reduced();
+    if (actEv && actEv.type === 'move') {
       const c = cardOf(actEv.side, actEv.idx);
-      if (c) { c.style.setProperty('--act-el', `var(--el-${actEl || 'holy'})`); flash(c, actEv.type === 'move' ? (actEv.side === bt.me ? 'act-up' : 'act-down') : 'act-cast'); }
+      if (c) { c.style.setProperty('--act-el', `var(--el-${actEl || 'holy'})`); flash(c, actEv.side === bt.me ? 'act-up' : 'act-down'); }
     }
     const groups = [];
     events.forEach(ev => {
@@ -678,42 +908,66 @@
       if (last && last.type === ev.type && last.side === ev.side) last.list.push(ev);
       else groups.push({ type: ev.type, side: ev.side, list: [ev] });
     });
-    const lead = actEv && !U.FAST ? 200 : 0;
     // 回復疲労がなくなった：その陣営の前衛に短く表示
-    events.filter(e => e.type === 'fatigueReset').forEach(ev => schedule(() => {
+    const fatigue = events.filter(e => e.type === 'fatigueReset');
+    const showFatigue = () => fatigue.forEach(ev => {
       const row = $(ev.side === bt.me ? '#ally-front' : '#enemy-front');
       floatAt(row, '回復疲労がなくなった', 'info', -30);
       row.querySelectorAll('.unit-card').forEach(c => cardFx(c, 'heal'));
-    }, lead));
-    const gap = U.FAST ? 0 : 340;
-    groups.forEach((g, k) => {
-      schedule(() => {
-        if (g.list.length >= 2 && g.type !== 'barrier') rowSweep(g.side, g.type, g.type === 'heal' ? 'heal' : actEl);
-        g.list.forEach(ev => {
-          const card = cardOf(ev.side, ev.idx);
-          if (ev.type === 'damage') {
-            cardFx(card, 'hit', actEl);
-            flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
-            floatAt(card, '-' + ev.amount, 'dmg', 0, actEl);
-          } else if (ev.type === 'heal') {
-            cardFx(card, 'heal');
-            flash(card, 'glow-heal');
-            if (ev.amount > 0) floatAt(card, '+' + ev.amount, 'heal', 14); // 満タンで回復0のときは数字を出さない
-          } else {
-            cardFx(card, 'barrier');
-            floatAt(card, '結界', 'info', -10);
-          }
-          releaseHp(ev.side, ev.idx);
-        });
-      }, lead + k * gap);
     });
-    // 念のため：保持したHPは最後に必ず戻す（演出が途中で切れても表示が正しい値になる）
+    const playGroup = g => {
+      if (g.list.length >= 2 && g.type !== 'barrier') rowSweep(g.side, g.type, g.type === 'heal' ? 'heal' : actEl);
+      g.list.forEach(ev => hitOne(ev, actEl));
+    };
+    let end = 0;
+    if (actEv && actEv.type === 'skill') {
+      const u = bt.state.teams[actEv.side] && bt.state.teams[actEv.side][actEv.idx];
+      const effects = u ? E.unitChar(u).skill.effects : [];
+      const caster = () => cardOf(actEv.side, actEv.idx);
+      const tTrail = quick ? 0 : 300, gap = quick ? 0 : 220;
+      let t = 0;
+      const used = new Set();
+      const takeGroup = type => { const g = groups.find(x => x.type === type && !used.has(x)); if (g) used.add(g); return g; };
+      let boosted = false;
+      holdBoostedMoves();
+      effects.forEach(eff => {
+        if ((eff.type === 'atkMultiplier' || eff.type === 'atkBonus') && !boosted) {
+          boosted = true;
+          // 攻撃強化：味方側に属性の輪が広がり、強化される通常技の攻撃値が「前 → 後」に変わる（敵にはまだ何も当たらない）
+          const at = t;
+          schedule(() => { rowRing(actEv.side, actEl); trail(caster(), $(actEv.side === bt.me ? '#ally-front' : '#enemy-front'), actEl, Math.max(1, tTrail), 'boost'); }, at);
+          schedule(() => { releaseBoostedMoves(); popBoostedMoves(); }, at + tTrail);
+          t = at + tTrail + gap;
+        } else if (eff.type === 'heal' || eff.type === 'barrier' || eff.type === 'damage') {
+          const g = takeGroup(eff.type);
+          if (!g) return;
+          const at = t;
+          if (!quick) schedule(() => g.list.forEach(ev => trail(caster(), cardOf(ev.side, ev.idx), eff.type === 'heal' ? 'heal' : actEl, tTrail, eff.type)), at);
+          schedule(() => playGroup(g), at + tTrail);
+          t = at + tTrail + gap;
+        } else if (eff.type === 'fatigueReset') {
+          schedule(showFatigue, t);
+          t += gap;
+        }
+      });
+      if (!boosted) releaseBoostedMoves();
+      groups.filter(g => !used.has(g)).forEach(g => { schedule(() => playGroup(g), t); t += gap; });
+      end = t;
+    } else {
+      const lead = actEv && !U.FAST ? 200 : 0;
+      fatigue.length && schedule(showFatigue, lead);
+      const gapM = U.FAST ? 0 : 340;
+      groups.forEach((g, k) => schedule(() => playGroup(g), lead + k * gapM));
+      end = lead + groups.length * gapM;
+    }
+    // 念のため：保持したHP・結界の膜・強化前の数字は最後に必ず戻す（演出が途中で切れても表示が正しい値になる）
     schedule(() => {
-      const keys = Object.keys(bt.hpHold);
-      if (!keys.length) return;
-      bt.hpHold = {};
+      releaseBoostedMoves();
+      const stale = Object.keys(bt.hpHold).length || Object.keys(bt.barrierHold).length || Object.keys(bt.barrierWait).length;
+      if (!stale) return;
+      bt.hpHold = {}; bt.barrierHold = {}; bt.barrierWait = {};
       render();
-    }, lead + groups.length * gap + 120);
+    }, end + 120);
   }
 
   // 交代：入れ替わる2枚が、前の位置から新しい位置へ滑らかに動く（FLIP）
@@ -976,7 +1230,31 @@
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'moves' });
   }
 
-  // キャラの詳細＝固有スキルの確認画面。味方で使えるときだけ「このスキルを使う」。交代の代わりの操作もここから
+  // 固有スキルの主な効果（大きく見せる1行）・効き目の長さ・効果の種類
+  const SKILL_KIND = {
+    atkMultiplier: { icon: '⚔', when: 'このターンだけ' }, atkBonus: { icon: '⚔', when: 'このターンだけ' },
+    heal: { icon: '✚', when: 'すぐ（その場で回復）' }, barrier: { icon: '◈', when: '防げるダメージを1回受けるまで' },
+    damage: { icon: '✦', when: 'すぐ（その場でダメージ）' }, reroll: { icon: '⟳', when: 'すぐ' }, fatigueReset: { icon: '❖', when: 'この戦闘で1回だけ' }
+  };
+  function skillHeadline(side, idx) {
+    const s = bt.state;
+    const mine = side === bt.me;
+    const pv = E.previewSkill(s, side, idx);
+    return pv.map(p => {
+      let big = '', sub = '';
+      if (p.type === 'atkMultiplier') { big = `攻撃 ×${atkNum(p.value)}`; sub = '回復量は変わりません'; }
+      else if (p.type === 'atkBonus') { big = `攻撃 +${p.value}`; sub = '攻撃0の技は除く・回復量は変わりません'; }
+      else if (p.type === 'heal') { big = `回復 ${p.amount}`; sub = p.percent < 100 ? `回復疲労${p.percent}%（もとは${p.base}）` : '味方前衛全員それぞれ'; }
+      else if (p.type === 'barrier') { big = '結界'; sub = `次に受ける防げるダメージ1回を${Math.round(CONFIG.BARRIER_MULTIPLIER * 100)}%に`; }
+      else if (p.type === 'damage') { big = `ダメージ ${p.base}`; sub = p.ignoreDefense ? '敵前衛全員・防御と属性を無視' : '敵前衛全員・属性倍率なし・結界は有効'; }
+      else if (p.type === 'reroll') { big = '振り直し'; sub = mine && s.dice ? `今の出目 ${s.dice} を振り直す` : '確定した出目を振り直す'; }
+      else if (p.type === 'fatigueReset') { big = '疲労回復'; sub = p.used ? 'この戦闘ではもう使えない（1戦に1回）' : `回復${p.percent}% → ${p.after}%`; }
+      return { type: p.type, big, sub, icon: (SKILL_KIND[p.type] || {}).icon || '✦', when: (SKILL_KIND[p.type] || {}).when || '' };
+    });
+  }
+
+  // キャラの詳細＝固有スキルの確認画面。キャラの絵と技名を主役に、効果・対象・効き目・使えるかを整理する
+  // 味方で使えるときだけ発動ボタン（技名入り）。交代は補助の操作としてここにも置く。文字・数値はすべてゲームのデータから
   function showDetailModal(side, idx) {
     const draw = () => {
       const s = bt.state;
@@ -988,38 +1266,62 @@
       const skillReason = !mine ? null : busy ? '処理中です' : u.hp <= 0 ? '戦闘不能のため使えません' : E.skillBlockReason(s, bt.me, idx);
       const isLeader = s.leader && s.leader[side] === idx && !(side === bt.foe && s.phase === 'formation');
       const inFront = E.isFront(s, side, idx);
-      // 交代の相手（前衛なら生存している後衛、後衛なら生存している前衛）
+      const stars = E.starsOf(ch.id);
+      const boss = E.isBoss(ch.id);
+      const heads = skillHeadline(side, idx);
+      const whens = heads.map(h => h.when).filter((w, k, a) => w && a.indexOf(w) === k);
+      // 待ち時間（クールダウン）：使えるなら「使用後の待ち時間」、待機中なら「あと○ターン」
+      const cdHtml = u.hp <= 0 ? '<span class="sk-cd off">戦闘不能</span>'
+        : u.cd > 0 ? `<span class="sk-cd wait"><i aria-hidden="true">⌛</i>待機中：あと <b>${u.cd}</b> ターン</span><span class="sk-cd-sub">クールダウン ${ch.skill.cd}ターン</span>`
+          : `<span class="sk-cd ok"><i aria-hidden="true">⌛</i>使用可能</span><span class="sk-cd-sub">使用後の待ち時間（クールダウン）：${ch.skill.cd}ターン</span>`;
+      // 交代（補助）：前衛なら生存している後衛、後衛なら生存している前衛と
       let swapHtml = '';
       if (mine && u.hp > 0 && s.phase !== 'formation' && s.phase !== 'over') {
         const swapReason = busy ? '処理中です' : E.swapBlockReason(s, bt.me);
         const partners = inFront ? E.backAlive(s, bt.me) : E.frontAlive(s, bt.me);
-        swapHtml = `<h4>交代（ドラッグの代わり）</h4>${swapReason
-          ? `<p class="reason">今は交代できません：${esc(swapReason)}</p>`
-          : `<p class="muted">${inFront ? '後衛' : '前衛'}の誰と入れ替えるか選んでください（HP・クールダウンはそのまま）。</p>
-            <div class="target-list">${partners.map(j => { const v = s.teams[bt.me][j]; const c2 = E.unitChar(v); return `<button type="button" class="target-btn" data-swap-with="${j}">${emblem(c2, v, 'small')}<span class="t-main"><b>${esc(c2.name)}</b> と入れ替える<br>${hpText(v)}</span></button>`; }).join('')}</div>`}`;
+        swapHtml = `<div class="sk-swap"><div class="sk-swap-head"><span>交代</span><small>${inFront ? '後衛' : '前衛'}と入れ替える（HP・待ち時間はそのまま／ドラッグでもできます）</small></div>${swapReason
+          ? `<p class="reason sk-small">今は交代できません：${esc(swapReason)}</p>`
+          : `<div class="sk-swap-list">${partners.map(j => { const v = s.teams[bt.me][j]; const c2 = E.unitChar(v); return `<button type="button" class="target-btn sk-swap-btn" data-swap-with="${j}">${emblem(c2, v, 'small')}<span class="t-main"><b>${esc(c2.name)}</b><br>${hpText(v)}</span></button>`; }).join('')}</div>`}</div>`;
       }
-      const stars = E.starsOf(ch.id);
-      $('#modal-body').innerHTML = `<div class="dt-head el-frame" ${frameAttrs(ch)}>${portrait(ch, { zoom: true })}<div>
-          <h3>${esc(ch.name)}</h3>
-          <div class="dt-meta">${stars ? `<span class="stars">${'★'.repeat(stars)}</span>` : (E.isBoss(ch.id) ? `<span class="badge boss">${esc(ch.rank || 'ボス')}</span>` : '')}${elMark(ch)}<span>${esc(el.name)}</span>${levelTag(u.level || 1)}${isLeader ? '<span class="badge leader">リーダー</span>' : ''}</div>
-          <div class="dt-hp">${hpBar(u)}${hpText(u)}</div>
-          <div class="uc-badges">${statusBadges(s, side, idx)}</div></div></div>
-        <h4>固有スキル「${esc(ch.skill.name)}」</h4>
-        <div class="effect-box"><div>${esc(ch.skill.text)}</div>
-          <div class="dt-skill-meta"><span>対象：${esc(skillRange(ch))}</span><span>クールダウン ${ch.skill.cd}ターン</span><span>${u.cd > 0 ? `残り <b>${u.cd}</b>ターン` : '今は待ち時間なし'}</span><span>${inFront ? '前衛' : '後衛'}からも使える</span></div>
-          ${mine && u.hp > 0 ? `<div class="dt-preview">${skillPreviewLines(side, idx)}</div>` : ''}
-          ${mine && skillReason ? `<p class="reason">今は使えません：${esc(skillReason)}${u.cd > 0 ? `（残りクールダウン ${u.cd}）` : ''}</p>` : ''}
-          ${!mine ? '<p class="muted">相手のキャラです（情報の確認のみ）。</p>' : ''}</div>
-        ${mine && !skillReason ? '<div class="modal-actions"><button type="button" class="btn btn-primary btn-block" id="btn-use-skill">このスキルを使う</button></div>' : ''}
-        ${swapHtml}
-        <details class="dt-more"><summary>通常技（出目1〜6）・リーダースキル</summary>
-          ${movesList(ch, mine && myActing(s) && inFront ? s.dice : null, u.loadout)}
-          ${ch.leaderSkill ? leaderBox(ch, isLeader ? 'このチームのリーダー（発動中）' : '') : '<p class="muted">ダンジョンの敵です（リーダースキルなし）。</p>'}
-        </details>
-        <div class="modal-actions"><button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button></div>`;
+      const castable = mine && !skillReason;
+      $('#modal-body').innerHTML = `<div class="sk" data-el="${esc(ch.element)}">
+        <div class="sk-hero${boss ? ' boss' : ''}">${portrait(ch)}
+          <div class="sk-plate">
+            <h3 class="sk-cname">${esc(ch.name)}</h3>
+            <div class="sk-cmeta">${stars ? `<span class="stars">${'★'.repeat(stars)}</span>` : (boss ? `<span class="badge boss">${esc(ch.rank || 'ボス')}</span>` : '')}${elMark(ch)}<span>${esc(el.name)}</span>${levelTag(u.level || 1)}</div>
+            <div class="sk-hp">${hpBar(u)}${hpText(u)}</div>
+            <div class="sk-badges">${statusBadges(s, side, idx)}</div>
+          </div>
+        </div>
+        <div class="sk-body">
+          <div class="sk-label"><span>固有スキル</span></div>
+          <h4 class="sk-name">${esc(ch.skill.name)}</h4>
+          <p class="sk-text">${esc(ch.skill.text)}</p>
+          <div class="sk-heads">${heads.map(h => `<div class="sk-head" data-type="${h.type}"><span class="sk-ico" aria-hidden="true">${h.icon}</span><div><b>${esc(h.big)}</b><small>${esc(h.sub)}</small></div></div>`).join('')}</div>
+          <dl class="sk-facts"><div><dt>対象</dt><dd>${esc(skillRange(ch))}</dd></div><div><dt>効き目</dt><dd>${esc(whens.join('・'))}</dd></div><div><dt>使える場所</dt><dd>前衛・後衛どちらからでも</dd></div></dl>
+          <div class="sk-cdrow">${cdHtml}</div>
+          ${mine && u.hp > 0 ? `<div class="dt-preview sk-preview">${skillPreviewLines(side, idx)}</div>` : ''}
+          ${castable ? `<button type="button" class="sk-cast" id="btn-use-skill" data-el="${esc(ch.element)}"><span class="sk-crest" aria-hidden="true"><i></i></span><span class="sk-cast-text">${esc(ch.skill.name)}を発動</span></button>` : ''}
+          ${mine && skillReason ? `<p class="reason sk-reason">今は使えません：${esc(skillReason)}${u.cd > 0 ? `（あと ${u.cd} ターン）` : ''}</p>` : ''}
+          ${!mine ? '<p class="muted sk-small">相手のキャラです（情報の確認のみ）。</p>' : ''}
+          ${swapHtml}
+          <details class="dt-more sk-more"><summary>通常技（出目1〜6）・リーダースキル</summary>
+            ${movesList(ch, mine && myActing(s) && inFront ? s.dice : null, u.loadout)}
+            ${ch.leaderSkill ? leaderBox(ch, isLeader ? 'このチームのリーダー（発動中）' : '') : '<p class="muted">ダンジョンの敵です（リーダースキルなし）。</p>'}
+          </details>
+          <div class="modal-actions sk-close"><button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button></div>
+        </div>
+      </div>`;
       const b = $('#modal-body');
       const use = b.querySelector('#btn-use-skill');
-      if (use) use.addEventListener('click', () => { use.disabled = true; perform('skill', { user: idx }); });
+      if (use) use.addEventListener('click', () => {
+        if (use.disabled) return;
+        // 押した反応：ボタンが沈み、紋章が光る。受理されたら閉じる（無効・失敗なら成功の演出は出さない）
+        use.disabled = true;
+        use.classList.add('pressed');
+        const ok = perform('skill', { user: idx });
+        if (!ok && use.isConnected) { use.disabled = false; use.classList.remove('pressed'); }
+      });
       b.querySelectorAll('[data-swap-with]').forEach(t => t.addEventListener('click', () => {
         const j = Number(t.dataset.swapWith);
         perform('swap', inFront ? { out: idx, in: j } : { out: j, in: idx });
@@ -1102,6 +1404,7 @@
     // テスト・デバッグ用（ゲーム進行には使わない）
     getState: () => bt.state,
     lastRoll: () => bt.lastRoll || null,
+    skillShows: () => bt.skillShows || 0,
     isLocked: () => bt.locked || bt.waiting,
     getSession: () => bt.session,
     me: () => bt.me,

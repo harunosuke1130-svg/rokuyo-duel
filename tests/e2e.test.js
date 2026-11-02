@@ -1084,3 +1084,133 @@ test('mobile: 動きを減らす設定でもサイコロで遊べる（転がり
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+// 固有スキル：確認画面（絵と技名が主役・使える／待機中）と発動演出（カットイン→効果が届く→状態の印）。結果は Engine のまま
+const openSkill = async (page, pos, k) => {
+  const s = await H.state(page);
+  const back = s.teams.player.map((u, i) => i).filter(i => s.front.player.indexOf(i) < 0);
+  const idx = pos === 'front' ? s.front.player[k] : back[k];
+  const sel = `#ally-${pos} .bt-card[data-idx="${idx}"] .bt-art`;
+  await page.$eval(sel, e => e.scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(TAP_GUARD);
+  await page.click(sel);
+  await page.waitForSelector('#modal[data-kind="detail"]:not(.hidden)');
+  return idx;
+};
+test('mobile: 固有スキルの確認画面と発動演出（攻撃強化・タップで短縮・連打で1回・印は状態に合わせて消える）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'seed=12');
+  await startFree(page, '剣士');
+  await page.click('#btn-roll');
+  await H.waitMyAction(page);
+  await page.waitForFunction(() => !window.RikuyouDice.playing());
+  const dice = (await H.state(page)).dice;
+  const idx = await openSkill(page, 'front', 0);
+  let s = await H.state(page);
+  const ch = E.unitChar(s.teams.player[idx]);
+  // 確認画面：キャラの絵・名前・技名・主な効果・対象・効き目・使えるか・技名入りの発動ボタン
+  assert.ok(await page.$('#modal .sk-hero .portrait'), 'キャラの絵');
+  assert.equal((await page.textContent('#modal .sk-cname')).trim(), ch.name);
+  assert.equal((await page.textContent('#modal .sk-name')).trim(), ch.skill.name);
+  assert.ok((await page.textContent('#modal .sk-facts')).includes('対象'));
+  assert.ok((await page.textContent('#modal .sk-cd.ok')).includes('使用可能'));
+  assert.ok((await page.textContent('#modal .sk-cdrow')).includes(`クールダウン）：${ch.skill.cd}ターン`));
+  assert.equal((await page.textContent('#btn-use-skill')).trim(), `${ch.skill.name}を発動`);
+  assert.equal(await page.$eval('#modal .sk-more', d => d.open), false, '通常技・リーダースキルは折りたたみ');
+  // 発動 → 詳細を閉じ、カットイン（技名）。タップで短縮しても効果は1回
+  await page.click('#btn-use-skill');
+  await page.waitForSelector('#fx-layer .fx-cutin');
+  assert.ok((await page.textContent('#fx-layer .fx-cutin')).includes(ch.skill.name));
+  assert.equal(await page.isHidden('#modal'), true, '受理されたら詳細を閉じる');
+  await page.click('#fx-layer .fx-skip');
+  await page.waitForFunction(() => !document.querySelector('#fx-layer .fx-cutin'), null, { timeout: 2000 });
+  await page.waitForTimeout(600);
+  s = await H.state(page);
+  assert.equal(s.log.filter(l => l.kind === 'skill' && l.text.includes(`「${ch.skill.name}」を使った`)).length, 1, '1回だけ');
+  assert.equal(s.dice, dice, '出目はそのまま');
+  assert.ok((await page.evaluate(() => window.RikuyouDice.flatFace())).n === dice, '大きな出目もそのまま');
+  // 強化の印（状態から）と、強化された通常技の攻撃値＝Engine の計算
+  const eff = ch.skill.effects.find(e => e.type === 'atkBonus' || e.type === 'atkMultiplier');
+  assert.ok(eff, 'このキャラは攻撃強化のスキル');
+  assert.ok((await page.textContent('#ally-boost')).includes(eff.type === 'atkBonus' ? `攻撃+${eff.value}` : `攻撃×${eff.value}`));
+  for (const i of s.front.player.filter(j => s.teams.player[j].hp > 0)) {
+    const p = E.previewMove(s, 'player', i);
+    const txt = await page.$eval(`#ally-front [data-move="${i}"]`, b => ({ atk: (b.querySelector('.mo-atk') || {}).textContent || '', boosted: b.classList.contains('boosted'), heal: !!b.querySelector('.mo-heal.mo-pop') }));
+    if (p.move.atk > 0) { assert.ok(txt.atk.endsWith(String(Math.round(p.boosted * 100) / 100)), `強化後の攻撃 ${txt.atk} = ${p.boosted}`); assert.ok(txt.boosted, '炎の縁取り'); }
+    assert.equal(txt.heal, false, '回復の数字は光らせない');
+  }
+  // 待機中の表示：あと○ターン・使えない理由
+  await openSkill(page, 'front', 0);
+  assert.ok((await page.textContent('#modal .sk-cd.wait')).includes('あと'));
+  assert.equal(await page.$('#btn-use-skill'), null);
+  assert.ok((await page.textContent('#modal .reason')).includes('今は使えません'));
+  await page.$eval('#modal [data-close="1"].btn', b => b.scrollIntoView({ block: 'end' }));
+  await page.click('#modal [data-close="1"].btn');
+  // 技を使ってターンが終わると、強化の印は消える（演出のタイマーではなく状態で）
+  await page.waitForTimeout(TAP_GUARD);
+  await page.click(`#ally-front [data-move="${s.front.player[0]}"]`);
+  await page.click('#btn-confirm-move');
+  await page.waitForFunction(() => window.RikuyouApp.getState().turnSide === 'cpu', null, { timeout: 15000 });
+  await page.waitForTimeout(300);
+  assert.equal(await page.$eval('#ally-boost', b => b.classList.contains('on')), false, '強化の印が消える');
+  assert.equal(await page.$$eval('#fx-layer .fx-skip, #fx-layer .fx-dim', n => n.length), 0, '透明な層が残らない');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: 固有スキルの結界・ダメージ・回復（表示がゲームの状態と一致・後衛は無傷）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'fast=1&seed=12');
+  await startFree(page, '騎士');
+  await page.click('#btn-roll');
+  await H.waitMyAction(page);
+  // 後衛の結界＋回復のスキル（白銀の聖騎士）
+  await openSkill(page, 'back', 1);
+  await page.click('#btn-use-skill');
+  await page.waitForFunction(() => window.RikuyouApp.getState().skillUsed);
+  await page.waitForTimeout(400);
+  let s = await H.state(page);
+  const shielded = s.front.player.filter(i => s.teams.player[i].barrier);
+  assert.ok(shielded.length > 0);
+  assert.deepEqual((await page.$$eval('#ally-front .unit-card.has-barrier', c => c.map(x => Number(x.dataset.idx)))).sort(), shielded.slice().sort(), '結界の膜＝結界のあるキャラ');
+  for (const i of s.front.player) assert.equal(await page.textContent(`#ally-front .bt-card[data-idx="${i}"] .bt-hp b`), String(s.teams.player[i].hp), 'HP の表示＝状態');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+  // 直接ダメージ（熾火の小鬼）：敵の前衛だけ・数字とHPが状態と一致
+  const d = await open('mobile', 'fast=1&seed=12');
+  await startFree(d.page, '小鬼');
+  await d.page.click('#btn-roll');
+  await H.waitMyAction(d.page);
+  const before = await H.state(d.page);
+  await openSkill(d.page, 'front', 2);
+  await d.page.click('#btn-use-skill');
+  await d.page.waitForFunction(() => window.RikuyouApp.getState().skillUsed);
+  await d.page.waitForTimeout(400);
+  s = await H.state(d.page);
+  for (const i of s.teams.cpu.map((u, k) => k)) {
+    const front = before.front.cpu.indexOf(i) >= 0;
+    if (!front) assert.equal(s.teams.cpu[i].hp, before.teams.cpu[i].hp, '後衛は無傷');
+    else assert.ok(s.teams.cpu[i].hp < before.teams.cpu[i].hp, '前衛にダメージ');
+  }
+  for (const i of s.front.cpu) assert.equal(await d.page.textContent(`#enemy-front .bt-card[data-idx="${i}"] .bt-hp b`), String(s.teams.cpu[i].hp), '敵のHPの表示＝状態');
+  assert.deepEqual(d.errors, []);
+  await d.ctx.close();
+});
+
+test('mobile: 動きを減らす設定の固有スキル（カットインなしで技名を短く表示・結果は同じ）', async () => {
+  const ctx = await browser.newContext(Object.assign({ reducedMotion: 'reduce' }, H.VIEWPORTS.mobile));
+  const { page, errors } = await open('mobile', 'seed=12', ctx);
+  await startFree(page, '静か');
+  await page.click('#btn-roll');
+  await H.waitMyAction(page);
+  await page.waitForFunction(() => !window.RikuyouDice.playing());
+  await openSkill(page, 'front', 2);
+  await page.click('#btn-use-skill');
+  await page.waitForSelector('#fx-layer .fx-cutin.still');
+  assert.equal(await page.$('#fx-layer .fx-dim'), null, '暗くしない');
+  assert.equal(await page.$('#fx-layer .ci-band'), null, '帯のカットインなし');
+  await page.waitForFunction(() => !document.querySelector('#fx-layer .fx-cutin'), null, { timeout: 3000 });
+  const s = await H.state(page);
+  assert.ok(s.skillUsed);
+  for (const i of s.front.cpu) assert.equal(await page.textContent(`#enemy-front .bt-card[data-idx="${i}"] .bt-hp b`), String(s.teams.cpu[i].hp));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

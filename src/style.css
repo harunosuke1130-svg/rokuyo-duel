@@ -1859,8 +1859,12 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   border-radius: 4px 0 0 4px;
 }
 #screen-battle .bt-center .bt-phase { text-align: right; }
-#screen-battle .bt-center .phase-text { font-size: 18px; }
-#screen-battle .bt-center .bt-phase-sub { font-size: 11.5px; }
+#screen-battle .bt-center .phase-text { font-size: 16px; line-height: 1.25; }
+#screen-battle .bt-center .bt-phase-sub { font-size: 11px; line-height: 1.3; }
+/* 文字が長くても盤面の帯の高さを変えない（画面がずれないように） */
+@media not all and (min-width: 960px) and (orientation: landscape) {
+  #screen-battle .bt-center { max-height: 100px; overflow: hidden; padding-left: 10px; }
+}
 
 /* 押せる範囲は見た目より広く（サイコロ＋まわり14px） */
 .bt-dice-btn {
@@ -1972,3 +1976,217 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   animation: popGlow .6s ease-out forwards;
 }
 @keyframes popGlow { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+
+/* ======================================================================
+ * 固有スキルの確認画面（キャラの絵と技名が主役。羊皮紙・水彩・布・控えめな金）
+ * スマホ縦：上に絵、下に内容。PC 横：左に絵、右に内容。高さが足りなければ内容側がスクロールする
+ * ==================================================================== */
+.sk { --cloth1: #8e1f1a; --cloth2: #c0392b; --cloth-ink: #fff4e2; --accent: #b3341f; --mote: #ffb35c; }
+.sk[data-el="water"], .sk-cast[data-el="water"], .fx-cutin[data-el="water"] { --cloth1: #1c4a85; --cloth2: #2f7cc4; --cloth-ink: #eef7ff; --accent: #2369ad; --mote: #9fd6ff; }
+.sk[data-el="nature"], .sk-cast[data-el="nature"], .fx-cutin[data-el="nature"] { --cloth1: #2b6431; --cloth2: #4e9a48; --cloth-ink: #f1ffe9; --accent: #3a7c36; --mote: #b6ef8c; }
+.sk[data-el="dark"], .sk-cast[data-el="dark"], .fx-cutin[data-el="dark"] { --cloth1: #44266f; --cloth2: #6d45a8; --cloth-ink: #f5eeff; --accent: #5e3a96; --mote: #c9a6ff; }
+.sk[data-el="holy"], .sk-cast[data-el="holy"], .fx-cutin[data-el="holy"] { --cloth1: #cdb98a; --cloth2: #efe1b7; --cloth-ink: #3b2a10; --accent: #a8822c; --mote: #fff0b8; }
+.sk-cast, .fx-cutin { --cloth1: #8e1f1a; --cloth2: #c0392b; --cloth-ink: #fff4e2; --accent: #b3341f; --mote: #ffb35c; }
+
+#modal[data-kind="detail"] .modal-box {
+  padding: 0; max-width: 520px; overflow-y: auto; border-color: #b89a62;
+  background:
+    radial-gradient(ellipse 120% 60% at 50% 100%, rgba(170, 130, 70, .18), transparent 70%),
+    radial-gradient(ellipse at 50% 30%, #fbf3dd, #efe2c0 65%, #e2cfa2);
+}
+#modal[data-kind="detail"] .modal-x { background: rgba(30, 20, 10, .55); color: #fbefd4; border-color: rgba(255, 230, 170, .6); z-index: 3; }
+.sk { position: relative; color: #2e2010; }
+.sk-hero { position: relative; height: clamp(220px, 44vh, 380px); overflow: hidden; background: #2a1e14; }
+.sk-hero > .portrait { position: absolute; inset: 0; width: 100%; height: 100%; background-size: cover; background-position: var(--cx, 50%) 14%; border-radius: 0; }
+.sk-hero.boss > .portrait { background-size: contain; background-position: center; background-color: #1c140d; }
+.sk-hero::after { content: ""; position: absolute; left: 0; right: 0; bottom: 0; height: 46%; pointer-events: none; background: linear-gradient(180deg, transparent, rgba(239, 227, 197, .0) 30%, rgba(239, 227, 197, .92)); }
+.sk-plate {
+  position: absolute; left: 10px; bottom: 12px; z-index: 2; width: min(72%, 300px); padding: 7px 12px 8px; border-radius: 4px;
+  background: linear-gradient(100deg, rgba(28, 20, 12, .86), rgba(28, 20, 12, .66) 75%, rgba(28, 20, 12, 0));
+  color: #fbefd4; border: 0; box-shadow: none;
+}
+.modal .sk-cname { margin: 0; font-family: var(--mincho); font-size: 22px; letter-spacing: .06em; color: #fff3d6; }
+.sk-cmeta { display: flex; align-items: center; flex-wrap: wrap; gap: 6px; font-size: 13px; margin: 2px 0 4px; }
+.sk-cmeta .el-mark { width: 20px; height: 20px; }
+.sk-cmeta .stars { margin: 0; font-size: 14px; }
+.sk-hp { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: center; font-size: 13px; }
+.sk-hp .hpbar { height: 7px; }
+.sk-plate .hptext { color: #e9dcbf; }
+.sk-plate .hptext b { color: #fff6de; }
+.sk .target-btn .hptext { color: #6b5536; }
+.sk .target-btn .hptext b { color: #2e2010; }
+.sk-badges { display: flex; flex-wrap: wrap; gap: 4px; margin-top: 5px; }
+.sk-badges .badge { font-size: 10.5px; }
+.sk-body { position: relative; padding: 6px 16px 14px; }
+.sk-label { display: flex; align-items: center; justify-content: center; gap: 10px; font-family: var(--mincho); font-size: 13px; letter-spacing: .3em; color: #6b4e24; }
+.sk-label::before, .sk-label::after { content: ""; flex: 0 1 60px; height: 1px; background: linear-gradient(90deg, transparent, #a68449, transparent); }
+.modal .sk-name {
+  margin: 2px 0 2px; text-align: center; font-family: var(--mincho); font-weight: 800; font-size: clamp(30px, 9vw, 42px); line-height: 1.15;
+  letter-spacing: .08em; color: var(--accent); text-shadow: 0 1px 0 rgba(255, 250, 235, .9), 0 2px 6px rgba(120, 60, 20, .18);
+}
+.sk-text { margin: 0 0 8px; text-align: center; font-size: 13.5px; color: #3e2c14; }
+.sk-heads { display: flex; flex-direction: column; gap: 6px; margin: 4px 0 8px; }
+.sk-head { display: grid; grid-template-columns: 46px minmax(0, 1fr); align-items: center; gap: 10px; padding: 6px 10px; border-top: 1px solid rgba(150, 115, 60, .35); border-bottom: 1px solid rgba(150, 115, 60, .35); }
+.sk-ico { display: grid; place-items: center; width: 42px; height: 42px; font-size: 24px; color: var(--accent); border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff8e6, #e8d6ae); box-shadow: inset 0 0 0 1px rgba(150, 115, 60, .5); }
+.sk-head b { display: block; font-family: var(--mincho); font-size: 30px; line-height: 1.1; color: #2e1a0c; letter-spacing: .04em; }
+.sk-head small { display: block; font-size: 12px; color: #6b5536; }
+.sk-facts { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 4px 10px; margin: 0 0 6px; font-size: 12px; }
+.sk-facts div { min-width: 0; }
+.sk-facts dt { color: #7a6038; font-size: 11px; }
+.sk-facts dd { margin: 0; color: #2e2010; font-weight: 700; }
+.sk-cdrow { display: flex; flex-wrap: wrap; align-items: baseline; gap: 2px 12px; padding: 6px 0; border-top: 1px dashed rgba(150, 115, 60, .4); font-size: 13px; }
+.sk-cd { font-weight: 700; }
+.sk-cd i { font-style: normal; margin-right: 4px; }
+.sk-cd.ok { color: #24664a; }
+.sk-cd.wait { color: #8a3a1e; }
+.sk-cd.wait b { font-size: 18px; }
+.sk-cd.off { color: #6b5536; }
+.sk-cd-sub { font-size: 12px; color: #6b5536; }
+.sk-body .dt-preview { margin: 4px 0 8px; padding: 6px 8px; border-radius: 4px; background: rgba(255, 250, 238, .55); box-shadow: inset 0 0 0 1px rgba(150, 115, 60, .3); }
+.sk-body .pv-line { color: #3e2c14; }
+.sk-body .pv-range { background: rgba(120, 90, 40, .14); color: #5a3d16; }
+.sk-body .pv-range.dmg { background: rgba(180, 60, 40, .14); color: #8a2c1a; }
+.sk-body .pv-range.heal { background: rgba(60, 140, 80, .14); color: #24664a; }
+.sk-body .chip { background: rgba(255, 252, 244, .7); border-color: rgba(150, 115, 60, .4); color: #3e2c14; }
+.sk-body .chip.dmg b { color: #b3341f; }
+.sk-body .chip.heal b { color: #24664a; }
+.sk-body .reason { color: #8a2c1a; }
+.sk-small { font-size: 12px; margin: 4px 0; }
+.sk-reason { margin: 8px 0; padding: 8px 10px; border-radius: 4px; background: rgba(140, 50, 30, .1); font-weight: 700; text-align: center; }
+/* 発動ボタン：属性色の布と紋章。押せることが分かる形（押すと沈み、紋章が光る） */
+.sk-cast {
+  position: relative; display: flex; align-items: center; justify-content: center; gap: 12px; width: 100%; min-height: 62px; margin: 10px 0 6px; padding: 8px 18px 8px 70px;
+  border: 0; cursor: pointer; color: var(--cloth-ink); font-family: var(--mincho); font-weight: 800; font-size: clamp(18px, 5.4vw, 22px); letter-spacing: .08em;
+  background:
+    repeating-linear-gradient(115deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 7px),
+    linear-gradient(180deg, var(--cloth2), var(--cloth1));
+  clip-path: polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%);
+  box-shadow: inset 0 0 0 2px rgba(255, 230, 170, .35);
+  filter: drop-shadow(0 4px 6px rgba(60, 30, 10, .35));
+  transition: transform .08s ease, filter .08s ease;
+}
+.sk-cast:hover { filter: drop-shadow(0 5px 8px rgba(60, 30, 10, .45)) brightness(1.05); }
+.sk-cast:focus-visible { outline: 3px solid #ffe08a; outline-offset: 3px; }
+.sk-cast:active, .sk-cast.pressed { transform: translateY(2px) scale(.985); filter: drop-shadow(0 2px 3px rgba(60, 30, 10, .35)); }
+.sk-crest {
+  position: absolute; left: 12px; top: 50%; width: 46px; height: 46px; margin-top: -23px; border-radius: 50%;
+  background: radial-gradient(circle at 40% 35%, #fff4d6, #d9b25c 55%, #8c6420); box-shadow: 0 0 0 2px rgba(80, 50, 15, .6), inset 0 0 6px rgba(80, 40, 0, .5);
+}
+.sk-crest i { position: absolute; inset: 9px; border-radius: 50%; background: radial-gradient(circle, var(--cloth2), var(--cloth1)); box-shadow: inset 0 0 0 2px rgba(255, 235, 180, .7); }
+.sk-cast.pressed .sk-crest { animation: crestFlash .35s ease-out; }
+@keyframes crestFlash { 0% { filter: brightness(1); } 40% { filter: brightness(1.7) drop-shadow(0 0 8px #fff2c0); } 100% { filter: brightness(1.15); } }
+.sk-cast-text { text-shadow: 0 1px 2px rgba(0, 0, 0, .35); }
+.sk[data-el="holy"] .sk-cast-text, .sk-cast[data-el="holy"] .sk-cast-text { text-shadow: 0 1px 0 rgba(255, 255, 255, .6); }
+/* 交代（補助の操作） */
+.sk-swap { margin: 10px 0 4px; padding: 8px 0 0; border-top: 1px dashed rgba(150, 115, 60, .4); }
+.sk-swap-head { display: flex; align-items: baseline; flex-wrap: wrap; gap: 4px 10px; font-family: var(--mincho); font-weight: 700; color: #5a3d16; }
+.sk-swap-head small { font-family: var(--gothic); font-weight: 400; font-size: 11.5px; color: #7a6038; }
+.sk-swap-list { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 6px; margin-top: 6px; }
+.sk .target-btn.sk-swap-btn { padding: 5px 8px; min-height: 0; background: rgba(255, 252, 244, .75); border-color: rgba(150, 115, 60, .45); color: #2e2010; font-size: 12.5px; }
+.sk .target-btn.sk-swap-btn .emblem { width: 30px; height: 30px; font-size: 15px; }
+.sk-more { margin-top: 6px; }
+.sk .dt-more summary { color: #5a3d16; border-top: 1px solid rgba(150, 115, 60, .35); }
+.sk .moves li { background: rgba(255, 252, 244, .6); color: #2e2010; }
+.sk .moves li .num { color: #8a5a14; }
+.sk .moves li.hit { background: rgba(214, 160, 60, .35); }
+.sk .effect-box { background: rgba(255, 252, 244, .6); color: #2e2010; border-color: rgba(150, 115, 60, .4); }
+.sk .muted { color: #6b5536; }
+.sk-close .btn { color: #5a3d16; border-color: rgba(150, 115, 60, .5); background: rgba(255, 252, 244, .5); }
+@media (min-width: 960px) and (orientation: landscape) {
+  #modal[data-kind="detail"] .modal-box { max-width: 940px; max-height: 90vh; overflow: hidden; display: flex; }
+  #modal[data-kind="detail"] #modal-body { flex: 1; min-height: 0; display: flex; }
+  .sk { display: grid; grid-template-columns: minmax(0, 44%) minmax(0, 1fr); width: 100%; max-height: 90vh; }
+  .sk-hero { height: auto; min-height: 520px; }
+  .sk-hero::after { inset: 0 0 0 auto; width: 30%; height: auto; background: linear-gradient(90deg, transparent, rgba(239, 227, 197, .85)); }
+  .sk-body { overflow-y: auto; padding: 18px 26px 18px 18px; }
+  .modal .sk-name { font-size: 44px; }
+}
+
+/* ======================================================================
+ * 戦闘中の持続表示：攻撃強化の印・強化された技の縁取り・結界の膜
+ * ==================================================================== */
+.bt-boost { display: none; width: fit-content; max-width: 100%; margin: 4px auto 0; padding: 2px 12px; border-radius: 3px; font-family: var(--mincho); font-weight: 700; font-size: 13px; color: #fff3dc; text-shadow: 0 1px 2px #000;
+  background: linear-gradient(90deg, transparent, color-mix(in srgb, var(--fx, #ff7a3c) 55%, #1a0e06) 15%, color-mix(in srgb, var(--fx, #ff7a3c) 55%, #1a0e06) 85%, transparent); }
+.bt-boost.on { display: block; animation: boostIn .35s ease-out; }
+.bt-boost small { margin-left: 6px; font-family: var(--gothic); font-weight: 400; font-size: 10.5px; opacity: .85; }
+.bt-boost-ico { margin-right: 4px; }
+@keyframes boostIn { from { opacity: 0; transform: scale(.9); } to { opacity: 1; transform: none; } }
+.mo-btn.boosted { box-shadow: inset 0 0 0 1px rgba(255, 220, 170, .4), 0 0 0 2px var(--fx, #ff7a3c), 0 0 10px color-mix(in srgb, var(--fx, #ff7a3c) 70%, transparent); animation: boostEdge 1.8s ease-in-out infinite; }
+@keyframes boostEdge { 50% { box-shadow: inset 0 0 0 1px rgba(255, 220, 170, .4), 0 0 0 2px var(--fx, #ff7a3c), 0 0 16px color-mix(in srgb, var(--fx, #ff7a3c) 85%, transparent); } }
+.mo-atk { display: inline-block; }
+.mo-atk.mo-pop { animation: moPop .5s cubic-bezier(.2, .9, .3, 1.4); color: #fff6c8; text-shadow: 0 0 8px var(--fx, #ff7a3c); }
+.mo-from { margin-right: 4px; font-size: .7em; opacity: .75; text-decoration-thickness: 2px; }
+@keyframes moPop { 0% { transform: scale(1); } 40% { transform: scale(1.35); } 100% { transform: scale(1); } }
+/* 結界：カードを透明な膜が包む（有効な間）。被弾で反応して砕ける */
+.bt-card.has-barrier .bt-art::before {
+  content: ""; position: absolute; inset: 0; z-index: 2; pointer-events: none; border-radius: 2px;
+  background: radial-gradient(ellipse at 30% 20%, rgba(255, 244, 200, .35), transparent 45%), linear-gradient(135deg, rgba(255, 220, 140, .18), rgba(255, 255, 255, .04) 50%, rgba(255, 220, 140, .18));
+  box-shadow: inset 0 0 0 2px rgba(255, 226, 150, .75), inset 0 0 12px rgba(255, 210, 120, .45);
+  animation: shieldShimmer 2.6s ease-in-out infinite;
+}
+@keyframes shieldShimmer { 50% { box-shadow: inset 0 0 0 2px rgba(255, 236, 170, .95), inset 0 0 18px rgba(255, 216, 130, .6); } }
+.fx-shatter::before { content: ""; position: absolute; inset: 0; background: conic-gradient(from 20deg, rgba(255, 236, 170, .9) 0 8%, transparent 8% 20%, rgba(255, 236, 170, .8) 20% 26%, transparent 26% 44%, rgba(255, 236, 170, .9) 44% 50%, transparent 50% 70%, rgba(255, 236, 170, .8) 70% 76%, transparent 76%); animation: shatter .5s ease-out forwards; }
+@keyframes shatter { 0% { opacity: 1; transform: scale(1); } 100% { opacity: 0; transform: scale(1.35) rotate(8deg); } }
+
+/* ======================================================================
+ * 固有スキルの発動演出：暗くする → 発動カードが浮く → カットイン → 届く → 当たる・回復・結界・強化
+ * ==================================================================== */
+.bt-card.cast-lift { position: relative; z-index: 6; transform: translateY(-6px) scale(1.05); box-shadow: 0 0 0 2px var(--act-el, #ffd86a), 0 10px 24px rgba(0, 0, 0, .6), 0 0 18px var(--act-el, #ffd86a); transition: transform .18s ease-out, box-shadow .18s; }
+.fx-dim { position: fixed; inset: 0; background: rgba(8, 5, 2, .42); animation: dimIn .16s ease-out; }
+.fx-dim.out { opacity: 0; transition: opacity .25s; }
+@keyframes dimIn { from { opacity: 0; } }
+.fx-skip { position: fixed; inset: 0; z-index: 2; border: 0; background: transparent; pointer-events: auto; cursor: pointer; }
+.fx-cutin { position: fixed; left: 0; right: 0; top: 50%; z-index: 1; transform: translateY(-50%); pointer-events: none; display: flex; justify-content: center; }
+.ci-band {
+  position: relative; display: grid; grid-template-columns: 38% minmax(0, 1fr); grid-template-rows: 100%; align-items: center; width: 100%; height: 148px; overflow: hidden;
+  background: repeating-linear-gradient(110deg, rgba(255, 255, 255, .05) 0 3px, transparent 3px 9px), linear-gradient(90deg, var(--cloth1), var(--cloth2) 60%, var(--cloth1));
+  box-shadow: 0 0 0 2px rgba(255, 228, 160, .55), 0 10px 30px rgba(0, 0, 0, .55);
+  clip-path: polygon(0 12%, 100% 0, 100% 88%, 0 100%);
+  animation: ciBand .76s cubic-bezier(.2, .9, .2, 1) both;
+}
+.fx-cutin.foe .ci-band { grid-template-columns: minmax(0, 1fr) 38%; clip-path: polygon(0 0, 100% 12%, 100% 100%, 0 88%); }
+.fx-cutin.foe .ci-art { order: 2; }
+.ci-art { position: relative; align-self: stretch; height: 100%; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 70%, transparent); mask-image: linear-gradient(90deg, #000 70%, transparent); }
+.fx-cutin.foe .ci-art { -webkit-mask-image: linear-gradient(270deg, #000 70%, transparent); mask-image: linear-gradient(270deg, #000 70%, transparent); }
+.ci-art .portrait { position: absolute; inset: 0; width: 100%; height: 100%; background-size: 190% auto; background-position: var(--ex, 50%) max(0%, calc(var(--ey, 0%) - 6%)); border-radius: 0; animation: ciArt .76s ease-out both; }
+.ci-name { position: relative; padding: 0 14px; text-align: center; color: var(--cloth-ink); }
+.ci-name small { display: block; font-size: 12px; opacity: .9; letter-spacing: .1em; }
+.ci-name b { display: block; font-family: var(--mincho); font-weight: 900; font-size: clamp(30px, 9.5vw, 54px); line-height: 1.1; letter-spacing: .08em; text-shadow: 0 2px 0 rgba(0, 0, 0, .35), 0 0 18px var(--mote); animation: ciName .76s cubic-bezier(.2, 1.4, .3, 1) both; }
+.fx-cutin[data-el="holy"] .ci-name b { text-shadow: 0 1px 0 rgba(255, 255, 255, .7), 0 0 14px #fff6cf; }
+.ci-motes { position: absolute; inset: 0; pointer-events: none; }
+.ci-motes i { position: absolute; width: 5px; height: 5px; border-radius: 50%; background: var(--mote); box-shadow: 0 0 6px var(--mote); opacity: 0; animation: ciMote .76s ease-out both; }
+.ci-motes i:nth-child(1) { left: 44%; top: 70%; animation-delay: .05s; }
+.ci-motes i:nth-child(2) { left: 58%; top: 30%; animation-delay: .12s; }
+.ci-motes i:nth-child(3) { left: 70%; top: 66%; animation-delay: .08s; }
+.ci-motes i:nth-child(4) { left: 82%; top: 38%; animation-delay: .18s; }
+.ci-motes i:nth-child(5) { left: 92%; top: 72%; animation-delay: .1s; }
+@keyframes ciBand { 0% { transform: scaleY(.1); opacity: 0; } 18% { transform: scaleY(1.06); opacity: 1; } 30% { transform: none; } 85% { opacity: 1; transform: none; } 100% { opacity: 0; transform: scaleY(.85); } }
+@keyframes ciArt { 0% { transform: translateX(-12%); } 100% { transform: translateX(0); } }
+@keyframes ciName { 0% { transform: scale(1.6); opacity: 0; } 30% { transform: scale(.94); opacity: 1; } 45% { transform: scale(1.02); } 60%, 100% { transform: none; } }
+@keyframes ciMote { 0% { opacity: 0; transform: translate(0, 0); } 30% { opacity: 1; } 100% { opacity: 0; transform: translate(-30px, -26px); } }
+.fx-cutin.still { top: 50%; }
+.fx-cutin.still .ci-name { padding: 10px 26px; border-radius: 6px; background: linear-gradient(90deg, var(--cloth1), var(--cloth2)); animation: fadeIo .42s ease both; }
+.fx-cutin.still .ci-name b { animation: none; font-size: 30px; }
+@keyframes fadeIo { 0% { opacity: 0; } 25%, 75% { opacity: 1; } 100% { opacity: 0; } }
+@media (min-width: 960px) and (orientation: landscape) {
+  .ci-band { height: 190px; max-width: 1100px; grid-template-columns: 34% minmax(0, 1fr); }
+  .fx-cutin.foe .ci-band { grid-template-columns: minmax(0, 1fr) 34%; }
+  .ci-art .portrait { background-size: 120% auto; }
+}
+/* 届く粒・輪・火の粉・風 */
+.fx-mote { position: fixed; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; background: var(--fx, #ffd86a); box-shadow: 0 0 8px var(--fx, #ffd86a); }
+.fx-mote.heal { --fx: #8ff0a8; }
+.fx-mote.barrier { --fx: #ffe2a0; border-radius: 2px; }
+.fx-mote.damage { width: 11px; height: 4px; border-radius: 2px; }
+.fx-ring { position: fixed; width: 40px; height: 40px; margin: -20px 0 0 -20px; border-radius: 50%; pointer-events: none; border: 3px solid var(--fx, #ff7a3c); box-shadow: 0 0 14px var(--fx, #ff7a3c), inset 0 0 10px var(--fx, #ff7a3c); animation: ringOut .75s ease-out forwards; }
+@keyframes ringOut { 0% { opacity: .95; transform: scale(.4); } 100% { opacity: 0; transform: scale(9, 4.2); } }
+.fx-ember { position: fixed; width: 5px; height: 5px; border-radius: 50%; pointer-events: none; background: var(--fx, #ff9a4a); box-shadow: 0 0 6px var(--fx, #ff9a4a); animation: ember .85s ease-out forwards; }
+@keyframes ember { 0% { opacity: 1; transform: translate(0, 0); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.4); } }
+.fx-wind { position: fixed; width: 120px; height: 120px; margin: -60px 0 0 -60px; border-radius: 50%; pointer-events: none; border: 3px solid rgba(220, 245, 255, .85); border-left-color: transparent; border-bottom-color: transparent; animation: wind .65s ease-out forwards; }
+@keyframes wind { 0% { opacity: 0; transform: rotate(0) scale(.5); } 30% { opacity: 1; } 100% { opacity: 0; transform: rotate(540deg) scale(1.2); } }
+
+@media (prefers-reduced-motion: reduce) {
+  .ci-band, .ci-art .portrait, .ci-name b, .ci-motes i, .fx-ring, .fx-ember, .fx-wind, .fx-mote, .mo-btn.boosted, .mo-atk.mo-pop,
+  .bt-card.has-barrier .bt-art::before, .fx-shatter::before, .bt-boost.on, .sk-cast.pressed .sk-crest { animation: none !important; }
+  .bt-card.cast-lift { transform: none; transition: none; }
+}
