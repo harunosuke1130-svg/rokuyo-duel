@@ -631,6 +631,7 @@ body[data-screen="home"] { background: #2a1d14; }
 [data-char="suiju"] { --cx: 50%; --cy: 6%; --ex: 50%; --ey: 6%; }
 [data-char="yoiyami"] { --cx: 34%; --cy: 0%; --ex: 36%; --ey: 0%; }
 [data-char="aoizumi"] { --cx: 50%; --cy: 4%; --ex: 50%; --ey: 3%; }
+[data-char="akeboshi"] { --cx: 49%; --cy: 6%; --ex: 49%; --ey: 8%; --es: 450%; }
 [data-char="benitetsu"] { --cx: 52%; --cy: 4%; --ex: 54%; --ey: 3%; }
 [data-char="kokuyou"] { --cx: 52%; --cy: 2%; --ex: 52%; --ey: 1%; }
 [data-char="homurao"] { --cx: 72%; --cy: 26%; --ex: 82%; --ey: 27%; }
