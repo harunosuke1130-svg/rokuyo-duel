@@ -609,27 +609,195 @@
     at(2000, finalize);
   }
 
-  /* ---------- 対戦（CPUチームと6対6） ---------- */
+  /* ---------- 対戦（CPUチームと6対6） ----------
+   * 縦の選択（Vertical Centered Carousel）：小さな札は同じ高さで縦に並び、普通のスクロール（慣性つき）と中央への吸い付きで動く。
+   * 止まって落ち着いたら、中央の1枚の上に大きな対戦札（#match-open）を重ねて開く。前後の札は transform で上下へずらすだけなので、
+   * スクロール位置は変わらない（開く・閉じるがスクロール操作と誤判定されない）。動かし始めたら大きな札をすぐ閉じる。 */
+  const MT = { pre: 140, idle: 130, snap: 420, pop: 280 };   // 閉じる・静止の判定・吸い付きの上限・開く（ms）
+  const mw = { sel: 0, open: false, target: null, touching: false, idleT: 0, snapT: 0, lastUser: 0, starting: 0, bound: false };
+  const matchState = (p, m, k) => {
+    const un = P.matchUnlocked(p, m.id), won = !!p.matches.won[m.id];
+    const prev = D.CPU_MATCHES[k - 1];
+    return { un, won, key: won ? 'won' : un ? 'open' : 'locked', label: won ? '勝利済み' : un ? '挑戦できる' : '未解放', unlock: prev ? `「${prev.name}」に勝つと解放` : '' };
+  };
+  const matchArt = m => E.getChar(m.enemies[m.leader] || m.enemies[0]);
+  function matchStartIndex(p) {
+    const ms = D.CPU_MATCHES;
+    const last = ms.findIndex(m => m.id === app.lastMatchId);
+    if (last >= 0 && P.matchUnlocked(p, ms[last].id)) return last;
+    const next = ms.findIndex(m => P.matchUnlocked(p, m.id) && !p.matches.won[m.id]);
+    if (next >= 0) return next;
+    let k = 0;
+    ms.forEach((m, i) => { if (P.matchUnlocked(p, m.id)) k = i; });
+    return k;
+  }
   function showMatch() {
     B.stop();
     go('match');
     const p = app.profile;
     const avg = teamAvgLevel();
-    $('#match-team').textContent = P.teamError(p, p.team) ? 'チームが未完成です。先に6体を保存してください。'
-      : '出撃チーム：' + p.team.map(id => `${E.getChar(id).name}(Lv${P.levelOf(p, id)})`).join('・');
-    $('#match-list').innerHTML = `
-      <div class="floor"><div class="floor-main"><b>フリー対戦</b><span class="muted">自分のチームと同じくらいの強さ（敵Lv${avg}）・毎回ちがう相手・経験値 勝ち40／負け10</span></div>
-        <button type="button" class="btn btn-small btn-primary" data-match="free">挑戦</button></div>
-      <h4>ランク戦（勝つと次の相手が出てくる）</h4>` +
-      D.CPU_MATCHES.map(m => {
-        const un = P.matchUnlocked(p, m.id);
-        const won = !!p.matches.won[m.id];
-        return `<div class="floor${won ? ' cleared' : ''}${un ? '' : ' locked'}">
-          <div class="floor-main"><b>${esc(m.rank)}「${esc(m.name)}」</b><span class="muted">敵Lv${m.level}・経験値${m.exp}・石${won ? m.stones : m.firstStones + '（初勝利）'}</span>
-            <span class="floor-enemies">${m.enemies.map(id => emblem(E.getChar(id), null, 'small')).join('')}</span></div>
-          ${un ? `<button type="button" class="btn btn-small ${won ? 'btn-ghost' : 'btn-primary'}" data-match="${m.id}">${won ? '再戦' : '挑戦'}</button>` : '<span class="badge">未解放</span>'}
-        </div>`;
-      }).join('');
+    const ms = D.CPU_MATCHES;
+    const wonN = ms.filter(m => p.matches.won[m.id]).length;
+    $('#match-progress').textContent = `勝利 ${wonN} / ${ms.length}`;
+    $('#match-team').innerHTML = `<div class="mt-team-main"><div class="mt-team-head"><span>出撃チーム</span><button type="button" class="mt-link" data-go="team">編成 ›</button></div>${teamFaces(p)}</div>
+      <button type="button" class="mt-free" data-match="free"><b>フリー対戦 ›</b><small>毎回ちがう相手・敵Lv${avg}</small><small>経験値 勝ち40／負け10</small></button>`;
+    $('#match-wheel').appendChild($('#match-open'));   // 一覧を作り直す前に、大きな札を外へ（一緒に消さない）
+    $('#match-list').innerHTML = ms.map((m, k) => {
+      const st = matchState(p, m, k), ch = matchArt(m);
+      return `<button type="button" class="mt-item" data-pick="${k}" data-state="${st.key}" tabindex="-1" role="option" aria-label="${esc(m.rank)}「${esc(m.name)}」敵Lv${m.level}・${st.label}">
+        <span class="mt-item-art">${emblem(ch, null, 'small')}</span>
+        <span class="mt-item-main"><small>${esc(m.rank)}</small><b>${esc(m.name)}</b></span>
+        <span class="mt-item-lv">敵Lv${m.level}</span>
+        <span class="mt-item-st">${st.won ? '✓ 勝利済み' : st.un ? '挑戦できる' : '🔒 未解放'}</span></button>`;
+    }).join('');
+    // 大きな札は一覧の中に置く（札やボタンの上から始めたスワイプでも、一覧がそのままスクロールする）
+    $('#match-list').appendChild($('#match-open'));
+    mw.starting = 0;
+    bindMatchWheel();
+    layoutMatchWheel();
+    matchGo(matchStartIndex(p), false);
+  }
+  const wheelEls = () => ({ sc: $('#match-list'), open: $('#match-open'), wheel: $('#match-wheel') });
+  const slotH = () => { const it = document.querySelector('#match-list .mt-item'); return it ? it.offsetHeight + 8 : 72; };
+  // 大きな札の高さ：前後の札が少し見える高さに収める（画面が低ければ絵を小さくして、説明とボタンは残す）
+  function layoutMatchWheel() {
+    const { sc, open, wheel } = wheelEls();
+    if (!sc) return;
+    const H = wheel.clientHeight, S = slotH();
+    const wide = window.matchMedia('(min-width: 960px) and (orientation: landscape)').matches;
+    const E = Math.max(Math.min(H - Math.round(S * 1.7), wide ? 380 : 470), Math.min(H - 8, 280));
+    wheel.style.setProperty('--mt-open-h', E + 'px');
+    wheel.style.setProperty('--mt-push', Math.max(0, Math.round(E / 2 - (S - 8) / 2 + 4)) + 'px');
+    sc.style.setProperty('--mt-pad', Math.max(0, Math.round(H / 2 - (S - 8) / 2)) + 'px');
+    void open;
+  }
+  const matchIndexAt = () => { const { sc } = wheelEls(); return Math.max(0, Math.min(D.CPU_MATCHES.length - 1, Math.round(sc.scrollTop / slotH()))); };
+  // k 番目を中央へ（smooth：動かして見せる）。着いたら開く
+  function matchGo(k, smooth) {
+    const { sc } = wheelEls();
+    k = Math.max(0, Math.min(D.CPU_MATCHES.length - 1, k));
+    mw.pending = k;
+    const top = k * slotH();
+    clearTimeout(mw.snapT);
+    if (Math.abs(sc.scrollTop - top) < 1) { mw.target = null; matchExpand(k, smooth); return; }
+    if (mw.open) matchCollapse();
+    mw.target = top;
+    sc.scrollTo({ top, behavior: smooth && !U.reducedMotion() ? 'smooth' : 'auto' });
+    // 着かなかったとき（途中で止められた・環境の都合）でも、必ず開く
+    mw.snapT = setTimeout(() => { if (mw.target === null) return; mw.target = null; sc.scrollTop = top; matchExpand(matchIndexAt(), false); }, smooth ? MT.snap : 60);
+  }
+  function matchCollapse() {
+    const { sc, open } = wheelEls();
+    mw.open = false;
+    sc.classList.remove('opened');
+    open.getAnimations().forEach(a => a.cancel());
+    open.classList.add('closing');
+    clearTimeout(open._hideT);
+    open._hideT = setTimeout(() => { if (!mw.open) open.classList.add('hidden'); }, U.reducedMotion() ? 0 : MT.pre);
+  }
+  function matchExpand(k, animate) {
+    const { sc, open } = wheelEls();
+    if (!sc || document.body.dataset.screen !== 'match') return;
+    const p = app.profile, m = D.CPU_MATCHES[k], st = matchState(p, m, k), ch = matchArt(m);
+    mw.sel = k; mw.open = true; mw.target = null; mw.pending = null;
+    sc.querySelectorAll('.mt-item').forEach((it, i) => { it.dataset.rel = i < k ? 'before' : i > k ? 'after' : 'sel'; it.setAttribute('aria-selected', String(i === k)); });
+    sc.classList.add('opened');
+    sc.setAttribute('aria-activedescendant', '');
+    const reward = st.won ? `<span>再戦報酬</span><b>${gemIcon()}${m.stones}</b>` : `<span>初勝利</span><b>${gemIcon()}${m.firstStones}</b>`;
+    const action = st.un
+      ? `<button type="button" class="mt-go${st.won ? ' again' : ''}" data-match="${esc(m.id)}"><span class="mt-go-crest" aria-hidden="true">⚔</span><span>${st.won ? '再戦する' : '挑戦する'}</span></button>`
+      : `<p class="mt-locked">🔒 ${esc(st.unlock)}<br><small>まだ挑戦できません</small></p>`;
+    open.innerHTML = `<div class="mt-card" data-state="${st.key}">
+      <div class="mt-card-top"><span class="mt-rank">${esc(m.rank)}</span><h3 class="mt-name">${esc(m.name)}</h3><span class="mt-step">${k + 1} / ${D.CPU_MATCHES.length}</span></div>
+      <div class="mt-art">${portrait(ch)}<span class="mt-state">${st.label}</span></div>
+      <div class="mt-info">
+        <div class="mt-foes" aria-label="敵の編成">${m.enemies.map((id, i) => `<span class="mt-foe${i === m.leader ? ' lead' : ''}" title="${esc(E.getChar(id).name)}${i === m.leader ? '（リーダー）' : ''}">${emblem(E.getChar(id), null, 'small')}</span>`).join('')}</div>
+        <dl class="mt-stats"><div><dt>敵</dt><dd>Lv${m.level}</dd></div><div><dt>経験値</dt><dd>${m.exp}</dd></div><div class="mt-reward">${reward.replace('<span>', '<dt>').replace('</span>', '</dt>').replace('<b>', '<dd>').replace('</b>', '</dd>')}</div></dl>
+        ${action}
+      </div></div>`;
+    // 中央の札の位置（一覧の中の座標）に重ねる
+    const S0 = slotH(), pad = parseFloat(getComputedStyle(sc).paddingTop) || 0;
+    open.style.top = (pad + k * S0 + (S0 - 8) / 2).toFixed(1) + 'px';
+    clearTimeout(open._hideT);
+    open.classList.remove('hidden', 'closing');
+    if (animate && !U.reducedMotion()) {
+      // バン：小さな札の大きさから、少し大きくなりすぎてから落ち着く
+      const S = slotH() - 8, Eh = open.offsetHeight || 400;
+      open.animate([
+        { transform: `translate(-50%, -50%) scale(.9, ${Math.max(0.12, S / Eh).toFixed(3)})`, opacity: 0.6 },
+        { transform: 'translate(-50%, -50%) scale(1.035)', opacity: 1, offset: 0.62 },
+        { transform: 'translate(-50%, -50%) scale(1)', opacity: 1 }
+      ], { duration: MT.pop, easing: 'cubic-bezier(.2, .9, .3, 1)' });
+      open.classList.remove('fresh'); void open.offsetWidth; open.classList.add('fresh');
+    } else open.classList.remove('fresh');
+    app.lastMatchId = m.id;
+  }
+  function bindMatchWheel() {
+    if (mw.bound) return;
+    mw.bound = true;
+    const { sc } = wheelEls();
+    const idle = () => {
+      clearTimeout(mw.idleT);
+      if (mw.touching || document.body.dataset.screen !== 'match') return;
+      matchGo(matchIndexAt(), true);
+    };
+    sc.addEventListener('scroll', () => {
+      if (mw.resizing) return;   // 画面の大きさが変わっている間の位置の直しは、操作と数えない
+      if (mw.target !== null) {
+        // 自分で動かしている（吸い付き・選択）：着いたら開く。ほかのスクロールとは数えない
+        if (Math.abs(sc.scrollTop - mw.target) < 1.5) { clearTimeout(mw.snapT); mw.target = null; matchExpand(matchIndexAt(), true); }
+        return;
+      }
+      // 選んでいる札の位置からほぼ動いていない（画面の大きさの変更などでブラウザが位置を直しただけ）なら、操作と数えない
+      if (mw.open && !mw.touching && Math.abs(sc.scrollTop - mw.sel * slotH()) < 2) return;
+      mw.lastUser = Date.now();
+      if (mw.open) matchCollapse();
+      clearTimeout(mw.idleT);
+      mw.idleT = setTimeout(idle, MT.idle);
+    }, { passive: true });
+    if ('onscrollend' in window) sc.addEventListener('scrollend', () => { if (mw.target === null && !mw.touching) { clearTimeout(mw.idleT); mw.idleT = setTimeout(idle, 40); } });
+    // 指が触れているだけでは閉じない。指を離した後も、慣性が落ち着くまで待つ
+    const userIn = () => { mw.touching = true; if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; mw.pending = null; } };
+    const userOut = () => { mw.touching = false; clearTimeout(mw.idleT); mw.idleT = setTimeout(idle, MT.idle); };
+    sc.addEventListener('touchstart', userIn, { passive: true });
+    sc.addEventListener('touchend', userOut, { passive: true });
+    sc.addEventListener('touchcancel', userOut, { passive: true });
+    sc.addEventListener('wheel', () => { if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; } }, { passive: true });
+    // 小さな札のタップ・クリック：その相手を中央へ（スワイプの終わりはタップと数えない）
+    sc.addEventListener('click', e => {
+      const it = e.target.closest('[data-pick]');
+      if (!it || Date.now() - mw.lastUser < 220 || U.tapGuarded()) return;
+      const k = Number(it.dataset.pick);
+      if (k === mw.sel && mw.open) return;
+      matchGo(k, true);
+    });
+    // 上下キー（PC）：前後の相手へ。Home／End で先頭・最後
+    $('#screen-match').addEventListener('keydown', e => {
+      if (document.body.dataset.screen !== 'match' || U.ui.modal) return;
+      const n = D.CPU_MATCHES.length;
+      // 動いている途中に続けて押したら、向かっている先から数える
+      const base = mw.target !== null && mw.pending !== null && mw.pending !== undefined ? mw.pending : mw.sel;
+      const to = { ArrowUp: base - 1, ArrowDown: base + 1, PageUp: base - 3, PageDown: base + 3, Home: 0, End: n - 1 }[e.key];
+      if (to === undefined || (e.target.closest && e.target.closest('.mt-team'))) return;
+      e.preventDefault();
+      matchGo(to, true);
+    });
+    // 画面の回転・大きさの変更：落ち着いてから、選んでいる相手を中央に開き直す
+    let rT = 0;
+    window.addEventListener('resize', () => {
+      if (document.body.dataset.screen !== 'match') return;
+      if (!mw.resizing) mw.resizeK = mw.pending !== null && mw.pending !== undefined ? mw.pending : mw.sel;
+      mw.resizing = true;
+      clearTimeout(mw.idleT); clearTimeout(mw.snapT); mw.target = null;
+      layoutMatchWheel();
+      sc.scrollTop = mw.resizeK * slotH();
+      clearTimeout(rT);
+      rT = setTimeout(() => {
+        const k = mw.resizeK;
+        if (document.body.dataset.screen === 'match') { layoutMatchWheel(); sc.scrollTop = k * slotH(); matchExpand(k, false); }
+        requestAnimationFrame(() => { mw.resizing = false; });
+      }, 160);
+    }, { passive: true });
   }
   function teamAvgLevel() {
     const p = app.profile;
@@ -645,6 +813,8 @@
     startCpuBattle({ kind: 'free', title: `フリー対戦（敵Lv${avg}）`, foeName: '敵チーム', enemy: { ids, levels, leader: null } });
   }
   function startMatch(id) {
+    // 連打・演出中の二重開始を防ぐ（一覧を開き直すと解除）
+    if (document.body.dataset.screen === 'match') { if (mw.starting && Date.now() - mw.starting < 1500) return; mw.starting = Date.now(); }
     if (id === 'free') { startFree(); return; }
     if (!P.matchUnlocked(app.profile, id)) { toast('まだ挑戦できない相手です'); return; }
     const m = P.getMatch(id);
@@ -1188,9 +1358,11 @@
       if (b && !U.tapGuarded()) showDungeonDetail(b.dataset.dg);
     });
     $('#btn-dungeon-rules').addEventListener('click', showDungeonRules);
-    $('#match-list').addEventListener('click', e => {
+    // 挑戦ボタン（大きな札）とフリー対戦。スクロールの直後の指の離しは押したことにしない
+    $('#screen-match').addEventListener('click', e => {
       const b = e.target.closest('[data-match]');
-      if (b) startMatch(b.dataset.match);
+      if (!b || Date.now() - mw.lastUser < 220) return;
+      startMatch(b.dataset.match);
     });
     $('#gacha-kinds').addEventListener('click', e => {
       const b = e.target.closest('[data-gacha-kind]');

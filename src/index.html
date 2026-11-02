@@ -107,14 +107,19 @@
     </div>
   </section>
 
-  <!-- 対戦（CPU） -->
+  <!-- 対戦（CPU）：縦の選択。動かしている間は小さな札の一覧、止まると中央の1枚だけが大きく開く（ui-app.js の matchWheel） -->
   <section id="screen-match" class="screen hidden">
-    <div class="panel intro">
-      <h2 class="heading">対戦（CPU）</h2>
-      <p>CPUのチームと6対6で戦います。ランク戦は上から順に、勝つと次の相手が出てきます。勝つとチーム6体が経験値を得て、初勝利では石をもらえます。</p>
-      <p class="muted" id="match-team"></p>
+    <div class="mt-bg" aria-hidden="true"></div>
+    <div class="mt-head">
+      <h2 class="mt-title">対戦（CPU）</h2>
+      <p class="mt-sub">ランク戦　<span id="match-progress"></span></p>
     </div>
-    <div class="panel"><div id="match-list" class="floor-list"></div></div>
+    <div class="mt-wheel" id="match-wheel">
+      <div class="mt-scroll" id="match-list" tabindex="0" role="listbox" aria-label="対戦相手（上下にスワイプ・上下キーで選ぶ）"></div>
+      <div class="mt-open hidden" id="match-open" aria-live="polite"></div>
+      <p class="mt-hint" aria-hidden="true">上下にスワイプして相手を選ぶ</p>
+    </div>
+    <div class="mt-team" id="match-team"></div>
   </section>
 
   <!-- ダンジョン -->

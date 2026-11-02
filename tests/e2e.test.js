@@ -750,7 +750,11 @@ test('mobile: 管理用コードで入ると全キャラを所持（この端末
   assert.ok((await page.textContent('#home-profile')).includes('管理用アカウント'));
   // 管理用：すべての対戦・ダンジョンが選べる
   await page.click('[data-go="match"]');
-  assert.ok(await page.$('[data-match="m10"]'), '最後の対戦も選べる');
+  await page.waitForSelector('#match-open:not(.hidden)');
+  await page.focus('#match-list');
+  await page.keyboard.press('End');
+  await page.waitForSelector('#match-open [data-match="m10"]', { timeout: 3000 });
+  assert.ok(await page.$('#match-open [data-match="m10"]'), '最後の対戦も選べる');
   await page.click('#btn-home');
   await page.click('[data-go="dungeon"]');
   await page.waitForSelector('#screen-dungeon:not(.hidden)');
@@ -1211,6 +1215,197 @@ test('mobile: 動きを減らす設定の固有スキル（カットインなし
   const s = await H.state(page);
   assert.ok(s.skillUsed);
   for (const i of s.front.cpu) assert.equal(await page.textContent(`#enemy-front .bt-card[data-idx="${i}"] .bt-hp b`), String(s.teams.cpu[i].hp));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+
+const { CPU_MATCHES } = require('../src/data.js');
+// CPU 対戦の選択：動かしている間は小さな札、止まると中央の1枚だけが大きく開く
+const wheel = page => page.evaluate(() => {
+  const sc = document.querySelector('#match-list'), open = document.querySelector('#match-open');
+  const r = sc.getBoundingClientRect(), o = open.getBoundingClientRect();
+  const items = [...sc.querySelectorAll('.mt-item')];
+  const mid = r.top + r.height / 2;
+  const near = items.map((it, i) => { const b = it.getBoundingClientRect(); return { i, d: Math.abs(b.top + b.height / 2 - mid) }; }).sort((a, b) => a.d - b.d)[0];
+  return { open: !open.classList.contains('hidden') && !open.classList.contains('closing'), name: (open.querySelector('.mt-name') || {}).textContent || '',
+    go: (open.querySelector('[data-match]') || {}).dataset ? open.querySelector('[data-match]') && open.querySelector('[data-match]').dataset.match : null,
+    near: near.i, nearD: near.d, openMid: Math.abs(o.top + o.height / 2 - mid), top: sc.scrollTop, n: items.length };
+});
+const waitOpen = page => page.waitForFunction(() => { const o = document.querySelector('#match-open'); return !o.classList.contains('hidden') && !o.classList.contains('closing') && !o.getAnimations().length; }, null, { timeout: 4000 });
+for (const kind of ['mobile', 'desktop']) {
+  test(`${kind}: CPU対戦の選択（止まると中央が開く・動かすと閉じる・吸い付き・先頭と最後・タップ・キー・二重開始なし）`, async () => {
+    const { ctx, page, errors } = await open(kind, 'seed=3');
+    await H.startLocal(page, '選び手', { claim: false });
+    await page.evaluate(() => { const p = window.RikuyouApp.getProfile(); ['m1', 'm2', 'm3'].forEach(id => { p.matches.won[id] = true; }); });
+    await page.click('[data-go="match"]');
+    await waitOpen(page);
+    // 初めは次に挑戦できる未勝利の相手（4番目）。中央にあって、挑戦ボタンが出ている
+    let w = await wheel(page);
+    assert.equal(w.name, CPU_MATCHES[3].name);
+    assert.equal(w.near, 3); assert.ok(w.openMid < 2, '大きな札は中央');
+    assert.equal(w.go, 'm4');
+    assert.equal(await page.$eval('#tabbar [data-tab="lobby"]', t => t.classList.contains('on')), false, '対人戦のタブは選ばれていない');
+    // 開いたまま 1 秒待っても、閉じたり開いたりを繰り返さない
+    const top0 = w.top;
+    await page.waitForTimeout(1000);
+    w = await wheel(page);
+    assert.ok(w.open && w.top === top0, '開いたまま止まっている');
+    // ホイール（スワイプ）で動かすと、すぐ閉じて小さな札の一覧になる
+    const box = await (await page.$('#match-list')).boundingBox();
+    await page.mouse.move(box.x + box.width / 2, box.y + 30);
+    await page.mouse.wheel(0, 60);
+    await page.waitForTimeout(80);
+    assert.equal((await wheel(page)).open, false, '動かし始めたら閉じる');
+    assert.equal(await page.$('#match-open:not(.hidden) [data-match]:not(.closing)') && (await wheel(page)).open, false, '動いている間は挑戦ボタンを出さない');
+    // 素早く何度も動かす → 止まってから1回だけ、中央に一番近い札に吸い付いて開く
+    for (let i = 0; i < 6; i++) { await page.mouse.wheel(0, i % 2 ? -50 : 90); await page.waitForTimeout(30); }
+    await waitOpen(page);
+    w = await wheel(page);
+    assert.ok(w.nearD < 2, '中央に吸い付く ' + w.nearD);
+    assert.equal(w.name, CPU_MATCHES[w.near].name, '開いた札＝中央の札');
+    // 展開の途中でもう一度動かすと、その場から閉じる
+    await page.mouse.wheel(0, -200);
+    await page.waitForTimeout(MT_WAIT);
+    await page.mouse.wheel(0, 40);
+    await page.waitForTimeout(40);
+    assert.equal((await wheel(page)).open, false, '展開の途中で動かすと閉じる');
+    await waitOpen(page);
+    // 先頭と最後も中央に選べる（キー：Home／End）
+    await page.focus('#match-list');
+    await page.keyboard.press('Home');
+    await waitOpen(page);
+    w = await wheel(page);
+    assert.equal(w.near, 0); assert.ok(w.nearD < 2); assert.equal(w.go, 'm1');
+    assert.ok((await page.textContent('#match-open .mt-go')).includes('再戦'), '勝利済みは「再戦」');
+    assert.ok((await page.textContent('#match-open .mt-reward')).includes('再戦報酬'));
+    await page.keyboard.press('End');
+    await waitOpen(page);
+    w = await wheel(page);
+    assert.equal(w.near, w.n - 1); assert.ok(w.nearD < 2);
+    assert.equal(w.go, null, '未解放は挑戦できない');
+    assert.ok((await page.textContent('#match-open .mt-locked')).includes('に勝つと解放'));
+    // 上キーで1つ前へ・小さな札のタップで、その相手が中央に
+    await page.keyboard.press('ArrowUp');
+    await waitOpen(page);
+    assert.equal((await wheel(page)).near, w.n - 2);
+    await page.waitForTimeout(300);
+    const pickSel = '#match-list .mt-item[data-pick="4"]';
+    await page.$eval(pickSel, e => e.scrollIntoView({ block: 'nearest' }));
+    await page.waitForTimeout(400);
+    await waitOpen(page);
+    // 一覧が止まった状態で、上下に見えている小さな札を押す
+    const vis = await page.evaluate(() => { const sc = document.querySelector('#match-list').getBoundingClientRect(); return [...document.querySelectorAll('#match-list .mt-item[data-rel="before"]')].map(it => ({ k: +it.dataset.pick, r: it.getBoundingClientRect() })).filter(x => x.r.bottom > sc.top + 10 && x.r.top < sc.bottom).map(x => ({ k: x.k, y: x.r.top + x.r.height / 2, x: x.r.left + x.r.width / 2 })).pop(); });
+    assert.ok(vis, '上に前の相手の札が見える');
+    await page.mouse.click(vis.x, vis.y);
+    await waitOpen(page);
+    assert.equal((await wheel(page)).near, vis.k, 'タップした札が中央に');
+    // 挑戦する（初勝利の報酬を表示）。連打しても戦闘は1回だけ始まる
+    await page.keyboard.press('Home');
+    await waitOpen(page);
+    for (let i = 0; i < 3; i++) await page.keyboard.press('ArrowDown');
+    await waitOpen(page);
+    assert.equal((await wheel(page)).go, 'm4');
+    assert.ok((await page.textContent('#match-open .mt-reward')).includes('初勝利'));
+    await page.focus('#match-open .mt-go');
+    await page.$eval('#match-open .mt-go', b => { b.click(); b.click(); b.click(); });
+    await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)');
+    assert.equal(await page.evaluate(() => window.RikuyouBattle.getSession()), await page.evaluate(() => window.RikuyouBattle.getSession()));
+    assert.ok((await page.textContent('#battle-title')).includes(CPU_MATCHES[3].name));
+    // 戻ると、直前に選んだ相手が中央
+    await page.click('#modal [data-close="1"], #modal-x').catch(() => {});
+    await page.evaluate(() => { document.querySelector('#modal').classList.add('hidden'); });
+    await page.evaluate(() => window.RikuyouApp && 0);
+    assert.deepEqual(errors, []);
+    await ctx.close();
+  });
+}
+const MT_WAIT = 120;
+
+test('mobile: CPU対戦の選択（全員に勝利済み・画面の回転・再戦後に戻る）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'fast=1&seed=4');
+  await H.startLocal(page, '覇者', { claim: false });
+  await page.evaluate(ids => { const p = window.RikuyouApp.getProfile(); ids.forEach(id => { p.matches.won[id] = true; }); }, CPU_MATCHES.map(m => m.id));
+  await page.click('[data-go="match"]');
+  await waitOpen(page);
+  let w = await wheel(page);
+  assert.equal(w.near, w.n - 1, '全員に勝利済みなら最後の相手');
+  assert.ok((await page.textContent('#match-progress')).includes(`${CPU_MATCHES.length} / ${CPU_MATCHES.length}`));
+  assert.ok((await page.textContent('#match-open .mt-go')).includes('再戦'));
+  // 画面の回転：選んでいる相手のまま中央
+  await page.focus('#match-list');
+  await page.keyboard.press('Home'); await waitOpen(page);
+  await page.keyboard.press('ArrowDown'); await page.keyboard.press('ArrowDown');
+  await waitOpen(page);
+  await page.setViewportSize({ width: 844, height: 390 });
+  await page.waitForTimeout(400);
+  await waitOpen(page);
+  w = await wheel(page);
+  assert.equal(w.near, 2); assert.ok(w.open); assert.ok(w.openMid < 2, JSON.stringify(w) + JSON.stringify(await page.evaluate(() => { const o = document.querySelector("#match-open"); const r = o.getBoundingClientRect(); return [r.top, r.height, o.style.cssText, document.querySelector("#match-wheel").getBoundingClientRect().height, document.querySelector("#match-list").clientHeight]; })));
+  await page.setViewportSize({ width: 390, height: 844 });
+  await page.waitForTimeout(400);
+  await waitOpen(page);
+  assert.equal((await wheel(page)).near, 2);
+  // 再戦 → 戦闘 → 一覧へ戻ると、直前の相手が中央
+  await page.click('#match-open .mt-go');
+  await H.formation(page, [0, 1, 2], 0);
+  assert.ok(await H.autoplay(page));
+  await page.click('#modal [data-act]:has-text("対戦の一覧へ")');
+  await waitOpen(page);
+  w = await wheel(page);
+  assert.equal(w.near, 2, '再戦後は直前の相手に戻る');
+  assert.equal(w.name, CPU_MATCHES[2].name);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: CPU対戦の選択を指でスワイプ（挑戦ボタンの上から始めても一覧が動く・戦闘は始まらない・慣性の後に1回だけ開く）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'seed=6');
+  await H.startLocal(page, '指', { claim: false });
+  await page.evaluate(() => { const p = window.RikuyouApp.getProfile(); for (let i = 1; i <= 5; i++) p.matches.won['m' + i] = true; });
+  await page.click('[data-go="match"]');
+  await waitOpen(page);
+  const before = await wheel(page);
+  const btn = await (await page.$('#match-open .mt-go')).boundingBox();
+  const cdp = await ctx.newCDPSession(page);
+  const t = (type, x, y) => cdp.send('Input.dispatchTouchEvent', { type, touchPoints: type === 'touchEnd' ? [] : [{ x, y }] });
+  const x = btn.x + btn.width / 2, y = btn.y + btn.height / 2;
+  // 開いている状態を記録しながら、ボタンの上から上へスワイプ
+  const log = [];
+  let on = true;
+  const rec = (async () => { while (on) { log.push((await wheel(page).catch(() => ({}))).open); await new Promise(r => setTimeout(r, 25)); } })();
+  await t('touchStart', x, y);
+  await page.waitForTimeout(60);
+  assert.equal((await wheel(page)).open, true, '触れただけでは閉じない');
+  for (let k = 1; k <= 12; k++) { await t('touchMove', x, y - k * 16); await page.waitForTimeout(8); }
+  await t('touchEnd');
+  await page.waitForTimeout(1300);
+  on = false; await rec;
+  const w = await wheel(page);
+  assert.ok(w.top > before.top, 'ボタンの上から始めても一覧が動く');
+  assert.equal(await page.isHidden('#modal'), true, 'スワイプの終わりで戦闘を始めない');
+  assert.equal(await page.evaluate(() => document.body.dataset.screen), 'match');
+  assert.ok(w.open && w.nearD < 2, '止まると中央に吸い付いて開く');
+  // 開いた → 閉じた → 開いた（1回だけ）。閉じたり開いたりを繰り返さない
+  const changes = log.filter((v, i) => i > 0 && v !== log[i - 1]).length;
+  assert.ok(changes <= 2, '開閉の切り替えは2回まで ' + log.join(''));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: 動きを減らす設定のCPU対戦の選択（弾まずに短く切り替わる）', async () => {
+  const ctx = await browser.newContext(Object.assign({ reducedMotion: 'reduce' }, H.VIEWPORTS.mobile));
+  const { page, errors } = await open('mobile', 'seed=2', ctx);
+  await H.startLocal(page, '静か', { claim: false });
+  await page.click('[data-go="match"]');
+  await waitOpen(page);
+  await page.focus('#match-list');
+  await page.keyboard.press('End');
+  await page.waitForTimeout(250);
+  const w = await wheel(page);
+  assert.equal(w.near, w.n - 1);
+  assert.ok(w.open, 'すぐ開く');
+  assert.equal(await page.$eval('#match-open', o => o.getAnimations().length), 0, '弾む動きなし');
   assert.deepEqual(errors, []);
   await ctx.close();
 });

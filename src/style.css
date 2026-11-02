@@ -2190,3 +2190,159 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   .bt-card.has-barrier .bt-art::before, .fx-shatter::before, .bt-boost.on, .sk-cast.pressed .sk-crest { animation: none !important; }
   .bt-card.cast-lift { transform: none; transition: none; }
 }
+
+/* ======================================================================
+ * 対戦（CPU）：水彩の闘技場の前に、挑戦状の札を縦に並べる。止まると中央の1枚だけが大きく開く
+ * ==================================================================== */
+body[data-screen="match"] { background: #c9b48a; }
+body[data-screen="match"] .topbar {
+  margin: 0 calc(-1 * max(12px, env(safe-area-inset-left, 0px))) 6px;
+  padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(180deg, rgba(24, 30, 52, .82), rgba(24, 30, 52, .6)); border-bottom: 1px solid rgba(220, 200, 150, .4);
+}
+#screen-match { position: relative; display: flex; flex-direction: column; gap: 6px; max-width: 980px; margin: 0 auto; }
+.mt-bg {
+  position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background: #c9b48a var(--bt-arena-portrait, none) 50% 35% / cover no-repeat;
+}
+.mt-bg::after { content: ""; position: absolute; inset: 0; background: linear-gradient(180deg, rgba(30, 24, 14, .12), rgba(30, 24, 14, .05) 40%, rgba(30, 24, 14, .28)); }
+@media (orientation: landscape) { .mt-bg { background-image: var(--bt-arena-landscape, none); background-position: 50% 40%; } }
+/* 見出し：羊皮紙の銘板（小さく） */
+.mt-head {
+  align-self: center; position: relative; padding: 4px 30px 5px; text-align: center; color: #2e2010;
+  background: linear-gradient(180deg, #f8efd8, #ead9b2); border: 1px solid #b89a62; border-radius: 3px;
+  box-shadow: 0 3px 8px rgba(40, 28, 12, .35), inset 0 0 0 3px rgba(255, 250, 235, .55);
+}
+.mt-head::before, .mt-head::after { content: ""; position: absolute; top: 50%; width: 18px; height: 26px; margin-top: -13px; background: linear-gradient(180deg, #34508a, #1f3366); clip-path: polygon(0 0, 100% 0, 100% 100%, 50% 75%, 0 100%); }
+.mt-head::before { left: -10px; } .mt-head::after { right: -10px; }
+.mt-title { margin: 0; font-family: var(--mincho); font-size: 19px; letter-spacing: .14em; color: #2b1d0e; }
+.mt-sub { margin: 0; font-size: 11.5px; color: #5a4526; letter-spacing: .06em; }
+
+/* 選択の枠：この中だけがスクロールする（ページのスクロールと分ける） */
+.mt-wheel {
+  --mt-h: clamp(340px, calc(100svh - var(--tabbar-h, 70px) - 250px), 640px);
+  position: relative; height: var(--mt-h); overflow: hidden;
+  -webkit-mask-image: linear-gradient(180deg, transparent 0, #000 9%, #000 91%, transparent 100%); mask-image: linear-gradient(180deg, transparent 0, #000 9%, #000 91%, transparent 100%);
+}
+.mt-scroll {
+  position: relative; height: 100%; overflow-y: auto; overscroll-behavior: contain; scroll-snap-type: y mandatory; scrollbar-width: none;
+  padding: var(--mt-pad, 200px) 0; box-sizing: border-box; outline: none; -webkit-overflow-scrolling: touch;
+}
+.mt-scroll::-webkit-scrollbar { display: none; }
+.mt-scroll:focus-visible { box-shadow: inset 0 0 0 3px rgba(255, 224, 138, .8); }
+/* 小さな札（横長）：名前・小さな絵・敵Lv・状態 */
+.mt-item {
+  display: grid; grid-template-columns: 44px minmax(0, 1fr) auto; grid-template-rows: auto auto; align-items: center; column-gap: 10px;
+  width: min(92%, 440px); height: 64px; margin: 0 auto 8px; padding: 6px 12px 6px 8px; box-sizing: border-box;
+  scroll-snap-align: center; border: 1px solid #a8885a; border-radius: 3px; cursor: pointer; text-align: left; color: #2e2010;
+  background: linear-gradient(90deg, #f6ecd2, #ecdcb6); box-shadow: 0 3px 8px rgba(30, 20, 8, .35);
+  transition: transform .2s cubic-bezier(.2, .8, .3, 1), opacity .15s; touch-action: pan-y; -webkit-tap-highlight-color: transparent;
+}
+.mt-item-art { grid-row: 1 / 3; }
+.mt-item-art .emblem.small { width: 44px; height: 44px; font-size: 20px; border-width: 1.5px; }
+.mt-item-main { min-width: 0; display: flex; flex-direction: column; line-height: 1.2; }
+.mt-item-main small { font-size: 10.5px; color: #34508a; font-weight: 700; letter-spacing: .1em; }
+.mt-item-main b { font-family: var(--mincho); font-size: 15.5px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.mt-item-lv { font-size: 12px; color: #4a3820; font-variant-numeric: tabular-nums; }
+.mt-item-st { grid-column: 2 / 4; font-size: 10.5px; color: #6b5536; }
+.mt-item[data-state="won"] .mt-item-st { color: #2c6a43; font-weight: 700; }
+.mt-item[data-state="open"] .mt-item-st { color: #34508a; font-weight: 700; }
+.mt-item[data-state="locked"] { background: linear-gradient(90deg, #ddd2bb, #cfc2a6); color: #5a4b36; }
+.mt-item[data-state="locked"] .emblem { filter: grayscale(.8) brightness(.8); }
+/* 開いている間：中央の札は大きな札の下に隠し、前後の札を上下へずらす（見た目だけ。スクロール位置は変えない） */
+.mt-scroll.opened .mt-item[data-rel="sel"] { opacity: 0; }
+.mt-scroll.opened .mt-item[data-rel="before"] { transform: translateY(calc(-1 * var(--mt-push, 160px))) scale(.94); }
+.mt-scroll.opened .mt-item[data-rel="after"] { transform: translateY(var(--mt-push, 160px)) scale(.94); }
+.mt-hint { position: absolute; left: 0; right: 0; bottom: 6px; margin: 0; text-align: center; font-size: 11px; color: #fff6df; text-shadow: 0 1px 3px #000; pointer-events: none; }
+
+/* 大きな対戦札：古い挑戦状。押せるのは挑戦ボタンだけ（ほかはスワイプが下の一覧に届く） */
+.mt-open {
+  position: absolute; left: 50%; top: 50%; z-index: 2; width: min(94%, 460px); height: var(--mt-open-h, 440px); scroll-snap-align: none;
+  transform: translate(-50%, -50%); pointer-events: none; transition: opacity .14s ease, transform .14s ease;
+}
+.mt-open.closing { opacity: 0; transform: translate(-50%, -50%) scale(.96, .5); }
+.mt-card {
+  display: flex; flex-direction: column; height: 100%; box-sizing: border-box; padding: 8px 12px 10px; color: #2e2010;
+  background: radial-gradient(ellipse at 50% 0%, #fdf6e2, #efdfba 70%, #e2cc9c); border: 1px solid #a8885a; border-radius: 4px;
+  box-shadow: 0 10px 28px rgba(20, 12, 4, .55), inset 0 0 0 4px rgba(255, 250, 235, .5), inset 0 0 0 5px rgba(168, 136, 90, .5);
+}
+.mt-card-top { display: grid; grid-template-columns: 1fr auto 1fr; align-items: center; gap: 6px; }
+.mt-rank { justify-self: start; padding: 1px 10px; font-family: var(--mincho); font-size: 12px; font-weight: 700; color: #f3ecff; background: linear-gradient(180deg, #3a5796, #24386c); border-radius: 2px; letter-spacing: .1em; }
+.mt-name { margin: 0; text-align: center; font-family: var(--mincho); font-size: clamp(19px, 5.6vw, 24px); letter-spacing: .08em; color: #241708; white-space: nowrap; }
+.mt-step { justify-self: end; font-size: 11px; color: #6b5536; font-variant-numeric: tabular-nums; }
+.mt-art {
+  position: relative; flex: 1 1 auto; min-height: 60px; margin: 6px 0; overflow: hidden; border-radius: 2px; border: 1px solid #a8885a;
+  background: #6f86a8 var(--bt-arena-landscape, none) 50% 40% / cover no-repeat;
+}
+.mt-art .portrait { position: absolute; left: 50%; bottom: 0; width: 62%; height: 100%; transform: translateX(-50%); background-size: cover; background-position: var(--cx, 50%) var(--cy, 8%); border-radius: 0;
+  -webkit-mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); mask-image: linear-gradient(90deg, transparent, #000 18%, #000 82%, transparent); }
+.mt-state { position: absolute; right: 6px; top: 6px; padding: 1px 8px; font-size: 11px; font-weight: 700; border-radius: 2px; background: rgba(250, 244, 228, .92); color: #34508a; }
+.mt-card[data-state="won"] .mt-state { color: #2c6a43; }
+.mt-card[data-state="locked"] .mt-state { color: #6b3a22; }
+.mt-card[data-state="locked"] .mt-art .portrait { filter: grayscale(.85) brightness(.75); }
+.mt-info { display: flex; flex-direction: column; gap: 6px; }
+.mt-foes { display: flex; justify-content: center; gap: 6px; }
+.mt-foe { position: relative; }
+.mt-foe .emblem.small { width: 40px; height: 40px; font-size: 18px; border-width: 1.5px; }
+.mt-foe.lead::after { content: "♛"; position: absolute; left: -3px; top: -6px; font-size: 13px; color: #b8862a; text-shadow: 0 0 2px #fff; }
+.mt-stats { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); margin: 0; text-align: center; border-top: 1px solid rgba(150, 115, 60, .4); border-bottom: 1px solid rgba(150, 115, 60, .4); }
+.mt-stats div { padding: 3px 0; }
+.mt-stats div + div { border-left: 1px solid rgba(150, 115, 60, .35); }
+.mt-stats dt { font-size: 10.5px; color: #6b5536; }
+.mt-stats dd { margin: 0; display: flex; align-items: center; justify-content: center; gap: 2px; font-family: var(--mincho); font-size: 17px; font-weight: 700; color: #241708; }
+.mt-stats .gem { width: 12px; height: 17px; }
+/* 挑戦ボタン：青い布と剣の紋章 */
+.mt-go {
+  pointer-events: auto; position: relative; display: flex; align-items: center; justify-content: center; gap: 10px; min-height: 52px; padding: 6px 18px 6px 56px;
+  border: 0; cursor: pointer; color: #f6efdc; font-family: var(--mincho); font-weight: 800; font-size: 19px; letter-spacing: .14em;
+  background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 7px), linear-gradient(180deg, #3a5796, #1f3366);
+  clip-path: polygon(3% 0, 97% 0, 100% 50%, 97% 100%, 3% 100%, 0 50%); filter: drop-shadow(0 3px 5px rgba(20, 20, 40, .4));
+  transition: transform .08s ease;
+}
+.mt-go:active { transform: translateY(2px) scale(.985); }
+.mt-go:focus-visible { outline: 3px solid #ffe08a; outline-offset: 3px; }
+.mt-go.again { background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 7px), linear-gradient(180deg, #4b6084, #2c3d5e); }
+.mt-go-crest { position: absolute; left: 10px; top: 50%; width: 36px; height: 36px; margin-top: -18px; display: grid; place-items: center; border-radius: 50%; font-size: 18px; color: #2a1d0c;
+  background: radial-gradient(circle at 40% 35%, #fff4d6, #d9b25c 60%, #8c6420); box-shadow: 0 0 0 2px rgba(30, 30, 60, .5); }
+.mt-locked { margin: 0; padding: 8px; text-align: center; font-weight: 700; color: #6b3a22; background: rgba(120, 80, 40, .1); border: 1px dashed rgba(120, 80, 40, .5); border-radius: 3px; font-size: 13px; }
+.mt-locked small { font-weight: 400; color: #6b5536; }
+/* 開いた直後：詳細を短いフェードで */
+.mt-open.fresh .mt-art .portrait, .mt-open.fresh .mt-info { animation: mtFade .26s ease-out .06s both; }
+@keyframes mtFade { from { opacity: 0; transform: translateY(6px); } }
+.mt-open.fresh .mt-art .portrait { animation-name: mtFadeArt; }
+@keyframes mtFadeArt { from { opacity: 0; transform: translateX(-50%) translateY(6px); } to { transform: translateX(-50%); } }
+
+/* 出撃チーム・フリー対戦（ランク戦とは分けた小さな入口） */
+.mt-team { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 8px; align-items: stretch; padding: 8px 10px; border-radius: 4px; color: #2e2010;
+  background: linear-gradient(180deg, rgba(250, 242, 222, .94), rgba(234, 218, 182, .94)); border: 1px solid #b89a62; box-shadow: 0 3px 8px rgba(40, 28, 12, .3); }
+.mt-team-head { display: flex; align-items: center; justify-content: space-between; font-family: var(--mincho); font-weight: 700; letter-spacing: .08em; margin-bottom: 4px; }
+.mt-link { min-height: 32px; padding: 2px 6px; border: 0; background: transparent; color: #34508a; font-weight: 700; cursor: pointer; }
+.mt-team .dg-faces { gap: 6px; flex-wrap: nowrap; }
+.mt-team .dg-face .emblem.small { width: 40px; height: 40px; }
+.mt-team .dg-team-missing { color: #8a3a1e; }
+.mt-free { display: flex; flex-direction: column; justify-content: center; gap: 2px; min-width: 104px; padding: 6px 10px; text-align: left; cursor: pointer; color: #2e2010;
+  border: 1px dashed #8c7346; border-radius: 3px; background: rgba(255, 252, 244, .6); }
+.mt-free b { font-family: var(--mincho); font-size: 14px; color: #34508a; }
+.mt-free small { font-size: 10.5px; color: #5a4526; line-height: 1.35; }
+@media (max-width: 420px) {
+  .mt-team { grid-template-columns: 1fr; }
+  .mt-free { flex-direction: row; align-items: baseline; flex-wrap: wrap; gap: 0 8px; }
+  .mt-free small { display: inline; }
+}
+
+/* PC 横長：中央に縦の選択。開いた札は左に大きな絵、右に編成・報酬・挑戦 */
+@media (min-width: 960px) and (orientation: landscape) {
+  .mt-wheel { --mt-h: clamp(400px, calc(100vh - var(--tabbar-h, 70px) - 250px), 600px); }
+  .mt-item { width: min(70%, 520px); height: 68px; }
+  .mt-open { width: min(92%, 780px); }
+  .mt-card { display: grid; grid-template-columns: minmax(0, 48%) minmax(0, 1fr); grid-template-rows: auto minmax(0, 1fr); column-gap: 16px; padding: 12px 16px; }
+  .mt-card-top { grid-column: 1 / -1; }
+  .mt-art { grid-row: 2; margin: 8px 0 0; }
+  .mt-info { grid-row: 2; justify-content: center; gap: 12px; }
+  .mt-foe .emblem.small { width: 46px; height: 46px; }
+  .mt-team { max-width: 780px; width: 100%; margin: 0 auto; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .mt-item, .mt-open { transition: none; }
+  .mt-open.fresh .mt-art .portrait, .mt-open.fresh .mt-info { animation: none; }
+}
