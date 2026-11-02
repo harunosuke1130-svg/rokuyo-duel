@@ -572,3 +572,51 @@ test('投げ方つきの出目：速さ帯ごとに1〜6が均等・不正な値
   assert.equal(r2.ok, false);
   assert.equal(s.dice, d);
 });
+
+// 星4「暁星の占星術師」：出目を選ぶスキル（chooseDice）と、出目1・2で強くなるリーダー（lowDice）
+test('暁星の占星術師：出目を選ぶ（1〜6の検証・1回だけ・CPUは一番よい数字）と、出目1・2のリーダー強化', () => {
+  const team = ['akeboshi', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
+  const s = E.createBattle(team, C);
+  assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], 0).ok);
+  assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
+  assert.ok(E.rollInitiative(s, playerFirst()).ok);
+  assert.ok(E.roll(s, 'player', fixed(3)).ok);
+  assert.equal(s.dice, 3);
+  // 数字なし・範囲外・小数は受け付けない（状態は変わらない）
+  for (const bad of [undefined, {}, { dice: 0 }, { dice: 7 }, { dice: 2.5 }, { dice: 'x' }]) {
+    const r = E.useSkill(s, 'player', 0, null, bad);
+    assert.equal(r.ok, false, JSON.stringify(bad));
+    assert.equal(s.dice, 3); assert.equal(s.skillUsed, false); assert.equal(s.teams.player[0].cd, 0);
+  }
+  // リーダー（出目1・2で攻撃+6・回復+6）：出目3では加算なし
+  const atk3 = E.previewMove(s, 'player', 1, 3), atk1 = E.previewMove(s, 'player', 1, 1);
+  const lvl = E.levelAtkBonus(1);
+  if (atk1.move.atk > 0) assert.equal(atk1.boosted, atk1.move.atk + lvl + 6, '出目1は攻撃+6');
+  if (atk3.move.atk > 0) assert.equal(atk3.boosted, atk3.move.atk + lvl, '出目3は加算なし');
+  if (atk1.move.heal > 0) assert.equal(atk1.healBase, atk1.move.heal + 6, '出目1は回復+6');
+  // 選んだ数字になる。待ち時間が付き、2回目は使えない
+  const r = E.useSkill(s, 'player', 0, null, { dice: 1 });
+  assert.ok(r.ok);
+  assert.equal(s.dice, 1);
+  assert.deepEqual(r.events.find(e => e.type === 'roll'), { type: 'roll', side: 'player', value: 1, reroll: true, chosen: true });
+  assert.equal(s.teams.player[0].cd, E.getChar('akeboshi').skill.cd);
+  assert.equal(E.useSkill(s, 'player', 0, null, { dice: 6 }).ok, false);
+  assert.equal(s.dice, 1);
+  // 通常技に出目1のリーダー強化が入る
+  const hp0 = s.teams.cpu[s.front.cpu[0]].hp;
+  const pv = E.previewMove(s, 'player', s.front.player[1]);
+  assert.ok(E.useMove(s, 'player', s.front.player[1]).ok);
+  if (pv.attacks.length) assert.equal(hp0 - s.teams.cpu[s.front.cpu[0]].hp, pv.attacks[0].damage);
+  // CPU：出目を選ぶスキルを使うときは、1〜6を試して一番よい数字を選ぶ（使ったら必ず有効な数字）
+  const c = E.createBattle(C, team);
+  assert.ok(E.chooseFormation(c, 'player', [0, 1, 2], null).ok);
+  assert.ok(E.chooseFormation(c, 'cpu', [0, 1, 2], 0).ok);
+  assert.ok(E.rollInitiative(c, () => 0.01).ok);
+  if (c.turnSide !== 'cpu') { c.turnSide = 'cpu'; }
+  c.phase = 'roll'; c.dice = null;
+  assert.ok(E.roll(c, 'cpu', fixed(2)).ok);
+  const d = CPU.decide(c, 'cpu', () => 0.5);
+  if (d.type === 'skill' && d.user === 0) assert.ok(d.dice >= 1 && d.dice <= 6, 'CPUは数字も決める');
+  const res = CPU.act(c, 'cpu', () => 0.5);
+  assert.ok(res.ok);
+});

@@ -93,6 +93,20 @@
     for (const u of aliveIndexes(state, side)) { // 前衛・後衛どちらのスキルも候補
       if (Engine.skillBlockReason(state, side, u)) continue;
       const skill = unitChar(state.teams[side][u]).skill;
+      // 出目を選ぶスキル：1〜6をすべて試し、その後の通常技が一番よくなる数字を選ぶ
+      if (skill.effects.some(e => e.type === 'chooseDice')) {
+        let pick = null;
+        for (let v = 1; v <= Engine.CONFIG.DICE_SIDES; v++) {
+          const s2 = clone(state);
+          if (!Engine.useSkill(s2, side, u, () => 0, { dice: v }).ok) continue;
+          let sc;
+          if (s2.phase === 'over') sc = evaluate(s2, side);
+          else { resolveReplaceForSim(s2); const m = bestMove(s2, side, rng); sc = m ? m.score : evaluate(s2, side); }
+          if (!pick || sc > pick.score) pick = { score: sc, dice: v };
+        }
+        if (pick && (!best || pick.score > best.score + 0.5)) best = { score: pick.score, skill: u, dice: pick.dice };
+        continue;
+      }
       const sim = clone(state);
       const r = Engine.useSkill(sim, side, u, () => 0);
       if (!r.ok) continue;
@@ -158,7 +172,7 @@
       }
     }
     if (swapPlan) return { type: 'swap', out: swapPlan.f, in: swapPlan.b };
-    if (plan && plan.skill !== null) return { type: 'skill', user: plan.skill };
+    if (plan && plan.skill !== null) return plan.dice ? { type: 'skill', user: plan.skill, dice: plan.dice } : { type: 'skill', user: plan.skill };
     const m = bestMove(state, side, rng);
     return m;
   }
@@ -172,7 +186,7 @@
     else if (d.type === 'replace') r = Engine.chooseReplacement(state, side, d.unit);
     else if (d.type === 'roll') r = Engine.roll(state, side, rng);
     else if (d.type === 'swap') r = Engine.swap(state, side, d.out, d.in);
-    else if (d.type === 'skill') r = Engine.useSkill(state, side, d.user, rng);
+    else if (d.type === 'skill') r = Engine.useSkill(state, side, d.user, rng, d.dice ? { dice: d.dice } : undefined);
     else r = Engine.useMove(state, side, d.unit);
     r.decision = d;
     return r;

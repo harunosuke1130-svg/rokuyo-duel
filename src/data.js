@@ -75,6 +75,7 @@
    *   skillHealBonus   {value}                     固有スキルの回復に加算
    *   startBarrier                                 戦闘開始時、味方前衛全員に結界
    *   regen            {value}                     自分のターンの開始時、味方の生存前衛全員をそれぞれ回復（回復疲労の影響を受ける）
+   *   lowDice          {dice:[1,2], atk, heal}     出目が dice のどれかのとき、味方の通常技の攻撃に atk・回復に heal を加算（攻撃0・回復0の技は除く）
    * skill.effects の種類:
    *   atkMultiplier {value}          このターンの通常技の攻撃を value 倍
    *   atkBonus      {value}          このターンの通常技の攻撃に加算（攻撃0の技には加算しない）
@@ -82,6 +83,7 @@
    *   barrier                        味方の生存前衛全員に結界（すでに持つキャラは変化なし）
    *   reroll                         確定した数字を振り直す
    *   damage        {amount, ignoreDefense}  敵の生存前衛全員にそれぞれ直接ダメージ（属性倍率なし）
+   *   chooseDice                     確定した数字を、使う人が1〜6から選んだ数字に変える（星4専用。CPU は一番よい数字を選ぶ）
    *   fatigueReset  {rounds}         味方の回復疲労をなくす（この巡から数え直し。回復量が100%に戻る）。rounds があればその巡数ぶんだけ戻す。
    *                                  1戦に1回まで（陣営ごと。2回目以降は何もしない）。heal より前に書くと、その回復にも効く
    * 通常技の攻撃は「敵の生存前衛全員」、回復は「味方の生存前衛全員」に、それぞれ全量が入ります。
@@ -277,6 +279,28 @@
         name: '蒼泉の再生', cd: 4,
         text: '味方の回復疲労をなくし（この巡から数え直し、回復量が100%に戻る。1戦に1回まで）、さらに味方前衛全員をそれぞれ20回復する。',
         effects: [{ type: 'fatigueReset' }, { type: 'heal', amount: 20 }]
+      }
+    },
+    {
+      // ★4（合計 HP157＋攻撃の平均26＋回復の平均15＝198）。出目を操る：好きな出目を選ぶスキルと、弱い目（1・2）を強くするリーダー
+      id: 'akeboshi', name: '暁星の占星術師', glyph: '星', maxHp: 166, element: 'holy',
+      subTypes: ['占星術師', '術士'],
+      leaderSkill: { name: '小さき星の加護', text: '出目が1か2のとき、味方の通常技の攻撃+6・回復+6（攻撃0・回復0の技は除く）。', effects: [{ type: 'lowDice', dice: [1, 2], atk: 6, heal: 6 }] },
+      moves: [
+        { name: '星屑の矢', atk: 20, heal: 10 },
+        { name: '星明かりの祈り', atk: 12, heal: 20 },
+        { name: '流星', atk: 24, heal: 4 },
+        { name: '星図の導き', atk: 16, heal: 16 },
+        { name: '天球の裁き', atk: 26, heal: 0 },
+        { name: '暁の癒し', atk: 10, heal: 22 },
+        { name: '星降る夜', atk: 26, heal: 0 },
+        { name: '明けの明星', atk: 0, heal: 28 },
+        { name: '星詠みの舞', atk: 14, heal: 14 }
+      ],
+      skill: {
+        name: '星詠みの宣告', cd: 5,
+        text: '確定した出目を、1〜6から好きな数字に変える（使う人が選ぶ）。',
+        effects: [{ type: 'chooseDice' }]
       }
     },
     // ---- 自動追加 2026-10-30 ----

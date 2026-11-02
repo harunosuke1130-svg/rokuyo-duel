@@ -2346,3 +2346,24 @@ body[data-screen="match"] .topbar {
   .mt-item, .mt-open { transition: none; }
   .mt-open.fresh .mt-art .portrait, .mt-open.fresh .mt-info { animation: none; }
 }
+
+/* 出目を選ぶスキル（星4）：サイコロの面を並べて選ぶ */
+.sk-pick { margin: 8px 0 2px; padding: 8px 10px; border-radius: 4px; background: rgba(255, 250, 238, .6); box-shadow: inset 0 0 0 1px rgba(150, 115, 60, .35); }
+.sk-pick-head { display: flex; align-items: baseline; justify-content: space-between; font-family: var(--mincho); font-weight: 700; color: #5a3d16; }
+.sk-pick-head small { font-family: var(--gothic); font-weight: 400; font-size: 12px; color: #6b5536; }
+.sk-pick-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 6px; margin: 6px 0; }
+.sk-die { aspect-ratio: 1 / 1; padding: 0; border: 2px solid transparent; border-radius: 12%; cursor: pointer; background: #e9dcc0 center / 100% 100% no-repeat; box-shadow: 0 2px 4px rgba(60, 40, 10, .3); transition: transform .1s, border-color .1s; }
+.sk-die[data-n="1"] { background-image: url("img/dice/face-1.webp"); }
+.sk-die[data-n="2"] { background-image: url("img/dice/face-2.webp"); }
+.sk-die[data-n="3"] { background-image: url("img/dice/face-3.webp"); }
+.sk-die[data-n="4"] { background-image: url("img/dice/face-4.webp"); }
+.sk-die[data-n="5"] { background-image: url("img/dice/face-5.webp"); }
+.sk-die[data-n="6"] { background-image: url("img/dice/face-6.webp"); }
+.sk-die.now { opacity: .55; }
+.sk-die.on { opacity: 1; border-color: var(--accent, #a8822c); transform: scale(1.08); box-shadow: 0 0 0 2px rgba(255, 236, 170, .8), 0 3px 8px rgba(60, 40, 10, .4); }
+.sk-die:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+.sk-pick-pv { list-style: none; margin: 0; padding: 0; font-size: 12.5px; color: #3e2c14; }
+.sk-pick-pv li { display: flex; justify-content: space-between; gap: 8px; padding: 2px 0; border-top: 1px dashed rgba(150, 115, 60, .3); }
+.sk-pick-pv li span { white-space: nowrap; font-weight: 700; }
+.sk-cast:disabled { filter: grayscale(.6) brightness(.95); cursor: not-allowed; opacity: .75; }
+.sk-cast-sub { display: block; font-family: var(--gothic); font-size: 12px; font-weight: 700; letter-spacing: .04em; opacity: .9; }

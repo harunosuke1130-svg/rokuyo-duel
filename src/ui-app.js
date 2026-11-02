@@ -738,7 +738,8 @@
     const { sc } = wheelEls();
     const idle = () => {
       clearTimeout(mw.idleT);
-      if (mw.touching || document.body.dataset.screen !== 'match') return;
+      // 自分で動かしている途中（キー・タップで選んだ先へ移動中）は、吸い付きで行き先を上書きしない
+      if (mw.touching || mw.target !== null || document.body.dataset.screen !== 'match') return;
       matchGo(matchIndexAt(), true);
     };
     sc.addEventListener('scroll', () => {
@@ -762,7 +763,7 @@
     sc.addEventListener('touchstart', userIn, { passive: true });
     sc.addEventListener('touchend', userOut, { passive: true });
     sc.addEventListener('touchcancel', userOut, { passive: true });
-    sc.addEventListener('wheel', () => { if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; } }, { passive: true });
+    sc.addEventListener('wheel', () => { mw.pending = null; if (mw.target !== null) { clearTimeout(mw.snapT); mw.target = null; } }, { passive: true });
     // 小さな札のタップ・クリック：その相手を中央へ（スワイプの終わりはタップと数えない）
     sc.addEventListener('click', e => {
       const it = e.target.closest('[data-pick]');
@@ -776,7 +777,7 @@
       if (document.body.dataset.screen !== 'match' || U.ui.modal) return;
       const n = D.CPU_MATCHES.length;
       // 動いている途中に続けて押したら、向かっている先から数える
-      const base = mw.target !== null && mw.pending !== null && mw.pending !== undefined ? mw.pending : mw.sel;
+      const base = mw.pending !== null && mw.pending !== undefined ? mw.pending : mw.sel;
       const to = { ArrowUp: base - 1, ArrowDown: base + 1, PageUp: base - 3, PageDown: base + 3, Home: 0, End: n - 1 }[e.key];
       if (to === undefined || (e.target.closest && e.target.closest('.mt-team'))) return;
       e.preventDefault();

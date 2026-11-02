@@ -208,13 +208,19 @@
   }
   // 通常技の攻撃強化：スキルの倍率・加算（そのターンのみ）＋リーダーの加算
   // 通常技の攻撃強化：スキルの倍率・加算（そのターンのみ）＋リーダーの加算＋レベルの加算
-  function attackBoost(state, side, unit) {
+  function attackBoost(state, side, unit, dice) {
     const b = (state.turnSide === side && state.phase === 'action') ? state.boost : { mult: 1, bonus: 0 };
-    return { mult: b.mult, bonus: b.bonus + leaderAtkBonus(state, side, unitChar(unit)) + levelAtkBonus(unit.level || 1) };
+    return { mult: b.mult, bonus: b.bonus + leaderAtkBonus(state, side, unitChar(unit)) + lowDiceBonus(state, side, 'atk', dice) + levelAtkBonus(unit.level || 1) };
+  }
+  // リーダースキル lowDice：出目が指定の数字（例 1・2）のとき、通常技の攻撃・回復に加算（攻撃0・回復0の技は除く）
+  function lowDiceBonus(state, side, key, dice) {
+    const d = dice || state.dice;
+    if (!d) return 0;
+    return leaderEffects(state, side).filter(e => e.type === 'lowDice' && (e.dice || []).indexOf(d) >= 0).reduce((a, e) => a + (e[key] || 0), 0);
   }
   // 通常技の回復の基礎値（リーダーの加算込み・疲労補正前）
-  function moveHealBase(state, side, move) {
-    return move.heal > 0 ? move.heal + leaderSum(state, side, 'healBonus') : 0;
+  function moveHealBase(state, side, move, dice) {
+    return move.heal > 0 ? move.heal + leaderSum(state, side, 'healBonus') + lowDiceBonus(state, side, 'heal', dice) : 0;
   }
 
   /* ---------- レベル ---------- */
@@ -574,11 +580,16 @@
     return null;
   }
 
-  function useSkill(state, side, userIdx, rng) {
+  // opts.dice：出目を選ぶスキル（chooseDice）で選んだ数字（1〜6）。それ以外のスキルでは使わない
+  function useSkill(state, side, userIdx, rng, opts) {
     const reason = skillBlockReason(state, side, userIdx);
     if (reason) return fail(reason);
     const user = state.teams[side][userIdx];
     const skill = unitChar(user).skill;
+    const chosen = Number(opts && opts.dice);
+    if (skill.effects.some(e => e.type === 'chooseDice') && !(Number.isInteger(chosen) && chosen >= 1 && chosen <= CONFIG.DICE_SIDES)) {
+      return fail(`出目を1〜${CONFIG.DICE_SIDES}から選んでください`);
+    }
     const ctx = newCtx();
     state.skillUsed = true;
     state.skillUsedBy = userIdx;
@@ -613,6 +624,11 @@
         const after = healPercent(fatigueRound(state, side));
         addLog(state, ctx, `${team(state, side)}の回復疲労が${after >= 100 ? 'なくなった' : 'やわらいだ'}（回復${before}%→${after}%）`, 'heal');
         ctx.events.push({ type: 'fatigueReset', side });
+      } else if (eff.type === 'chooseDice') {
+        const before = state.dice;
+        state.dice = chosen;
+        addLog(state, ctx, `出目を選んだ：${before} → ${state.dice}`, 'dice');
+        ctx.events.push({ type: 'roll', side, value: state.dice, reroll: true, chosen: true });
       } else if (eff.type === 'reroll') {
         const before = state.dice;
         state.dice = rollDie(rng);
@@ -711,13 +727,13 @@
     const ch = unitChar(unit);
     const move = unitMove(unit, d);
     const targetSide = opp(side);
-    const boost = attackBoost(state, side, unit);
+    const boost = attackBoost(state, side, unit, d);
     const attacks = move.atk > 0 ? frontAlive(state, targetSide).map(i => {
       const t = state.teams[targetSide][i];
       return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, computeAttack(move.atk, boost, ch, t));
     }) : [];
     const round = Math.max(1, fatigueRound(state, side));
-    const healBase = moveHealBase(state, side, move);
+    const healBase = moveHealBase(state, side, move, d);
     const amount = fatiguedHeal(healBase, round);
     const heals = move.heal > 0 ? frontAlive(state, side).map(i => {
       const t = state.teams[side][i];
@@ -762,7 +778,7 @@
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, fatigueRound, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
     rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
-    leaderEffects, leaderAtkBonus, attackBoost, moveHealBase,
+    leaderEffects, leaderAtkBonus, lowDiceBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus,
     actionBlockReason, swapBlockReason, skillBlockReason, moveBlockReason,

@@ -196,7 +196,7 @@
       case 'formation': return E.chooseFormation(state, side, a.front, a.leader);
       case 'roll': return E.roll(state, side, rng, a.throw);
       case 'swap': return E.swap(state, side, a.out, a.in);
-      case 'skill': return E.useSkill(state, side, a.user, rng);
+      case 'skill': return E.useSkill(state, side, a.user, rng, a.dice !== undefined ? { dice: a.dice } : undefined);
       case 'move': return E.useMove(state, side, a.unit);
       case 'replace': return E.chooseReplacement(state, side, a.unit);
       case 'surrender': return E.surrender(state, side);
@@ -243,7 +243,7 @@
     const go = () => {
       if (rollEv) {
         bt.lastRoll = rollEv;
-        if (rollEv.reroll) windAtDice();
+        if (rollEv.reroll && !rollEv.chosen) windAtDice();
         animateDice(rollEv, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined));
         return;
       }
@@ -1206,12 +1206,13 @@
       if (p.type === 'atkBonus') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 +${p.value}（攻撃0の技は除く）</div>`;
       if (p.type === 'fatigueReset') return `<div class="pv-line"><span class="pv-range heal">味方</span>${p.used ? '回復疲労はこの戦闘ではもう消せない（1戦に1回）' : `回復疲労をなくす（今の回復${p.percent}%→${p.after}%・1戦に1回）`}</div>`;
       if (p.type === 'reroll') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} を振り直す（同じ数字の可能性あり）</div>`;
+      if (p.type === 'chooseDice') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} → 下で選んだ数字</div>`;
       return '';
     }).join('');
   }
   // 対象範囲を短く
   function skillRange(ch) {
-    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目', fatigueReset: '味方の回復疲労' }[e.type]) || '');
+    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目', chooseDice: '出目', fatigueReset: '味方の回復疲労' }[e.type]) || '');
     return t.filter((x, i) => x && t.indexOf(x) === i).join('・');
   }
 
@@ -1234,7 +1235,7 @@
   const SKILL_KIND = {
     atkMultiplier: { icon: '⚔', when: 'このターンだけ' }, atkBonus: { icon: '⚔', when: 'このターンだけ' },
     heal: { icon: '✚', when: 'すぐ（その場で回復）' }, barrier: { icon: '◈', when: '防げるダメージを1回受けるまで' },
-    damage: { icon: '✦', when: 'すぐ（その場でダメージ）' }, reroll: { icon: '⟳', when: 'すぐ' }, fatigueReset: { icon: '❖', when: 'この戦闘で1回だけ' }
+    damage: { icon: '✦', when: 'すぐ（その場でダメージ）' }, reroll: { icon: '⟳', when: 'すぐ' }, chooseDice: { icon: '✧', when: 'すぐ（このターンの出目）' }, fatigueReset: { icon: '❖', when: 'この戦闘で1回だけ' }
   };
   function skillHeadline(side, idx) {
     const s = bt.state;
@@ -1247,6 +1248,7 @@
       else if (p.type === 'heal') { big = `回復 ${p.amount}`; sub = p.percent < 100 ? `回復疲労${p.percent}%（もとは${p.base}）` : '味方前衛全員それぞれ'; }
       else if (p.type === 'barrier') { big = '結界'; sub = `次に受ける防げるダメージ1回を${Math.round(CONFIG.BARRIER_MULTIPLIER * 100)}%に`; }
       else if (p.type === 'damage') { big = `ダメージ ${p.base}`; sub = p.ignoreDefense ? '敵前衛全員・防御と属性を無視' : '敵前衛全員・属性倍率なし・結界は有効'; }
+      else if (p.type === 'chooseDice') { big = '出目を選ぶ'; sub = mine && s.dice ? `今の出目 ${s.dice} を、1〜6の好きな数字に変える` : '確定した出目を、1〜6の好きな数字に変える'; }
       else if (p.type === 'reroll') { big = '振り直し'; sub = mine && s.dice ? `今の出目 ${s.dice} を振り直す` : '確定した出目を振り直す'; }
       else if (p.type === 'fatigueReset') { big = '疲労回復'; sub = p.used ? 'この戦闘ではもう使えない（1戦に1回）' : `回復${p.percent}% → ${p.after}%`; }
       return { type: p.type, big, sub, icon: (SKILL_KIND[p.type] || {}).icon || '✦', when: (SKILL_KIND[p.type] || {}).when || '' };
@@ -1284,6 +1286,18 @@
           : `<div class="sk-swap-list">${partners.map(j => { const v = s.teams[bt.me][j]; const c2 = E.unitChar(v); return `<button type="button" class="target-btn sk-swap-btn" data-swap-with="${j}">${emblem(c2, v, 'small')}<span class="t-main"><b>${esc(c2.name)}</b><br>${hpText(v)}</span></button>`; }).join('')}</div>`}</div>`;
       }
       const castable = mine && !skillReason;
+      // 出目を選ぶスキル：1〜6の面から選ぶ。選んだ数字にしたときの前衛の技も見せる（Engine.previewMove と同じ計算）
+      const choose = ch.skill.effects.some(e => e.type === 'chooseDice');
+      const picked = bt.pickDice && bt.pickDice.idx === idx ? bt.pickDice.n : null;
+      let pickHtml = '';
+      if (choose && castable) {
+        const fronts = E.frontAlive(s, bt.me);
+        const pv = picked ? fronts.map(i => { const p = E.previewMove(s, bt.me, i, picked); const c2 = E.unitChar(s.teams[bt.me][i]);
+          return `<li><b>${esc(c2.name)}</b>「${esc(p.move.name)}」<span>${p.move.atk > 0 ? `攻撃${atkNum(p.boosted)}` : ''}${p.move.atk > 0 && p.move.heal > 0 ? '・' : ''}${p.move.heal > 0 ? `回復${p.heals.length ? p.heals[0].amount : p.healBase}` : ''}${!p.move.atk && !p.move.heal ? '効果なし' : ''}</span></li>`; }).join('') : '';
+        pickHtml = `<div class="sk-pick"><div class="sk-pick-head">変える数字を選ぶ<small>今の出目：${s.dice}</small></div>
+          <div class="sk-pick-row" role="radiogroup" aria-label="出目を選ぶ">${[1, 2, 3, 4, 5, 6].map(n => `<button type="button" class="sk-die${picked === n ? ' on' : ''}${s.dice === n ? ' now' : ''}" data-n="${n}" data-pick-dice="${n}" role="radio" aria-checked="${picked === n}" aria-label="${n}にする"></button>`).join('')}</div>
+          ${picked ? `<ul class="sk-pick-pv">${pv}</ul>` : '<p class="sk-small">数字を選ぶと、前衛の技がどうなるか表示します。</p>'}</div>`;
+      }
       $('#modal-body').innerHTML = `<div class="sk" data-el="${esc(ch.element)}">
         <div class="sk-hero${boss ? ' boss' : ''}">${portrait(ch)}
           <div class="sk-plate">
@@ -1301,7 +1315,8 @@
           <dl class="sk-facts"><div><dt>対象</dt><dd>${esc(skillRange(ch))}</dd></div><div><dt>効き目</dt><dd>${esc(whens.join('・'))}</dd></div><div><dt>使える場所</dt><dd>前衛・後衛どちらからでも</dd></div></dl>
           <div class="sk-cdrow">${cdHtml}</div>
           ${mine && u.hp > 0 ? `<div class="dt-preview sk-preview">${skillPreviewLines(side, idx)}</div>` : ''}
-          ${castable ? `<button type="button" class="sk-cast" id="btn-use-skill" data-el="${esc(ch.element)}"><span class="sk-crest" aria-hidden="true"><i></i></span><span class="sk-cast-text">${esc(ch.skill.name)}を発動</span></button>` : ''}
+          ${pickHtml}
+          ${castable ? `<button type="button" class="sk-cast" id="btn-use-skill" data-el="${esc(ch.element)}"${choose && !picked ? ' disabled' : ''}><span class="sk-crest" aria-hidden="true"><i></i></span><span class="sk-cast-text">${esc(ch.skill.name)}を発動${choose ? `<small class="sk-cast-sub">${picked ? `出目を ${picked} にする` : '先に数字を選んでください'}</small>` : ''}</span></button>` : ''}
           ${mine && skillReason ? `<p class="reason sk-reason">今は使えません：${esc(skillReason)}${u.cd > 0 ? `（あと ${u.cd} ターン）` : ''}</p>` : ''}
           ${!mine ? '<p class="muted sk-small">相手のキャラです（情報の確認のみ）。</p>' : ''}
           ${swapHtml}
@@ -1319,14 +1334,22 @@
         // 押した反応：ボタンが沈み、紋章が光る。受理されたら閉じる（無効・失敗なら成功の演出は出さない）
         use.disabled = true;
         use.classList.add('pressed');
-        const ok = perform('skill', { user: idx });
+        const ok = perform('skill', choose ? { user: idx, dice: picked } : { user: idx });
+        if (ok) bt.pickDice = null;
         if (!ok && use.isConnected) { use.disabled = false; use.classList.remove('pressed'); }
       });
       b.querySelectorAll('[data-swap-with]').forEach(t => t.addEventListener('click', () => {
         const j = Number(t.dataset.swapWith);
         perform('swap', inFront ? { out: idx, in: j } : { out: j, in: idx });
       }));
+      b.querySelectorAll('[data-pick-dice]').forEach(t => t.addEventListener('click', () => {
+        bt.pickDice = { idx, n: Number(t.dataset.pickDice) };
+        const y = $('#modal .modal-box').scrollTop;
+        draw();
+        $('#modal .modal-box').scrollTop = y;
+      }));
     };
+    bt.pickDice = null;
     openModal('', { kind: 'detail', refresh: draw });
     draw();
   }

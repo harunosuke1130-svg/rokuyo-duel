@@ -954,8 +954,10 @@ const dieState = page => page.evaluate(() => {
   const b = document.querySelector('#btn-roll .die-body').getBoundingClientRect();
   return { model: window.RikuyouDice.topFace(), flat: window.RikuyouDice.flatFace(), rect: { x: b.x, r: b.right } };
 });
-const startFree = async (page, name) => {
+const startFree = async (page, name, team) => {
   await H.startLocal(page, name, { claim: false });
+  // チームを決める（はじめの手持ちは乱数で決まり、キャラが増えると変わるため）
+  if (team) await page.evaluate(t => { const p = window.RikuyouApp.getProfile(); t.forEach(id => { if (!p.chars[id]) p.chars[id] = { level: 1, exp: 0 }; }); p.team = t.slice(); }, team);
   await page.click('[data-go="match"]');
   await page.click('[data-match="free"]');
   await H.formation(page, [0, 1, 2], 0);
@@ -1089,6 +1091,7 @@ test('mobile: 動きを減らす設定でもサイコロで遊べる（転がり
   await ctx.close();
 });
 
+const SKILL_TEAM = ['akatsuki', 'raimei', 'okibi', 'wakakusa', 'hakugin', 'yogarasu'];
 // 固有スキル：確認画面（絵と技名が主役・使える／待機中）と発動演出（カットイン→効果が届く→状態の印）。結果は Engine のまま
 const openSkill = async (page, pos, k) => {
   const s = await H.state(page);
@@ -1103,7 +1106,7 @@ const openSkill = async (page, pos, k) => {
 };
 test('mobile: 固有スキルの確認画面と発動演出（攻撃強化・タップで短縮・連打で1回・印は状態に合わせて消える）', async () => {
   const { ctx, page, errors } = await open('mobile', 'seed=12');
-  await startFree(page, '剣士');
+  await startFree(page, '剣士', SKILL_TEAM);
   await page.click('#btn-roll');
   await H.waitMyAction(page);
   await page.waitForFunction(() => !window.RikuyouDice.playing());
@@ -1163,7 +1166,7 @@ test('mobile: 固有スキルの確認画面と発動演出（攻撃強化・タ
 
 test('mobile: 固有スキルの結界・ダメージ・回復（表示がゲームの状態と一致・後衛は無傷）', async () => {
   const { ctx, page, errors } = await open('mobile', 'fast=1&seed=12');
-  await startFree(page, '騎士');
+  await startFree(page, '騎士', SKILL_TEAM);
   await page.click('#btn-roll');
   await H.waitMyAction(page);
   // 後衛の結界＋回復のスキル（白銀の聖騎士）
@@ -1180,7 +1183,7 @@ test('mobile: 固有スキルの結界・ダメージ・回復（表示がゲー
   await ctx.close();
   // 直接ダメージ（熾火の小鬼）：敵の前衛だけ・数字とHPが状態と一致
   const d = await open('mobile', 'fast=1&seed=12');
-  await startFree(d.page, '小鬼');
+  await startFree(d.page, '小鬼', SKILL_TEAM);
   await d.page.click('#btn-roll');
   await H.waitMyAction(d.page);
   const before = await H.state(d.page);
@@ -1202,7 +1205,7 @@ test('mobile: 固有スキルの結界・ダメージ・回復（表示がゲー
 test('mobile: 動きを減らす設定の固有スキル（カットインなしで技名を短く表示・結果は同じ）', async () => {
   const ctx = await browser.newContext(Object.assign({ reducedMotion: 'reduce' }, H.VIEWPORTS.mobile));
   const { page, errors } = await open('mobile', 'seed=12', ctx);
-  await startFree(page, '静か');
+  await startFree(page, '静か', SKILL_TEAM);
   await page.click('#btn-roll');
   await H.waitMyAction(page);
   await page.waitForFunction(() => !window.RikuyouDice.playing());
@@ -1406,6 +1409,50 @@ test('mobile: 動きを減らす設定のCPU対戦の選択（弾まずに短く
   assert.equal(w.near, w.n - 1);
   assert.ok(w.open, 'すぐ開く');
   assert.equal(await page.$eval('#match-open', o => o.getAnimations().length), 0, '弾む動きなし');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
+test('mobile: 星4「暁星の占星術師」の出目を選ぶスキル（選ぶまで発動できない・選んだ数字で前衛の技が変わる）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'seed=12');
+  await H.startLocal(page, '占星', { claim: false });
+  await page.evaluate(() => { const p = window.RikuyouApp.getProfile(); p.chars.akeboshi = { level: 1, exp: 0 }; p.team[0] = 'akeboshi'; });
+  await page.click('[data-go="match"]');
+  await page.click('[data-match="free"]');
+  await H.formation(page, [0, 1, 2], 0);
+  await page.waitForFunction(() => { const s = window.RikuyouApp.getState(); return s && s.phase === 'roll' && s.turnSide === 'player' && !window.RikuyouBattle.isLocked() && !window.RikuyouDice.playing(); }, null, { timeout: 30000 });
+  await page.waitForTimeout(400);
+  await page.click('#btn-roll');
+  await H.waitMyAction(page);
+  await page.waitForFunction(() => !window.RikuyouDice.playing());
+  let s = await H.state(page);
+  const idx = s.teams.player.findIndex(u => u.charId === 'akeboshi');
+  const pos = s.front.player.indexOf(idx) >= 0 ? 'front' : 'back';
+  const sel = `#ally-${pos} .bt-card[data-idx="${idx}"] .bt-art`;
+  await page.$eval(sel, e => e.scrollIntoView({ block: 'center' }));
+  await page.waitForTimeout(TAP_GUARD);
+  await page.click(sel);
+  await page.waitForSelector('#modal .sk-pick');
+  assert.equal(await page.isDisabled('#btn-use-skill'), true, '数字を選ぶまで発動できない');
+  const want = s.dice === 6 ? 1 : 6;
+  await page.click(`#modal [data-pick-dice="${want}"]`);
+  assert.equal(await page.isDisabled('#btn-use-skill'), false);
+  assert.ok((await page.textContent('#btn-use-skill')).includes(`出目を ${want} にする`));
+  // 選んだ数字にしたときの前衛の技＝Engine の計算
+  const pv = await page.$$eval('#modal .sk-pick-pv li', ls => ls.map(l => l.textContent));
+  assert.equal(pv.length, s.front.player.filter(i => s.teams.player[i].hp > 0).length);
+  await page.click('#btn-use-skill');
+  await page.waitForFunction(v => window.RikuyouApp.getState().dice === v, want, { timeout: 5000 });
+  await H.waitMyAction(page);
+  await page.waitForFunction(() => !window.RikuyouDice.playing());
+  s = await H.state(page);
+  assert.equal(s.dice, want);
+  assert.ok(s.log.some(l => l.text.includes(`出目を選んだ`) && l.text.endsWith(`→ ${want}`)));
+  assert.equal((await page.evaluate(() => window.RikuyouDice.flatFace())).n, want, '大きな出目も選んだ数字');
+  for (const i of s.front.player.filter(j => s.teams.player[j].hp > 0)) {
+    const t = await page.textContent(`#ally-front [data-move="${i}"] .mo-name`);
+    assert.ok(t.startsWith(String(want)), '技の欄も選んだ出目の技');
+  }
   assert.deepEqual(errors, []);
   await ctx.close();
 });
