@@ -3641,6 +3641,133 @@ body[data-screen="gacha"] .topbar {
         text: '味方前衛全員を、それぞれ12回復する。さらに、このターンの通常技の攻撃に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'heal', amount: 12 }, { type: 'atkBonus', value: 4 }]
       }
+    },
+    // ---- 自動追加 2026-11-02 ----
+    {
+      id: 'rouban', name: '炉番の小僧', glyph: '炉', maxHp: 92, element: 'fire',
+      subTypes: ['職人'],
+      leaderSkill: { name: '火床の熱', text: '味方の固有スキルの直接ダメージ+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      moves: [
+        { name: '火かき棒', atk: 10, heal: 0 },
+        { name: '炉の温もり', atk: 0, heal: 8 },
+        { name: 'ふいごの風', atk: 12, heal: 0 },
+        { name: '煤まみれ', atk: 4, heal: 0 },
+        { name: '火花散らし', atk: 14, heal: 0 },
+        { name: '炉端の居眠り', atk: 0, heal: 6 },
+        { name: '赤熱の一打', atk: 18, heal: 0 },
+        { name: '炭火の癒し', atk: 0, heal: 13 },
+        { name: '鉄打ちの一撃', atk: 12, heal: 6 }
+      ],
+      skill: {
+        name: '火の番', cd: 3,
+        text: 'このターンの通常技の攻撃に6を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'atkBonus', value: 6 }]
+      }
+    },
+    {
+      id: 'kinokogari', name: '茸狩りの少女', glyph: '茸', maxHp: 88, element: 'nature',
+      subTypes: ['森人'],
+      leaderSkill: { name: '森の小道', text: '自然属性の味方の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'nature', value: 2 }] },
+      moves: [
+        { name: '胞子まき', atk: 8, heal: 0 },
+        { name: '茸のスープ', atk: 0, heal: 10 },
+        { name: '枝打ち', atk: 12, heal: 0 },
+        { name: '森の深呼吸', atk: 0, heal: 7 },
+        { name: '毒茸の罠', atk: 14, heal: 0 },
+        { name: '落ち葉の寝床', atk: 3, heal: 5 },
+        { name: '大茸の一撃', atk: 18, heal: 0 },
+        { name: '森の滋養', atk: 0, heal: 14 },
+        { name: '胞子の嵐', atk: 10, heal: 8 }
+      ],
+      skill: {
+        name: '眠り胞子', cd: 4,
+        text: '敵前衛全員に、それぞれ8ダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'ningyoshi', name: '月影の人形師', glyph: '傀', maxHp: 108, element: 'dark',
+      subTypes: ['術士', '職人'],
+      leaderSkill: { name: '操り糸の宴', text: '呪闇属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
+      moves: [
+        { name: '糸繰り', atk: 14, heal: 0 },
+        { name: '人形の盾', atk: 4, heal: 8 },
+        { name: '呪い針', atk: 18, heal: 0 },
+        { name: '繕いの糸', atk: 0, heal: 14 },
+        { name: '操り踊り', atk: 16, heal: 0 },
+        { name: '影糸縛り', atk: 12, heal: 0 },
+        { name: '千本糸', atk: 24, heal: 0 },
+        { name: '夜なべの繕い', atk: 0, heal: 20 },
+        { name: '傀儡の舞', atk: 18, heal: 8 }
+      ],
+      skill: {
+        name: '糸の結界', cd: 4,
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に4を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 4 }]
+      }
+    },
+    {
+      id: 'tsutayumi', name: '蔦絡みの弓手', glyph: '蔦', maxHp: 112, element: 'nature',
+      subTypes: ['狩人'],
+      leaderSkill: { name: '緑陰の陣', text: '味方全員の最大HPと初期HPを6%上げる（端数切り捨て）。', effects: [{ type: 'maxHp', scope: 'all', percent: 6 }] },
+      moves: [
+        { name: '蔦の矢', atk: 14, heal: 0 },
+        { name: '若葉の手当', atk: 0, heal: 12 },
+        { name: '絡みつく蔦', atk: 16, heal: 0 },
+        { name: '木陰の休息', atk: 0, heal: 8 },
+        { name: '棘の矢雨', atk: 18, heal: 0 },
+        { name: '樹液の湿布', atk: 6, heal: 6 },
+        { name: '大樹の剛弓', atk: 26, heal: 0 },
+        { name: '森の息吹', atk: 0, heal: 20 },
+        { name: '蔦の結び目', atk: 14, heal: 10 }
+      ],
+      skill: {
+        name: '狙い澄まし', cd: 4,
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に3を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 3 }]
+      }
+    },
+    {
+      id: 'kagerou', name: '陽炎の剣舞士', glyph: '陽', maxHp: 132, element: 'fire',
+      subTypes: ['戦士', '踊り手'],
+      leaderSkill: { name: '炎天の号令', text: '猛火属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
+      moves: [
+        { name: '陽炎斬り', atk: 22, heal: 0 },
+        { name: '熱砂の舞', atk: 18, heal: 0 },
+        { name: '揺らめく守り', atk: 6, heal: 12 },
+        { name: '灼熱の突き', atk: 26, heal: 0 },
+        { name: '蜃気楼', atk: 0, heal: 16 },
+        { name: '火輪', atk: 20, heal: 4 },
+        { name: '炎天の大刃', atk: 34, heal: 0 },
+        { name: '夕凪の癒し', atk: 0, heal: 24 },
+        { name: '陽炎乱舞', atk: 22, heal: 10 }
+      ],
+      skill: {
+        name: '幻の剣舞', cd: 4,
+        text: 'このターンの通常技の攻撃を1.5倍にする（回復は変わらない）。',
+        effects: [{ type: 'atkMultiplier', value: 1.5 }]
+      }
+    },
+    {
+      id: 'watashimori', name: '冥府の渡し守', glyph: '冥', maxHp: 145, element: 'dark',
+      subTypes: ['船頭', '霊媒'],
+      leaderSkill: { name: '彼岸の灯', text: '味方の固有スキルの直接ダメージ+4（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 4 }] },
+      moves: [
+        { name: '櫂の一撃', atk: 20, heal: 0 },
+        { name: '魂送りの歌', atk: 0, heal: 18 },
+        { name: '冥き水底', atk: 24, heal: 0 },
+        { name: '渡し賃', atk: 8, heal: 8 },
+        { name: '霊火', atk: 18, heal: 0 },
+        { name: '黄泉の霧', atk: 10, heal: 6 },
+        { name: '冥府の大渦', atk: 32, heal: 0 },
+        { name: '鎮魂の調べ', atk: 0, heal: 26 },
+        { name: '三途の灯', atk: 16, heal: 12 }
+      ],
+      skill: {
+        name: '魂の渡し', cd: 4,
+        text: '敵前衛全員に、それぞれ14ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ10回復する。',
+        effects: [{ type: 'damage', amount: 14, ignoreDefense: false }, { type: 'heal', amount: 10 }]
+      }
     }
   ];
 
