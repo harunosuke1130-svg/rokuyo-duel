@@ -255,6 +255,7 @@
     }).join('') || '<p class="paper-empty">この属性のキャラはまだ持っていません。</p>';
     const filled = s.filter(Boolean).length;
     $('#team-count').textContent = filled;
+    $('#team-items').innerHTML = itemsHtml(p) + '<small>キャラの詳細（i）で、かけらを使う・限界突破ができます</small>';
     $('#btn-team-ok').disabled = filled !== CONFIG.TEAM_SIZE;
     if (!teamUI.dragger) bindTeamDrag();
   }
@@ -284,6 +285,24 @@
     }
     renderTeam();
   }
+  // 結晶（限界突破）・かけら（経験値）の所持数
+  const itemsHtml = p => `<span class="it-chip it-crystal"><i aria-hidden="true">◇</i>結晶 <b>${p.items.crystal}</b></span><span class="it-chip it-kakera"><i aria-hidden="true">✧</i>かけら <b>${p.items.kakera}</b></span>`;
+  // キャラの詳細の「育てる」欄：上限まで上がっていたら限界突破、それ以外はかけらを使う
+  function growBox(p, id) {
+    const c = p.chars[id], cap = P.capOf(p, id);
+    if (P.atCap(p, id)) {
+      if (cap >= CONFIG.LEVEL.max) return `<div class="grow-box"><b>最大レベル</b><span class="muted">これ以上は上げられません</span></div>`;
+      const cost = P.limitBreakCost(cap), ok = p.items.crystal >= cost;
+      return `<div class="grow-box grow-break"><div class="grow-head"><b>限界突破</b>${itemsHtml(p)}</div>
+        <p>結晶を <b>${cost}</b> 個使うと、上限が <b>Lv${cap} → Lv${Math.min(CONFIG.LEVEL.max, cap + CONFIG.LEVEL.capStep)}</b> になります。${ok ? '' : `<br><span class="grow-short">結晶が ${cost - p.items.crystal} 個足りません（ダンジョン・CPU対戦の勝利で手に入ります）</span>`}</p>
+        <button type="button" class="btn btn-primary btn-block" id="btn-tc-break"${ok ? '' : ' disabled'}>限界突破する（結晶 ${cost}）</button></div>`;
+    }
+    const toCap = P.kakeraToCap(p, id), have = p.items.kakera;
+    const btn = (n, label) => { const m = Math.min(n, have, toCap); return `<button type="button" class="btn btn-small btn-ghost" data-kakera="${m}"${m < 1 ? ' disabled' : ''}>${label}</button>`; };
+    return `<div class="grow-box grow-kakera"><div class="grow-head"><b>かけらを使う</b>${itemsHtml(p)}</div>
+      <p class="muted">かけら1個＝経験値${D.ECONOMY.kakeraExp}。上限（Lv${cap}）まであと ${toCap} 個。</p>
+      <div class="grow-btns">${btn(1, '1個')}${btn(10, '10個')}${btn(toCap, `上限まで（${Math.min(have, toCap)}個）`)}</div></div>`;
+  }
   // キャラの詳細（編成から）：レベル・経験値・技構成・スキル。チームに入っていればリーダーにする／外す
   function showTeamChar(id) {
     const p = app.profile;
@@ -294,15 +313,17 @@
     const custom = lo.join() !== E.defaultLoadout(id).join();
     const usable = ch.moves.filter((m, k) => E.moveUnlockLevel(k) <= c.level).length;
     const nextUnlock = ch.moves.map((m, k) => E.moveUnlockLevel(k)).filter(l => l > c.level).sort((a, b) => a - b)[0];
-    const maxed = c.level >= CONFIG.LEVEL.max;
+    const cap = P.capOf(p, id);
+    const maxed = c.level >= cap;
     const inTeam = teamUI.slots.indexOf(id) >= 0;
     const lead = id === teamUI.leader;
     openModal(`<div class="zk-detail">${portrait(ch)}<div>
         <h3>${esc(ch.name)}${starsHtml(ch)}</h3>
         <div>${elementTag(ch)}${subTags(ch)}</div>
-        <p class="hptext">Lv${c.level}・最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</p>
-        <div class="exp-line"><span class="muted">${maxed ? '最大レベル' : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
+        <p class="hptext">Lv${c.level}<span class="muted">（上限${cap}）</span>・最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</p>
+        <div class="exp-line"><span class="muted">${maxed ? (cap >= CONFIG.LEVEL.max ? '最大レベル' : `上限のLv${cap}（限界突破で先へ）`) : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
       </div></div>
+      ${growBox(p, id)}
       ${p.isAdmin ? levelControl(id, c.level) : ''}
       <div class="lo-head"><span>技構成（出目1〜6）${custom ? ' <span class="badge ready">カスタム</span>' : ''}</span><span class="muted">技力 ${E.loadoutPower(id, lo)} / ${E.loadoutBudget(id, c.level)}・使える技${usable}/${ch.moves.length}${nextUnlock ? `（次はLv${nextUnlock}）` : ''}</span></div>
       ${movesList(ch, null, lo)}
@@ -321,6 +342,21 @@
           if (st) { changeLevel(st.dataset.lv, P.levelOf(app.profile, st.dataset.lv) + Number(st.dataset.lvStep)); return; }
           const ed = e.target.closest('[data-edit]');
           if (ed) { showLoadoutEditor(ed.dataset.edit); return; }
+          const kk = e.target.closest('[data-kakera]');
+          if (kk) {
+            const r = P.useKakera(app.profile, id, Number(kk.dataset.kakera));
+            if (!r.ok) { toast(r.error); return; }
+            save(); renderTeam(); closeModal(true); showTeamChar(id);
+            toast(`かけらを${r.used}個使いました（経験値+${r.exp}${r.to > r.from ? `・Lv${r.from}→${r.to}` : ''}）`, 'ok');
+            return;
+          }
+          if (e.target.closest('#btn-tc-break')) {
+            const r = P.limitBreak(app.profile, id);
+            if (!r.ok) { toast(r.error); return; }
+            save(); renderTeam(); closeModal(true); showTeamChar(id);
+            toast(`${ch.name}が限界突破！ 上限が Lv${r.cap} になりました`, 'ok');
+            return;
+          }
           if (e.target.closest('#btn-tc-leader')) { teamUI.leader = id; closeModal(true); renderTeam(); toast(`${ch.name}をリーダーにしました`, 'ok'); return; }
           if (e.target.closest('#btn-tc-toggle')) { closeModal(true); togglePick(id); }
         });
@@ -478,30 +514,33 @@
    * growth：[{ id, fromLv, fromExp, toLv, toExp, gained, hp? }]（成長前後の実際の値） */
   function snapTeam(ids) {
     const p = app.profile;
-    return ids.filter(id => P.owns(p, id)).map(id => ({ id, lv: P.levelOf(p, id), exp: p.chars[id].exp || 0 }));
+    return ids.filter(id => P.owns(p, id)).map(id => ({ id, lv: P.levelOf(p, id), exp: p.chars[id].exp || 0, cap: P.capOf(p, id) }));
   }
   function growthFrom(snap, gained) {
     const p = app.profile;
-    return snap.map(b => ({ id: b.id, fromLv: b.lv, fromExp: b.exp, toLv: P.levelOf(p, b.id), toExp: p.chars[b.id].exp || 0, gained: gained || 0 }));
+    return snap.map(b => ({ id: b.id, fromLv: b.lv, fromExp: b.exp, toLv: P.levelOf(p, b.id), toExp: p.chars[b.id].exp || 0, gained: gained || 0, cap: b.cap }));
   }
-  const LV_MAX = CONFIG.LEVEL.max;
-  const expPct = (lv, exp) => (lv >= LV_MAX ? 100 : Math.min(100, exp / P.expToNext(lv) * 100));
+  // 上限（限界突破の前）で止まっているか。g.cap が無ければ最大レベル
+  const capFor = g => g.cap || CONFIG.LEVEL.max;
+  const expPct = (lv, exp, cap) => (lv >= cap ? 100 : Math.min(100, exp / P.expToNext(lv) * 100));
   // 経験値バーの区切り：レベルが上がるたびに 100% まで伸びて 0 から続ける
   function barPlan(g) {
-    if (g.fromLv >= LV_MAX || !g.gained) return [{ from: expPct(g.toLv, g.toExp), to: expPct(g.toLv, g.toExp) }];
+    const cap = capFor(g);
+    if (g.fromLv >= cap || !g.gained) return [{ from: expPct(g.toLv, g.toExp, cap), to: expPct(g.toLv, g.toExp, cap) }];
     const segs = [];
-    let lv = g.fromLv, start = expPct(lv, g.fromExp);
+    let lv = g.fromLv, start = expPct(lv, g.fromExp, cap);
     while (lv < g.toLv) { segs.push({ from: start, to: 100, up: lv + 1 }); start = 0; lv++; }
-    segs.push({ from: start, to: expPct(g.toLv, g.toExp) });
+    segs.push({ from: start, to: expPct(g.toLv, g.toExp, cap) });
     return segs;
   }
   function growthCard(g, k) {
     const ch = E.getChar(g.id);
     const up = g.toLv > g.fromLv;
     const stats = up ? [`HP ${E.levelMaxHp(ch.maxHp, g.fromLv)}→${E.levelMaxHp(ch.maxHp, g.toLv)}`, `攻撃+${E.levelAtkBonus(g.toLv) - E.levelAtkBonus(g.fromLv)}`, `技力+${E.loadoutBudget(g.id, g.toLv) - E.loadoutBudget(g.id, g.fromLv)}`] : [];
-    const expText = g.toLv >= LV_MAX ? 'MAX' : `${g.toExp} / ${P.expToNext(g.toLv)}`;
+    const capped = g.toLv >= capFor(g);
+    const expText = capped ? (capFor(g) >= CONFIG.LEVEL.max ? 'MAX' : `上限Lv${capFor(g)}`) : `${g.toExp} / ${P.expToNext(g.toLv)}`;
     return `<div class="rs-card${up ? ' up' : ''}" data-k="${k}" style="--i:${k}">
-      <span class="rs-art">${portrait(ch, { zoom: !E.isBoss(ch.id) })}${up ? `<span class="rs-badge">${g.toLv >= LV_MAX ? 'MAX LEVEL' : 'LEVEL UP'}</span>` : ''}</span>
+      <span class="rs-art">${portrait(ch, { zoom: !E.isBoss(ch.id) })}${up ? `<span class="rs-badge">${capped ? 'MAX LEVEL' : 'LEVEL UP'}</span>` : ''}</span>
       <span class="rs-info">
         <span class="rs-name">${elMark(ch)}<b>${esc(ch.name)}</b></span>
         <span class="rs-lvline"><span class="rs-lv">Lv <b class="rs-lv-from">${g.fromLv}</b><span class="rs-up"> → <b>${g.toLv}</b></span></span>${g.gained ? `<span class="rs-exp">EXP <b>+${g.gained}</b></span>` : ''}</span>
@@ -529,6 +568,7 @@
           </div>
           <div class="rs-lines">${o.lines.map((t, n) => `<p class="${n === 0 ? 'rs-mode' : ''}">${esc(t)}</p>`).join('')}<p class="rs-round">第${o.round}巡で決着</p></div>
           ${o.stones ? `<div class="rs-reward"><span class="gem-wrap">${gemIcon()}</span><span>石</span><b class="rs-count" data-to="${o.stones}">+${o.stones}</b>${o.stoneNote ? `<small>${esc(o.stoneNote)}</small>` : ''}</div>` : ''}
+          ${o.crystals ? `<div class="rs-reward rs-crystal"><span class="gem-wrap it-crystal-ico" aria-hidden="true">◇</span><span>結晶</span><b class="rs-count" data-to="${o.crystals}">+${o.crystals}</b><small>限界突破に使います</small></div>` : ''}
           ${o.note ? `<p class="rs-note">${esc(o.note)}</p>` : ''}
         </section>
         <section class="rs-paper">
@@ -568,7 +608,7 @@
       cards.forEach((c, k) => {
         const g = o.growth[k];
         const i = c.querySelector('.rs-bar i');
-        i.style.transition = 'none'; i.style.width = expPct(g.toLv, g.toExp) + '%';
+        i.style.transition = 'none'; i.style.width = expPct(g.toLv, g.toExp, capFor(g)) + '%';
         if (g.toLv > g.fromLv) c.classList.add('up-on');
       });
       const sk = root.querySelector('#btn-rs-skip');
@@ -866,10 +906,10 @@
   function onMatchFinish(ctx, res) {
     const p = app.profile;
     const snap = snapTeam(ctx.team);
-    let nextId = null, exp, stones = 0, note = '', lines;
+    let nextId = null, exp, stones = 0, crystals = 0, note = '', lines;
     if (ctx.kind === 'match') {
       const r = P.applyMatchResult(p, ctx.matchId, ctx.team, res.won);
-      exp = r.exp; stones = r.stones; note = r.firstWin ? '初勝利' : '';
+      exp = r.exp; stones = r.stones; crystals = r.crystals; note = r.firstWin ? '初勝利' : '';
       const k = D.CPU_MATCHES.findIndex(m => m.id === ctx.matchId);
       const m = D.CPU_MATCHES[k];
       if (res.won && D.CPU_MATCHES[k + 1]) nextId = D.CPU_MATCHES[k + 1].id;
@@ -884,7 +924,7 @@
     if (nextId) buttons.push({ label: '次の相手に挑戦', primary: true, run: () => startMatch(nextId) });
     buttons.push({ label: 'もう一度挑戦', primary: !nextId, run: () => (ctx.kind === 'match' ? startMatch(ctx.matchId) : startFree()) });
     buttons.push({ label: '対戦の一覧へ', run: showMatch });
-    showResult({ won: res.won, kind: ctx.kind, lines: lines.filter(Boolean), round: res.state.round, stones, stoneNote: note, expEach: exp, growth: growthFrom(snap, exp), buttons });
+    showResult({ won: res.won, kind: ctx.kind, lines: lines.filter(Boolean), round: res.state.round, stones, crystals, stoneNote: note, expEach: exp, growth: growthFrom(snap, exp), buttons });
   }
 
   /* ---------- ダンジョン（冒険の地図。雑魚 → 中ボス → 大ボス を順に倒す） ---------- */
@@ -1062,7 +1102,7 @@
       buttons.push({ label: r.cleared ? 'もう一度挑む' : '1階から挑み直す', primary: true, run: () => startDungeon(ctx.dungeonId, 0) });
       buttons.push({ label: 'ダンジョン一覧へ', run: showDungeon });
     }
-    showResult({ won: res.won, grand: !!r.cleared, kind: 'dungeon', lines: [d.name, line2], round: res.state.round, stones: r.stones,
+    showResult({ won: res.won, grand: !!r.cleared, kind: 'dungeon', lines: [d.name, line2], round: res.state.round, stones: r.stones, crystals: r.crystals,
       stoneNote: r.firstClear ? '初回踏破' : (r.cleared ? '踏破' : ''), expEach: r.exp, growth, extra, buttons });
   }
 
@@ -1087,6 +1127,10 @@
       : `<h2 class="sr-only">${esc(g.name)}</h2><div class="ga-hero-art" role="img" aria-label="旅立ちの星泉ガチャ（蒼泉の聖女・暁星の占星術師）"></div>`;
     $('#gacha-kind-text').innerHTML = el ? `<b>${esc(g.name)}</b>：${esc(g.text)}` : '冒険のはじまりに、新たな仲間を。';
     $('#gacha-stones').textContent = p.stones;
+    $('#gacha-kakera').textContent = p.items.kakera;
+    $('#gacha-dupe').innerHTML = `<span class="ga-dupe-label">持っているキャラが出たら</span>`
+      + [['exp', 'そのキャラの経験値'], ['kakera', 'かけらとして残す']].map(([m, t]) => `<button type="button" class="ga-dupe-btn" data-dupe="${m}" aria-pressed="${p.dupeMode === m}">${t}</button>`).join('')
+      + `<small>かけらは、あとで好きなキャラの経験値（1個${D.ECONOMY.kakeraExp}）にできます。上限のレベルで止まっているキャラは、いつもかけらになります。</small>`;
     $('#gacha-gem').innerHTML = gemIcon();
     const pull = (b, n) => {
       const cost = P.gachaCost(n), short = cost - p.stones;
@@ -1103,7 +1147,7 @@
     const fmt = v => (Math.round(v * 100) / 100).toFixed(2);
     $('#gacha-rate-text').innerHTML = `1回ごとに、下の${pool.length}体から1体が同じ確率（1体あたり ${fmt(per)}%）で出ます。<br>`
       + Object.keys(byStar).sort((a, b) => b - a).map(st => `<span class="ga-rate-star">${'★'.repeat(st)} ${byStar[st]}体・合計 ${fmt(per * byStar[st])}%</span>`).join('')
-      + '<br><small>持っていないキャラは仲間に、持っているキャラが出たら経験値（' + D.ECONOMY.duplicateExp + '）になります。</small>';
+      + '<br><small>持っていないキャラは仲間に、持っているキャラが出たら経験値（' + D.ECONOMY.duplicateExp + '）か、かけら1個になります（上で選べます）。</small>';
     const owned = pool.filter(id => P.owns(p, id)).length;
     $('#gacha-pool-title').textContent = `${g.name}で呼び出せるキャラ（${pool.length}体・所持${owned}体）`;
     $('#gacha-pool').innerHTML = pool.map(id => E.getChar(id)).map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}${starsHtml(ch)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
@@ -1128,7 +1172,7 @@
       <div class="gacha-results">${r.results.map((x, i) => {
         const ch = E.getChar(x.id);
         return `<div class="gacha-card${x.isNew ? ' new' : ''}" style="animation-delay:${U.FAST ? 0 : i * 90}ms">${emblem(ch, null, 'big')}<b>${esc(ch.name)}</b>${starsHtml(ch)}
-          ${x.isNew ? '<span class="badge leader">NEW 仲間になった</span>' : `<span class="muted">経験値+${x.exp}${x.to > x.from ? `<br>Lv${x.from}→${x.to}` : ''}</span>`}</div>`;
+          ${x.isNew ? '<span class="badge leader">NEW 仲間になった</span>' : x.kakera ? `<span class="muted">かけら+${x.kakera}${x.capped ? '<br>（上限のレベル）' : ''}</span>` : `<span class="muted">経験値+${x.exp}${x.to > x.from ? `<br>Lv${x.from}→${x.to}` : ''}</span>`}</div>`;
       }).join('')}</div>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`,
     { kind: 'gacha', onClose: () => { gachaBusy = false; } });
@@ -1342,9 +1386,10 @@
       </ul>
       <h4>成長</h4>
       <ul class="help-list">
-        <li><b>レベル</b>：1レベルごとに最大HP+${CONFIG.LEVEL.hpPercentPerLevel}%、通常技の攻撃+${CONFIG.LEVEL.atkPerLevel}（攻撃0の技は除く）。最大Lv${CONFIG.LEVEL.max}。</li>
+        <li><b>レベル</b>：1レベルごとに最大HP+4%（Lv31〜90は+3%、Lv91からは+1%）、通常技の攻撃+1（攻撃0の技は除く。Lv91からは2レベルで+1）。30レベルごとに止まり、<b>結晶</b>（ダンジョン・CPU対戦の勝利で手に入る）で<b>限界突破</b>すると、次の30レベルへ進めます。</li>
+        <li><b>かけら</b>：ガチャで持っているキャラが出たとき「かけらとして残す」を選ぶと手に入ります。編成のキャラの詳細で、好きなキャラの経験値（1個${D.ECONOMY.kakeraExp}）にできます。</li>
         <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>
-        <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。7・8・9個目の技はLv${CONFIG.LEVEL.moveUnlock.join('・')}で解放、技力の上限は1レベルごとに+${CONFIG.LEVEL.powerPerLevel}。</li>
+        <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。7・8・9個目の技はLv${CONFIG.LEVEL.moveUnlock.join('・')}で解放、技力の上限は1レベルごとに+1（Lv91からは2レベルで+1）。</li>
         <li><b>リーダースキル</b>：リーダーにしたキャラの効果が戦闘中ずっと有効です。</li>
       </ul>
       <h4>石の集め方</h4>
@@ -1446,6 +1491,13 @@
       renderGacha();
       // 選んだ召喚の絵（上）が見えるように
       window.scrollTo({ top: 0, behavior: U.reducedMotion() ? 'auto' : 'smooth' });
+    });
+    $('#gacha-dupe').addEventListener('click', e => {
+      const b = e.target.closest('[data-dupe]');
+      if (!b || gachaBusy) return;
+      P.setDupeMode(app.profile, b.dataset.dupe);
+      save();
+      renderGacha();
     });
     $('#btn-gacha-1').addEventListener('click', () => pullGacha(1));
     $('#btn-gacha-10').addEventListener('click', () => pullGacha(10));

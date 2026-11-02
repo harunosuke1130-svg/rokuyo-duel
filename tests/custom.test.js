@@ -38,8 +38,10 @@ test('技の構成：8個以上から6個を選び、順番を入れ替えられ
 test('レベルで技が解放され、技力の上限が上がる', () => {
   const L = E.CONFIG.LEVEL;
   assert.deepEqual([0, 5, 6, 7, 8].map(E.moveUnlockLevel), [1, 1, L.moveUnlock[0], L.moveUnlock[1], L.moveUnlock[2]]);
-  assert.equal(E.loadoutBudget('ryogen', 10), E.loadoutBudget('ryogen') + 9 * L.powerPerLevel);
-  assert.equal(E.loadoutBudget('ryogen', 999), E.loadoutBudget('ryogen', L.max), '上限は最大レベルまで');
+  assert.equal(E.loadoutBudget('ryogen', 10), E.loadoutBudget('ryogen') + 9, 'Lv90までは1レベル+1');
+  assert.equal(E.loadoutBudget('ryogen', 90), E.loadoutBudget('ryogen') + 89);
+  assert.equal(E.loadoutBudget('ryogen', 94), E.loadoutBudget('ryogen') + 91, 'Lv91からは2レベルで+1');
+  assert.equal(E.loadoutBudget('ryogen', 99999), E.loadoutBudget('ryogen', L.max), '上限は最大レベルまで');
   // 焔の構え（7個目）は Lv3 から
   assert.match(E.loadoutError('ryogen', [0, 1, 2, 6, 4, 5], 2), /Lv3で使えるようになります/);
   assert.equal(E.loadoutError('ryogen', [0, 1, 2, 6, 4, 5], 3), null);

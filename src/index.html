@@ -94,6 +94,7 @@
       <p class="paper-sub">ドラッグで入れ替え・タップで詳細</p>
     </header>
     <div id="admin-level-all" class="admin-tools hidden"></div>
+    <p class="tm-items" id="team-items"></p>
     <h3 class="paper-sec"><span>前衛</span><small>攻撃を受ける3体</small></h3>
     <div id="team-front" class="tm-row"></div>
     <h3 class="paper-sec"><span>後衛</span><small>控えの3体</small></h3>
@@ -149,7 +150,8 @@
           <button type="button" class="ga-pull ga-pull-1" id="btn-gacha-1"></button>
           <button type="button" class="ga-pull ga-pull-10" id="btn-gacha-10"></button>
         </div>
-        <p class="ga-stones">所持 <span id="gacha-gem"></span><b id="gacha-stones">0</b> 石<small>（石はダンジョン・ログインボーナス・対人戦で手に入ります。お金は使いません）</small></p>
+        <div class="ga-dupe" id="gacha-dupe" role="group" aria-label="持っているキャラが出たとき"></div>
+        <p class="ga-stones">所持 <span id="gacha-gem"></span><b id="gacha-stones">0</b> 石・かけら <b id="gacha-kakera">0</b> 個<small>（石はダンジョン・ログインボーナス・対人戦で手に入ります。お金は使いません）</small></p>
         <details class="ga-rates" id="gacha-rates">
           <summary>提供割合・登場キャラ</summary>
           <div class="ga-rates-body"><p class="ga-rate-text" id="gacha-rate-text"></p><h3 class="ga-pool-title" id="gacha-pool-title"></h3><div id="gacha-pool" class="pool-grid ga-pool"></div></div>

@@ -18,7 +18,15 @@ test('レベル：最大HPと通常技の攻撃が上がる（スキルの直接
   assert.equal(E.levelMaxHp(95, 30), 205);    // 95×2.16=205.2
   assert.equal(E.levelAtkBonus(1), 0);
   assert.equal(E.levelAtkBonus(11), 10);
-  assert.equal(E.clampLevel(99), D.CONFIG.LEVEL.max);
+  assert.equal(E.clampLevel(99), 99, 'Lv30を超えても上げられる');
+  assert.equal(E.clampLevel(1e6), D.CONFIG.LEVEL.max);
+  // Lv31〜90 は HP だけ少し緩く（+3%）、攻撃は+1のまま。Lv91からは HP+1%・攻撃は2レベルで+1
+  assert.equal(E.levelMaxHp(100, 31), 219);
+  assert.equal(E.levelMaxHp(100, 90), 396);
+  assert.equal(E.levelMaxHp(100, 100), 406);
+  assert.equal(E.levelAtkBonus(31), 30);
+  assert.equal(E.levelAtkBonus(90), 89);
+  assert.equal(E.levelAtkBonus(100), 94);
   assert.equal(E.clampLevel(0), 1);
   const s = E.createBattle(TEAM, FOE, { levels: { player: { ryogen: 11, yoiyami: 5 } } });
   assert.equal(s.teams.player[0].maxHp, 168);
@@ -94,8 +102,15 @@ test('プロフィール：初期は6体所持・石300、管理用アカウン�
   // 保存データからの読み込み：管理用は不足分を補う・不正値は直す
   const s = P.sanitize({ name: 'x', stones: -5, chars: { ryogen: { level: 99, exp: 'a' }, nobody: { level: 3 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5], gessen: [0, 1, 2, 3, 4, 6] } }, { uid: 'adm', isAdmin: true });
   assert.equal(s.stones, 0);
-  assert.equal(s.chars.ryogen.level, D.CONFIG.LEVEL.max);
+  assert.equal(s.chars.ryogen.level, 99);
+  assert.equal(s.chars.ryogen.cap, 120, '上限が無い古いデータは、今のレベルが入る上限にする');
   assert.equal(s.chars.nobody, undefined);
+  assert.deepEqual(s.items, { crystal: 0, kakera: 0 }, '結晶・かけらが無い古いデータは0個');
+  assert.equal(s.dupeMode, 'exp');
+  const it = P.sanitize({ chars: { ryogen: { level: 30, cap: 45 } }, items: { crystal: '7', kakera: -3 }, dupeMode: 'kakera' }, { uid: 'u' });
+  assert.equal(it.chars.ryogen.cap, 30, 'おかしな上限は直す');
+  assert.deepEqual(it.items, { crystal: 7, kakera: 0 });
+  assert.equal(it.dupeMode, 'kakera');
   assert.equal(P.ownedIds(s).length, D.CHARACTERS.length);
   assert.deepEqual(s.loadouts, { ryogen: [7, 1, 2, 3, 4, 5] }, 'Lv30なら上限内なので残し、Lv1でまだ使えない技を含む構成は捨てる');
   const lo = P.sanitize({ chars: { ryogen: { level: 13 } }, loadouts: { ryogen: [7, 1, 2, 3, 4, 5] } }, { uid: 'u' });
@@ -115,8 +130,74 @@ test('経験値とレベルアップ（必要経験値は100から50ずつ増え
   assert.deepEqual([r.from, r.to], [1, 3]);
   assert.equal(p.chars.ryogen.exp, 10);
   P.addExp(p, 'ryogen', 1e9);
-  assert.equal(p.chars.ryogen.level, D.CONFIG.LEVEL.max);
+  assert.equal(p.chars.ryogen.level, 30, '30で止まる（限界突破が必要）');
   assert.equal(p.chars.ryogen.exp, 0);
+  assert.ok(P.atCap(p, 'ryogen'));
+});
+
+test('限界突破（結晶）：30レベルごとに止まり、結晶で次の30レベルへ', () => {
+  const p = P.newProfile({ isAdmin: true });
+  assert.equal(P.limitBreak(p, 'ryogen').ok, false, 'Lv30になる前はできない');
+  P.addExp(p, 'ryogen', 1e9);
+  assert.equal(P.limitBreakCost(30), 5); assert.equal(P.limitBreakCost(60), 10); assert.equal(P.limitBreakCost(90), 15);
+  p.items.crystal = 4;
+  assert.match(P.limitBreak(p, 'ryogen').error, /結晶が足りません/);
+  p.items.crystal = 12;
+  assert.deepEqual(P.limitBreak(p, 'ryogen'), { ok: true, cost: 5, from: 30, cap: 60 });
+  assert.equal(p.items.crystal, 7);
+  P.addExp(p, 'ryogen', 1e9);
+  assert.equal(p.chars.ryogen.level, 60);
+  assert.equal(P.limitBreak(p, 'ryogen').ok, false, '2回目は結晶10個');
+  p.items.crystal = 10;
+  assert.equal(P.limitBreak(p, 'ryogen').cap, 90);
+  // 保存して読み込んでも上限は残る
+  assert.equal(P.sanitize(JSON.parse(JSON.stringify(p)), { uid: 'u' }).chars.ryogen.cap, 90);
+});
+
+test('結晶の手に入り方：ダンジョンの階の突破・踏破、CPU対戦の勝利', () => {
+  const p = P.newProfile({ uid: 'u' }, E.createRng(4));
+  const t = p.team;
+  assert.equal(P.applyDungeonFloor(p, 'forest', 0, t, true).crystals, D.ECONOMY.crystal.floorWin);
+  assert.equal(P.applyDungeonFloor(p, 'forest', 1, t, false).crystals, 0, '負けると無し');
+  assert.equal(P.applyDungeonFloor(p, 'forest', 2, t, true).crystals, D.ECONOMY.crystal.floorWin + D.ECONOMY.crystal.firstClear);
+  assert.equal(P.applyDungeonFloor(p, 'forest', 2, t, true).crystals, D.ECONOMY.crystal.floorWin + D.ECONOMY.crystal.clear);
+  const m = D.CPU_MATCHES[0].id;
+  assert.equal(P.applyMatchResult(p, m, t, true).crystals, D.ECONOMY.crystal.matchFirstWin);
+  assert.equal(P.applyMatchResult(p, m, t, true).crystals, D.ECONOMY.crystal.matchWin);
+  assert.equal(P.applyMatchResult(p, m, t, false).crystals, 0);
+  const C = D.ECONOMY.crystal;
+  assert.equal(p.items.crystal, C.floorWin * 3 + C.firstClear + C.clear + C.matchFirstWin + C.matchWin);
+});
+
+test('かけら：ガチャで重なったキャラを残すか経験値にするか選べる・どのキャラにも使える', () => {
+  const p = P.newProfile({ uid: 'u' }, E.createRng(4));
+  const id = p.team[0], other = p.team[1];
+  p.stones = 10000;
+  const pick = () => (P.gachaPool('all').indexOf(id) + 0.5) / P.gachaPool('all').length;
+  // いつもどおり：そのキャラの経験値
+  let r = P.drawGacha(p, 1, pick, 'all');
+  assert.equal(r.results[0].exp, D.ECONOMY.duplicateExp);
+  assert.equal(p.items.kakera, 0);
+  // かけらにする
+  P.setDupeMode(p, 'kakera');
+  r = P.drawGacha(p, 10, pick, 'all');
+  assert.ok(r.results.every(x => x.kakera === 1));
+  assert.equal(p.items.kakera, 10);
+  // 別のキャラに使う。上限を超える分は使わない
+  const u = P.useKakera(p, other, 3);
+  assert.deepEqual([u.ok, u.used, u.exp], [true, 3, 3 * D.ECONOMY.kakeraExp]);
+  assert.equal(p.items.kakera, 7);
+  const need = P.kakeraToCap(p, other);
+  assert.ok(need > 7);
+  P.addExp(p, other, 1e9);
+  assert.equal(P.useKakera(p, other, 1).ok, false, '上限のレベルでは使えない');
+  assert.equal(p.items.kakera, 7);
+  // 上限で止まっているキャラが重なったら、経験値のままでも、かけらになる
+  P.setDupeMode(p, 'exp');
+  P.addExp(p, id, 1e9);
+  r = P.drawGacha(p, 1, pick, 'all');
+  assert.equal(r.results[0].kakera, 1);
+  assert.equal(p.items.kakera, 8);
 });
 
 test('ガチャ：石を消費し、新キャラは所持、持っているキャラは経験値に', () => {
@@ -290,7 +371,9 @@ test('管理用アカウント：すべての対戦・ダンジョンを選べ�
   assert.deepEqual(P.setLevel(a, 'ryogen', 25), { ok: true, level: 25 });
   assert.equal(P.levelOf(a, 'ryogen'), 25);
   assert.equal(a.chars.ryogen.exp, 0);
-  assert.equal(P.setLevel(a, 'ryogen', 99).level, D.CONFIG.LEVEL.max, '最大レベルまで');
+  assert.equal(P.setLevel(a, 'ryogen', 99).level, 99, 'Lv30を超えても');
+  assert.equal(a.chars.ryogen.cap, 120, '上限も合わせる');
+  assert.equal(P.setLevel(a, 'ryogen', 1e6).level, D.CONFIG.LEVEL.max, '最大レベルまで');
   assert.equal(P.setLevel(a, 'ryogen', 0).level, 1, '最低はLv1');
   // 一般アカウントは今までどおり
   const n = P.newProfile({ uid: 'u', name: '一般' }, E.createRng(1));

@@ -164,7 +164,7 @@
   }
   // 技力の上限 = 初期構成の技力 + CONFIG.LOADOUT_POWER_MARGIN + レベルによる上昇
   function loadoutBudget(charId, level) {
-    return loadoutPower(charId, defaultLoadout(charId)) + CONFIG.LOADOUT_POWER_MARGIN + CONFIG.LEVEL.powerPerLevel * (clampLevel(level) - 1);
+    return loadoutPower(charId, defaultLoadout(charId)) + CONFIG.LOADOUT_POWER_MARGIN + Math.floor(levelGrowth(level, 'power'));
   }
   // 技の候補 k 番目（0から）が使えるようになるレベル（初期構成の6個は最初から）
   function moveUnlockLevel(k) {
@@ -228,13 +228,25 @@
     const n = Math.floor(Number(lv) || 1);
     return Math.max(1, Math.min(CONFIG.LEVEL.max, n));
   }
-  // レベルによる最大HP（基礎×(100＋上昇率×(Lv−1))%、切り捨て）
-  function levelMaxHp(baseHp, lv) {
-    return Math.floor(baseHp * (100 + CONFIG.LEVEL.hpPercentPerLevel * (clampLevel(lv) - 1)) / 100);
+  // Lv1 から lv までに上がった量の合計（CONFIG.LEVEL.growth の区切りごとに、その区切りの値×上がったレベル数）
+  function levelGrowth(lv, key) {
+    const n = clampLevel(lv);
+    let prev = 1, sum = 0;
+    for (const g of CONFIG.LEVEL.growth) {
+      const upTo = Math.min(n, g.to);
+      if (upTo > prev) sum += (upTo - prev) * g[key];
+      prev = Math.max(prev, g.to);
+      if (n <= g.to) break;
+    }
+    return sum;
   }
-  // レベルによる通常技の攻撃加算（攻撃0の技には加算しない）
+  // レベルによる最大HP（基礎×(100＋上昇率の合計)%、切り捨て）。Lv30 までは 1レベル+4%
+  function levelMaxHp(baseHp, lv) {
+    return Math.floor(baseHp * (100 + levelGrowth(lv, 'hp')) / 100);
+  }
+  // レベルによる通常技の攻撃加算（攻撃0の技には加算しない）。Lv90 までは 1レベル+1
   function levelAtkBonus(lv) {
-    return CONFIG.LEVEL.atkPerLevel * (clampLevel(lv) - 1);
+    return Math.floor(levelGrowth(lv, 'atk'));
   }
 
   /* ---------- 状態の生成 ---------- */
@@ -780,7 +792,7 @@
     rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, lowDiceBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
-    clampLevel, levelMaxHp, levelAtkBonus,
+    clampLevel, levelMaxHp, levelAtkBonus, levelGrowth,
     actionBlockReason, swapBlockReason, skillBlockReason, moveBlockReason,
     previewMove, previewSkill
   };

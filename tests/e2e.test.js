@@ -1506,3 +1506,46 @@ test('mobile: ガチャ画面（星泉ガチャの絵・不足の表示・提供
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('mobile: かけらを使う・限界突破（結晶）・ガチャで重なったキャラをかけらにする', async () => {
+  const { ctx, page, errors } = await open('mobile');
+  await H.startLocal(page, '育て手', { claim: false });
+  const [a, b] = await page.evaluate(() => { const p = window.RikuyouApp.getProfile(); p.items.kakera = 5; p.items.crystal = 6; p.chars[p.team[1]].level = 30; p.chars[p.team[1]].exp = 0; return p.team.slice(0, 2); });
+  await page.click('#tabbar [data-tab="team"]');
+  await page.waitForSelector('#screen-team:not(.hidden)');
+  assert.match(await page.textContent('#team-items'), /結晶\s*6.*かけら\s*5/);
+  // かけら：1個で経験値300（Lv1→Lv3：100＋150、残り50）
+  await page.click(`#team-grid [data-info="${a}"]`);
+  await page.waitForSelector('#modal[data-kind="team-char"]:not(.hidden) [data-kakera]');
+  await page.click('#modal [data-kakera="1"]');
+  await page.waitForSelector('#modal[data-kind="team-char"]:not(.hidden)');
+  let p = await H.profile(page);
+  assert.deepEqual([p.items.kakera, p.chars[a].level, p.chars[a].exp], [4, 3, 50]);
+  await page.click('#modal-x');
+  // Lv30 のキャラは限界突破（結晶5個）で上限 Lv60 に
+  await page.click(`#team-grid [data-info="${b}"]`);
+  await page.waitForSelector('#modal #btn-tc-break:not([disabled])');
+  assert.match(await page.textContent('#modal .grow-break'), /Lv30 → Lv60/);
+  await page.click('#modal #btn-tc-break');
+  await page.waitForSelector('#modal[data-kind="team-char"]:not(.hidden) [data-kakera]');
+  p = await H.profile(page);
+  assert.deepEqual([p.items.crystal, p.chars[b].cap], [1, 60]);
+  await page.click('#modal-x');
+  // ガチャ：「かけらとして残す」を選ぶと、重なったキャラはかけらになる（選んだことは保存される）
+  await page.evaluate(() => { const p = window.RikuyouApp.getProfile(); p.stones = 2000; });
+  await page.click('#tabbar [data-tab="home"]');
+  await page.click('.home-banner[data-go="gacha"]');
+  await page.waitForSelector('#screen-gacha:not(.hidden)');
+  await page.click('#gacha-dupe [data-dupe="kakera"]');
+  assert.equal(await page.getAttribute('#gacha-dupe [data-dupe="kakera"]', 'aria-pressed'), 'true');
+  const before = await H.profile(page);
+  await page.click('#btn-gacha-10');
+  await page.waitForSelector('#modal[data-kind="gacha"]:not(.hidden)');
+  p = await H.profile(page);
+  const dupes = await page.$$eval('#modal .gacha-card:not(.new)', c => c.length);
+  assert.equal(p.dupeMode, 'kakera');
+  assert.equal(p.items.kakera - before.items.kakera, dupes, '重なった数だけかけら');
+  assert.equal(await page.$$eval('#modal .gacha-card:not(.new)', c => c.filter(x => x.textContent.includes('かけら+1')).length), dupes);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -2469,3 +2469,32 @@ body[data-screen="gacha"] .topbar {
   .ga-el-hero { max-height: none; }
 }
 .ga-kind[aria-pressed="true"], .ga-kind[aria-pressed="true"] b { color: #1d2f5e; }
+
+/* ---------- 結晶（限界突破）・かけら（経験値） ---------- */
+.it-chip { display: inline-flex; align-items: center; gap: 3px; padding: 1px 8px; border-radius: 999px; font-size: 12px; white-space: nowrap; }
+.it-chip i { font-style: normal; font-weight: 700; }
+.it-chip b { font-size: 14px; }
+.it-crystal { background: rgba(120, 190, 235, .18); border: 1px solid rgba(120, 190, 235, .55); }
+.it-crystal i { color: #6fc3f0; }
+.it-kakera { background: rgba(240, 200, 110, .16); border: 1px solid rgba(240, 200, 110, .55); }
+.it-kakera i { color: #f0c86e; }
+.tm-items { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 4px 8px; margin: 2px 0 8px; color: #4a3820; }
+.tm-items small { flex-basis: 100%; text-align: center; font-size: 11px; color: #7a6040; }
+.tm-items .it-crystal i { color: #2c7fb8; } .tm-items .it-kakera i { color: #b07d16; }
+.grow-box { background: rgba(0, 0, 0, .22); border: 1px solid var(--line); border-radius: 10px; padding: 8px 10px; margin: 8px 0; }
+.grow-box p { margin: 6px 0; font-size: 13px; }
+.grow-head { display: flex; flex-wrap: wrap; align-items: center; gap: 4px 6px; }
+.grow-head > b { margin-right: auto; }
+.grow-break { border-color: rgba(120, 190, 235, .6); box-shadow: inset 0 0 18px rgba(110, 190, 240, .12); }
+.grow-short { color: #ff9c8a; }
+.grow-btns { display: flex; flex-wrap: wrap; gap: 6px; }
+.grow-btns .btn { flex: 1 1 auto; }
+.ga-dupe { display: flex; flex-wrap: wrap; align-items: center; justify-content: center; gap: 6px; margin: 2px 0 4px; font-size: 13px; color: #4a3820; }
+.ga-dupe-label { flex-basis: 100%; text-align: center; font-weight: 700; }
+.ga-dupe-btn { padding: 5px 12px; border-radius: 999px; border: 1px solid #b59a6a; background: #fbf4e2; color: #5a4526; font: inherit; cursor: pointer; }
+.ga-dupe-btn[aria-pressed="true"] { background: #24386c; border-color: #24386c; color: #fff; font-weight: 700; }
+.ga-dupe small { flex-basis: 100%; text-align: center; font-size: 11px; color: #7a6040; line-height: 1.5; }
+.rs-crystal .it-crystal-ico { display: inline-grid; place-items: center; font-size: 20px; font-weight: 700; color: #3d9bd8; }
+.grow-box .it-chip { color: #f3e6c8; }
+/* 編成・図鑑（明るい紙の画面）から開いたキャラの詳細：暗い箱の中の文字が紙の画面の濃い色を受け継いで読みにくかったので、明るい色に */
+#modal[data-kind="team-char"] .modal-box, #modal[data-kind="zukan"] .modal-box { color: var(--text); }
