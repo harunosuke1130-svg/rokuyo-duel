@@ -1029,24 +1029,50 @@
     go('gacha');
     renderGacha();
   }
-  // ガチャの種類（通常・属性ごと）。値段はどれも同じ
+  // ガチャの種類（旅立ちの星泉ガチャ＝すべてのキャラ・属性召喚＝その属性だけ）。値段も確率の決め方も、どれも同じ
   let gachaKind = 'all';
+  const FEATURED = ['aoizumi', 'akeboshi'];   // 絵に描かれた★4（出やすくはしない。全員同じ確率）
   function renderGacha() {
     const p = app.profile;
     if (!P.getGacha(gachaKind)) gachaKind = 'all';
     const g = P.getGacha(gachaKind);
     const pool = P.gachaPool(gachaKind);
-    $('#gacha-kinds').innerHTML = D.GACHAS.map(k => `<button type="button" class="gk-btn" data-gacha-kind="${k.id}" aria-pressed="${k.id === gachaKind}"${k.element ? ` data-el="${k.element}"` : ''}>${k.element ? `<span class="el-ico" data-el="${k.element}" aria-hidden="true"></span>` : ''}${esc(k.element ? D.ELEMENTS[k.element].name : '通常')}</button>`).join('');
-    $('#gacha-kind-text').innerHTML = `<b>${esc(g.name)}</b>：${esc(g.text)}`;
+    const el = g.element ? D.ELEMENTS[g.element] : null;
+    $('#screen-gacha').dataset.kind = g.element || 'all';
+    // 上の絵：星泉ガチャは利用者の絵（題名・キャラ名は絵の中）。属性召喚は属性の色の札
+    $('#gacha-hero').innerHTML = el
+      ? `<div class="ga-el-hero" data-el="${g.element}"><span class="ga-el-ico"><span class="el-ico" data-el="${g.element}" aria-hidden="true"></span></span><h2>${esc(el.name)}の召喚</h2><p>${esc(el.name)}属性のキャラだけが出ます</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
+      : `<h2 class="sr-only">${esc(g.name)}</h2><div class="ga-hero-art" role="img" aria-label="旅立ちの星泉ガチャ（蒼泉の聖女・暁星の占星術師）"></div>`;
+    $('#gacha-kind-text').innerHTML = el ? `<b>${esc(g.name)}</b>：${esc(g.text)}` : '冒険のはじまりに、新たな仲間を。';
     $('#gacha-stones').textContent = p.stones;
-    const b1 = $('#btn-gacha-1'), b10 = $('#btn-gacha-10');
-    b1.textContent = `1回引く（石${P.gachaCost(1)}）`;
-    b10.textContent = `10回引く（石${P.gachaCost(10)}）`;
-    b1.disabled = p.stones < P.gachaCost(1) || !pool.length;
-    b10.disabled = p.stones < P.gachaCost(10) || !pool.length;
+    $('#gacha-gem').innerHTML = gemIcon();
+    const pull = (b, n) => {
+      const cost = P.gachaCost(n), short = cost - p.stones;
+      b.innerHTML = `<b>${n}回召喚</b><span class="ga-cost">${gemIcon()}${cost}</span>${short > 0 ? `<small>石が${short}不足</small>` : ''}`;
+      b.disabled = short > 0 || !pool.length;
+      b.setAttribute('aria-label', `${g.name}を${n}回召喚（石${cost}）${short > 0 ? `・石が${short}不足` : ''}`);
+    };
+    pull($('#btn-gacha-1'), 1);
+    pull($('#btn-gacha-10'), 10);
+    // 提供割合：出るキャラの中では全員同じ確率（★ごとの合計も、実際の人数から計算）
+    const per = pool.length ? 100 / pool.length : 0;
+    const byStar = {};
+    pool.forEach(id => { const st = E.starsOf(id); byStar[st] = (byStar[st] || 0) + 1; });
+    const fmt = v => (Math.round(v * 100) / 100).toFixed(2);
+    $('#gacha-rate-text').innerHTML = `1回ごとに、下の${pool.length}体から1体が同じ確率（1体あたり ${fmt(per)}%）で出ます。<br>`
+      + Object.keys(byStar).sort((a, b) => b - a).map(st => `<span class="ga-rate-star">${'★'.repeat(st)} ${byStar[st]}体・合計 ${fmt(per * byStar[st])}%</span>`).join('')
+      + '<br><small>持っていないキャラは仲間に、持っているキャラが出たら経験値（' + D.ECONOMY.duplicateExp + '）になります。</small>';
     const owned = pool.filter(id => P.owns(p, id)).length;
     $('#gacha-pool-title').textContent = `${g.name}で呼び出せるキャラ（${pool.length}体・所持${owned}体）`;
     $('#gacha-pool').innerHTML = pool.map(id => E.getChar(id)).map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}${starsHtml(ch)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
+    // ★4の注目キャラ（このガチャで出るものだけ）
+    const feat = FEATURED.filter(id => pool.indexOf(id) >= 0).map(id => E.getChar(id)).filter(Boolean);
+    $('#gacha-featured').innerHTML = feat.length ? `<h3 class="ga-sec"><span>★4の注目キャラクター</span></h3><div class="ga-feat-row">${feat.map(ch => `<div class="ga-feat" data-el="${ch.element}">${emblem(ch, null, 'small')}<span class="ga-feat-main"><b>${esc(ch.name)}</b>${starsHtml(ch)}<small>${esc(ch.skill.name)}：${esc(ch.skill.text)}</small></span><span class="ga-feat-own">${P.owns(p, ch.id) ? '所持' : '未所持'}</span></div>`).join('')}</div><p class="ga-note">注目キャラも、ほかのキャラと同じ確率です。</p>` : '';
+    // 種類：星泉ガチャと、5つの属性召喚
+    $('#gacha-kinds').innerHTML = `<h3 class="ga-sec"><span>属性召喚</span></h3><div class="ga-kind-row">` + D.GACHAS.map(k => {
+      const n = P.gachaPool(k.id).length;
+      return `<button type="button" class="gk-btn ga-kind" data-gacha-kind="${k.id}" aria-pressed="${k.id === gachaKind}"${k.element ? ` data-el="${k.element}"` : ''}>${k.element ? `<span class="el-ico" data-el="${k.element}" aria-hidden="true"></span><b>${esc(D.ELEMENTS[k.element].name)}</b>` : '<span class="ga-kind-star" aria-hidden="true">✦</span><b>星泉</b>'}<small>${n}体</small></button>`;
+    }).join('') + '</div><p class="ga-note">値段はどれも同じです。属性召喚は、その属性のキャラだけが出ます。</p>';
   }
   let gachaBusy = false;
   function pullGacha(count) {
@@ -1365,11 +1391,19 @@
       if (!b || Date.now() - mw.lastUser < 220) return;
       startMatch(b.dataset.match);
     });
+    $('#screen-gacha').addEventListener('click', e => {
+      const b = e.target.closest('.ga-back[data-gacha-kind]');
+      if (!b || gachaBusy) return;
+      gachaKind = 'all';
+      renderGacha();
+    });
     $('#gacha-kinds').addEventListener('click', e => {
       const b = e.target.closest('[data-gacha-kind]');
       if (!b || gachaBusy) return;
       gachaKind = b.dataset.gachaKind;
       renderGacha();
+      // 選んだ召喚の絵（上）が見えるように
+      window.scrollTo({ top: 0, behavior: U.reducedMotion() ? 'auto' : 'smooth' });
     });
     $('#btn-gacha-1').addEventListener('click', () => pullGacha(1));
     $('#btn-gacha-10').addEventListener('click', () => pullGacha(10));

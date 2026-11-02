@@ -705,7 +705,7 @@
    * どの種類でも、出るキャラの中では全員同じ確率。
    */
   const GACHAS = [
-    { id: 'all', name: '通常ガチャ', text: 'すべてのキャラが同じ確率で出ます。' }
+    { id: 'all', name: '旅立ちの星泉ガチャ', text: 'すべてのキャラが同じ確率で出ます。' }
   ].concat(Object.keys(ELEMENTS).map(el => ({
     id: el, element: el, name: ELEMENTS[el].name + 'ガチャ', text: `${ELEMENTS[el].name}属性のキャラだけが出ます（その中では全員同じ確率）。`
   })));

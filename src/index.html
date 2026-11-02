@@ -138,20 +138,26 @@
     <div class="dg-team" id="dungeon-team"></div>
   </section>
 
-  <!-- ガチャ -->
+  <!-- ガチャ：上に「旅立ちの星泉ガチャ」の絵（属性召喚のときは属性の色の札）、下に召喚ボタン・提供割合・★4の注目・属性召喚 -->
   <section id="screen-gacha" class="screen hidden">
-    <div class="panel intro">
-      <h2 class="heading">ガチャ</h2>
-      <p>石を使ってキャラクターを呼びます。持っていないキャラは仲間になり、持っているキャラが出たら経験値に変わります。石はダンジョン・ログインボーナス・対人戦で手に入ります（お金は使いません）。</p>
-      <div class="gacha-kinds" id="gacha-kinds" role="group" aria-label="ガチャの種類"></div>
-      <p class="gacha-kind-text" id="gacha-kind-text"></p>
-      <p class="count-line">所持：<b class="gold" id="gacha-stones">0</b> 石</p>
-      <div class="gacha-actions">
-        <button type="button" class="btn btn-primary" id="btn-gacha-1"></button>
-        <button type="button" class="btn btn-primary" id="btn-gacha-10"></button>
+    <div class="ga-bg" aria-hidden="true"></div>
+    <div class="ga-layout">
+      <div class="ga-hero" id="gacha-hero"></div>
+      <div class="ga-side">
+        <p class="ga-tagline" id="gacha-kind-text"></p>
+        <div class="ga-pulls">
+          <button type="button" class="ga-pull ga-pull-1" id="btn-gacha-1"></button>
+          <button type="button" class="ga-pull ga-pull-10" id="btn-gacha-10"></button>
+        </div>
+        <p class="ga-stones">所持 <span id="gacha-gem"></span><b id="gacha-stones">0</b> 石<small>（石はダンジョン・ログインボーナス・対人戦で手に入ります。お金は使いません）</small></p>
+        <details class="ga-rates" id="gacha-rates">
+          <summary>提供割合・登場キャラ</summary>
+          <div class="ga-rates-body"><p class="ga-rate-text" id="gacha-rate-text"></p><h3 class="ga-pool-title" id="gacha-pool-title"></h3><div id="gacha-pool" class="pool-grid ga-pool"></div></div>
+        </details>
+        <div class="ga-featured" id="gacha-featured"></div>
+        <div class="ga-kinds" id="gacha-kinds" role="group" aria-label="ガチャの種類"></div>
       </div>
     </div>
-    <div class="panel"><h3 class="heading small" id="gacha-pool-title">呼び出せるキャラ</h3><div id="gacha-pool" class="pool-grid"></div></div>
   </section>
 
   <!-- 対戦ロビー -->

@@ -1456,3 +1456,35 @@ test('mobile: 星4「暁星の占星術師」の出目を選ぶスキル（選�
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('mobile: ガチャ画面（星泉ガチャの絵・不足の表示・提供割合は実際の人数・注目★4・属性召喚と戻る）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'fast=1&seed=3');
+  await H.startLocal(page, '召喚', { claim: false });
+  await page.evaluate(() => { window.RikuyouApp.getProfile().stones = 605; });
+  await page.click('[data-go="gacha"]');
+  await page.waitForSelector('#screen-gacha:not(.hidden)');
+  assert.ok(await page.$('#gacha-hero .ga-hero-art'), '星泉ガチャの絵');
+  assert.equal(await page.isDisabled('#btn-gacha-1'), false);
+  assert.equal(await page.isDisabled('#btn-gacha-10'), true);
+  assert.ok((await page.textContent('#btn-gacha-10')).includes('石が295不足'));
+  const all = E.CHARACTERS.length;
+  await page.click('#gacha-rates summary');
+  const rate = await page.textContent('#gacha-rate-text');
+  assert.ok(rate.includes(`${all}体`) && rate.includes(`${(Math.round(10000 / all) / 100).toFixed(2)}%`), '1体あたりの確率＝実際の人数から');
+  assert.equal(await page.$$eval('#gacha-pool .pool-item', c => c.length), all);
+  assert.deepEqual(await page.$$eval('#gacha-featured .ga-feat b', b => b.map(x => x.textContent)), ['蒼泉の聖女', '暁星の占星術師']);
+  // 属性召喚 → 上が属性の札に。戻るボタンで星泉ガチャへ
+  await page.click('#gacha-kinds [data-gacha-kind="water"]');
+  assert.ok((await page.textContent('#gacha-hero')).includes('水脈の召喚'));
+  assert.deepEqual(await page.$$eval('#gacha-featured .ga-feat b', b => b.map(x => x.textContent)), ['蒼泉の聖女'], '水脈で出る注目キャラだけ');
+  await page.click('#gacha-hero .ga-back');
+  assert.ok(await page.$('#gacha-hero .ga-hero-art'));
+  assert.equal(await page.getAttribute('#gacha-kinds [data-gacha-kind="all"]', 'aria-pressed'), 'true');
+  // 引く：石が減り、結果が出る
+  await page.click('#btn-gacha-1');
+  await page.waitForSelector('#modal[data-kind="gacha"]:not(.hidden)');
+  assert.ok((await page.textContent('#modal h3')).includes('旅立ちの星泉ガチャ'));
+  assert.equal((await H.profile(page)).stones, 505);
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

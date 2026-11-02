@@ -2367,3 +2367,99 @@ body[data-screen="match"] .topbar {
 .sk-pick-pv li span { white-space: nowrap; font-weight: 700; }
 .sk-cast:disabled { filter: grayscale(.6) brightness(.95); cursor: not-allowed; opacity: .75; }
 .sk-cast-sub { display: block; font-family: var(--gothic); font-size: 12px; font-weight: 700; letter-spacing: .04em; opacity: .9; }
+
+/* ======================================================================
+ * ガチャ：上に「旅立ちの星泉ガチャ」の絵（利用者の絵を背景に）、下に羊皮紙の操作欄
+ * スマホは上下、PC 横長は左に大きな絵・右に操作
+ * ==================================================================== */
+body[data-screen="gacha"] { background: #ece2c8; color: #2e2010; }
+body[data-screen="gacha"] .topbar {
+  margin: 0 calc(-1 * max(12px, env(safe-area-inset-left, 0px))) 0;
+  padding-left: max(14px, env(safe-area-inset-left, 0px)); padding-right: max(14px, env(safe-area-inset-right, 0px));
+  background: linear-gradient(180deg, rgba(22, 30, 60, .9), rgba(22, 30, 60, .75)); border-bottom: 1px solid rgba(220, 200, 150, .45);
+}
+#screen-gacha { position: relative; max-width: 1100px; margin: 0 auto; }
+.ga-bg { position: fixed; inset: 0; z-index: -1; pointer-events: none;
+  background:
+    radial-gradient(ellipse at 15% 20%, rgba(255, 255, 250, .75), transparent 45%),
+    radial-gradient(ellipse at 85% 90%, rgba(120, 150, 210, .22), transparent 55%),
+    radial-gradient(circle at 50% 50%, transparent 60%, rgba(150, 125, 85, .25) 100%), #ece2c8; }
+.ga-layout { display: flex; flex-direction: column; gap: 10px; }
+/* 上の絵：題名とキャラ名が絵の中にあるので、切らずに全体を見せる */
+.ga-hero { margin: 0 calc(-1 * max(12px, env(safe-area-inset-left, 0px))); }
+.ga-hero-art { aspect-ratio: 3 / 2; background: #d8e4f2 url("img/gacha-hero.webp") center / cover no-repeat; box-shadow: 0 6px 16px rgba(40, 30, 10, .3); border-bottom: 2px solid #b89a62; }
+.ga-el-hero { position: relative; aspect-ratio: 3 / 2; max-height: 52vh; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 6px; padding: 18px; text-align: center;
+  color: #fff8e6; background: radial-gradient(circle at 50% 38%, rgba(255, 255, 255, .35), transparent 55%), linear-gradient(160deg, color-mix(in srgb, var(--fx, #888) 75%, #1a1206), color-mix(in srgb, var(--fx, #888) 35%, #120c04));
+  border-bottom: 2px solid #b89a62; box-shadow: 0 6px 16px rgba(40, 30, 10, .3); }
+.ga-el-hero h2 { margin: 0; font-family: var(--mincho); font-size: clamp(30px, 9vw, 46px); letter-spacing: .14em; text-shadow: 0 2px 6px rgba(0, 0, 0, .45); }
+.ga-el-hero p { margin: 0; font-size: 13px; opacity: .92; }
+.ga-el-ico { display: grid; place-items: center; width: 84px; height: 84px; border-radius: 50%; background: radial-gradient(circle at 40% 35%, #fff8e6, #e6d3a8); box-shadow: 0 0 0 3px rgba(255, 236, 180, .7), 0 6px 14px rgba(0, 0, 0, .35); }
+.ga-el-ico .el-ico { width: 56px; height: 56px; }
+.ga-back { position: absolute; left: 10px; top: 10px; min-height: 34px; padding: 4px 12px; border-radius: 3px; border: 1px solid rgba(255, 236, 180, .6); background: rgba(20, 14, 6, .45); color: #fff3d6; font-weight: 700; cursor: pointer; }
+.ga-side { display: flex; flex-direction: column; gap: 10px; padding: 0 2px; }
+.ga-tagline { margin: 2px 0 0; text-align: center; font-family: var(--mincho); font-size: 15px; letter-spacing: .1em; color: #3a2a14; }
+.ga-tagline b { color: #24386c; }
+/* 召喚ボタン：1回は青い布、10回は銀の紙 */
+.ga-pulls { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.ga-pull { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 92px; padding: 8px; border: 0; cursor: pointer; font-family: var(--mincho);
+  clip-path: polygon(6% 0, 94% 0, 100% 12%, 100% 88%, 94% 100%, 6% 100%, 0 88%, 0 12%); filter: drop-shadow(0 4px 6px rgba(30, 20, 10, .35)); transition: transform .08s ease; }
+.ga-pull b { font-size: 22px; letter-spacing: .1em; }
+.ga-cost { display: flex; align-items: center; gap: 4px; font-size: 22px; font-weight: 700; }
+.ga-cost .gem { width: 15px; height: 21px; }
+.ga-pull small { font-family: var(--gothic); font-size: 11.5px; font-weight: 700; }
+.ga-pull-1 { color: #f6efdc; background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .05) 0 2px, transparent 2px 7px), linear-gradient(180deg, #34508a, #1d2f5e); box-shadow: inset 0 0 0 2px rgba(220, 190, 120, .7); }
+.ga-pull-10 { color: #2b2418; background: repeating-linear-gradient(115deg, rgba(255, 255, 255, .25) 0 2px, transparent 2px 7px), linear-gradient(180deg, #ecebe6, #c9c6bc); box-shadow: inset 0 0 0 2px rgba(170, 140, 80, .7); }
+.ga-pull:active:not(:disabled) { transform: translateY(2px) scale(.985); }
+.ga-pull:focus-visible { outline: 3px solid #ffe08a; outline-offset: 3px; }
+.ga-pull:disabled { cursor: not-allowed; filter: grayscale(.55) drop-shadow(0 2px 3px rgba(30, 20, 10, .25)); opacity: .82; }
+.ga-pull:disabled small { color: #8a2c1a; }
+.ga-pull-1:disabled small { color: #ffd2c6; }
+.ga-stones { margin: 0; display: flex; align-items: center; justify-content: center; flex-wrap: wrap; gap: 2px 4px; font-size: 13px; color: #4a3820; }
+.ga-stones b { font-size: 17px; color: #24386c; }
+.ga-stones .gem { width: 13px; height: 18px; }
+.ga-stones small { flex-basis: 100%; text-align: center; font-size: 11px; color: #6b5536; }
+/* 提供割合・登場キャラ（開くと一覧） */
+.ga-rates { border-top: 1px solid rgba(150, 115, 60, .4); border-bottom: 1px solid rgba(150, 115, 60, .4); }
+.ga-rates summary { display: flex; align-items: center; justify-content: center; min-height: 40px; cursor: pointer; font-family: var(--mincho); font-weight: 700; color: #24386c; letter-spacing: .08em; list-style: none; }
+.ga-rates summary::-webkit-details-marker { display: none; }
+.ga-rates summary::before, .ga-rates summary::after { content: "―"; margin: 0 8px; color: #a68449; }
+.ga-rates[open] summary { text-decoration: underline; text-underline-offset: 4px; }
+.ga-rates-body { padding: 4px 2px 10px; }
+.ga-rate-text { margin: 0 0 8px; font-size: 13px; line-height: 1.6; color: #3e2c14; }
+.ga-rate-text small { color: #6b5536; }
+.ga-rate-star { display: inline-block; margin-right: 12px; font-weight: 700; color: #8a5a14; }
+.ga-pool-title { margin: 6px 0; font-family: var(--mincho); font-size: 14px; color: #3e2c14; }
+.ga-pool .pool-item { background: rgba(255, 252, 244, .7); border-color: rgba(150, 115, 60, .35); color: #2e2010; }
+.ga-pool .pool-item .muted { color: #6b5536; }
+/* 見出し（飾り線） */
+.ga-sec { display: flex; align-items: center; justify-content: center; gap: 10px; margin: 2px 0 6px; font-family: var(--mincho); font-size: 14px; letter-spacing: .14em; color: #5a3d16; }
+.ga-sec::before, .ga-sec::after { content: ""; flex: 0 1 60px; height: 1px; background: linear-gradient(90deg, transparent, #a68449, transparent); }
+.ga-note { margin: 4px 0 0; text-align: center; font-size: 11px; color: #6b5536; }
+/* ★4の注目 */
+.ga-feat-row { display: grid; grid-template-columns: 1fr; gap: 6px; }
+.ga-feat { display: grid; grid-template-columns: 46px minmax(0, 1fr) auto; align-items: center; gap: 10px; padding: 6px 10px; border-radius: 3px;
+  background: linear-gradient(90deg, rgba(255, 252, 244, .85), rgba(240, 228, 200, .85)); border: 1px solid rgba(150, 115, 60, .45); }
+.ga-feat .emblem.small { width: 46px; height: 46px; font-size: 22px; }
+.ga-feat-main { display: flex; flex-direction: column; min-width: 0; line-height: 1.3; }
+.ga-feat-main b { font-family: var(--mincho); font-size: 15px; }
+.ga-feat-main .stars { margin: 0; font-size: 12px; }
+.ga-feat-main small { font-size: 11px; color: #5a4526; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
+.ga-feat-own { font-size: 11px; font-weight: 700; color: #24386c; white-space: nowrap; }
+/* 属性召喚：6枚の札（星泉＋5属性） */
+.ga-kinds { padding: 8px 8px 6px; border-radius: 4px; background: linear-gradient(180deg, rgba(250, 242, 222, .9), rgba(234, 218, 182, .9)); border: 1px solid #b89a62; box-shadow: 0 3px 8px rgba(40, 28, 12, .25); }
+.ga-kind-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.ga-kind { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 76px; padding: 6px 2px; border-radius: 3px; cursor: pointer; color: #2e2010;
+  border: 1px solid rgba(150, 115, 60, .5); background: linear-gradient(180deg, color-mix(in srgb, var(--fx, #c9b48a) 22%, #fbf5e6), color-mix(in srgb, var(--fx, #c9b48a) 38%, #efe2c2)); }
+.ga-kind .el-ico { width: 26px; height: 26px; }
+.ga-kind b { font-family: var(--mincho); font-size: 13px; }
+.ga-kind small { font-size: 10px; color: #6b5536; }
+.ga-kind-star { font-size: 22px; line-height: 26px; color: #b8862a; }
+.ga-kind[aria-pressed="true"] { border-color: #24386c; box-shadow: 0 0 0 2px #24386c, 0 3px 6px rgba(30, 30, 60, .3); }
+.ga-kind:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+@media (min-width: 960px) and (orientation: landscape) {
+  .ga-layout { display: grid; grid-template-columns: minmax(0, 1.25fr) minmax(320px, 1fr); gap: 18px; align-items: start; margin-top: 10px; }
+  .ga-hero { margin: 0; position: sticky; top: 10px; }
+  .ga-hero-art, .ga-el-hero { border-radius: 4px; border: 2px solid #b89a62; }
+  .ga-el-hero { max-height: none; }
+}
+.ga-kind[aria-pressed="true"], .ga-kind[aria-pressed="true"] b { color: #1d2f5e; }
