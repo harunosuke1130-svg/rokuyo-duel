@@ -3791,6 +3791,133 @@ body[data-screen="gacha"] .topbar {
         text: '敵前衛全員に、それぞれ14ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ10回復する。',
         effects: [{ type: 'damage', amount: 14, ignoreDefense: false }, { type: 'heal', amount: 10 }]
       }
+    },
+    // ---- 自動追加 2026-11-03 ----
+    {
+      id: 'shiodamari', name: '潮溜まりの漁り子', glyph: '漁', maxHp: 90, element: 'water',
+      subTypes: ['漁師'],
+      leaderSkill: { name: '潮騒の励まし', text: '水脈属性の味方の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 2 }] },
+      moves: [
+        { name: '浜石つぶて', atk: 9, heal: 0 },
+        { name: '潮水の手当', atk: 0, heal: 9 },
+        { name: '網すくい', atk: 12, heal: 0 },
+        { name: '貝殻の笛', atk: 0, heal: 6 },
+        { name: '銛の稽古', atk: 14, heal: 0 },
+        { name: '浜昼寝', atk: 2, heal: 4 },
+        { name: '大網漁', atk: 18, heal: 0 },
+        { name: '潮の子守唄', atk: 0, heal: 13 },
+        { name: '波乗り突き', atk: 11, heal: 7 }
+      ],
+      skill: {
+        name: '潮しぶき', cd: 4,
+        text: '敵前衛全員に、それぞれ7ダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 7, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'hanakanmuri', name: '花冠の見習い巫女', glyph: '冠', maxHp: 95, element: 'holy',
+      subTypes: ['巫女'],
+      leaderSkill: { name: '花冠の祝福', text: '味方全員の最大HPと初期HPを3%上げる（端数切り捨て）。', effects: [{ type: 'maxHp', scope: 'all', percent: 3 }] },
+      moves: [
+        { name: '花びら散らし', atk: 8, heal: 0 },
+        { name: '祈りの花', atk: 0, heal: 10 },
+        { name: '見習いの灯', atk: 11, heal: 0 },
+        { name: '花の香り', atk: 0, heal: 8 },
+        { name: '聖花の棘', atk: 12, heal: 0 },
+        { name: '花冠の加護', atk: 3, heal: 3 },
+        { name: '光の花弾', atk: 17, heal: 0 },
+        { name: '満開の祈り', atk: 0, heal: 15 },
+        { name: '花吹雪', atk: 10, heal: 8 }
+      ],
+      skill: {
+        name: '花の癒し', cd: 3,
+        text: '味方前衛全員を、それぞれ9回復する。',
+        effects: [{ type: 'heal', amount: 9 }]
+      }
+    },
+    {
+      id: 'kirisame', name: '霧雨の薬売り', glyph: '薬', maxHp: 110, element: 'water',
+      subTypes: ['薬師', '旅人'],
+      leaderSkill: { name: '雨上がりの香', text: '味方の固有スキルの回復+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
+      moves: [
+        { name: '霧の小瓶', atk: 12, heal: 0 },
+        { name: '潤いの薬', atk: 0, heal: 14 },
+        { name: '雨粒の針', atk: 16, heal: 0 },
+        { name: '霧吹き', atk: 4, heal: 8 },
+        { name: '水薬の投擲', atk: 18, heal: 0 },
+        { name: '軒先の一服', atk: 0, heal: 6 },
+        { name: '豪雨の瓶', atk: 24, heal: 0 },
+        { name: '秘伝の霊薬', atk: 0, heal: 22 },
+        { name: '霧雨の帳', atk: 12, heal: 12 }
+      ],
+      skill: {
+        name: '霧雨の調合', cd: 4,
+        text: '味方前衛全員を、それぞれ14回復する。さらに、このターンの通常技の攻撃に3を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'heal', amount: 14 }, { type: 'atkBonus', value: 3 }]
+      }
+    },
+    {
+      id: 'hakuyoku', name: '白翼の伝令', glyph: '翼', maxHp: 114, element: 'holy',
+      subTypes: ['騎士', '伝令'],
+      leaderSkill: { name: '白翼の行軍', text: '聖光属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 3 }] },
+      moves: [
+        { name: '羽根の矢', atk: 15, heal: 0 },
+        { name: '白き祈り', atk: 0, heal: 12 },
+        { name: '急降下', atk: 18, heal: 0 },
+        { name: '羽ばたきの風', atk: 8, heal: 0 },
+        { name: '伝令の槍', atk: 16, heal: 0 },
+        { name: '翼の盾', atk: 4, heal: 6 },
+        { name: '天翔ける一閃', atk: 26, heal: 0 },
+        { name: '癒しの羽音', atk: 0, heal: 20 },
+        { name: '白翼の舞', atk: 16, heal: 8 }
+      ],
+      skill: {
+        name: '急ぎの報せ', cd: 3,
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に2を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 2 }]
+      }
+    },
+    {
+      id: 'ishiban', name: '苔むす庭の石番', glyph: '石', maxHp: 158, element: 'nature',
+      subTypes: ['守護者', '石像'],
+      leaderSkill: { name: '苔庭の静けさ', text: '味方全員の最大HPと初期HPを7%上げる（端数切り捨て）。', effects: [{ type: 'maxHp', scope: 'all', percent: 7 }] },
+      moves: [
+        { name: '石拳', atk: 18, heal: 0 },
+        { name: '苔の癒し', atk: 0, heal: 16 },
+        { name: '岩落とし', atk: 22, heal: 0 },
+        { name: '根の守り', atk: 6, heal: 10 },
+        { name: '大地の震え', atk: 20, heal: 0 },
+        { name: '静かな瞑想', atk: 0, heal: 12 },
+        { name: '巨岩崩し', atk: 32, heal: 0 },
+        { name: '古苔の息吹', atk: 0, heal: 26 },
+        { name: '石庭の守り', atk: 14, heal: 14 }
+      ],
+      skill: {
+        name: '石の守り', cd: 4,
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に5を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 5 }]
+      }
+    },
+    {
+      id: 'kyuuketsu', name: '夜霧の吸血姫', glyph: '血', maxHp: 128, element: 'dark',
+      subTypes: ['王族', '魔物'],
+      leaderSkill: { name: '紅き夜会', text: '呪闇属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
+      moves: [
+        { name: '吸血の牙', atk: 22, heal: 0 },
+        { name: '血の契り', atk: 6, heal: 10 },
+        { name: '夜霧の爪', atk: 24, heal: 0 },
+        { name: '蝙蝠の群れ', atk: 18, heal: 0 },
+        { name: '深紅の口づけ', atk: 10, heal: 8 },
+        { name: '月下の休息', atk: 0, heal: 14 },
+        { name: '紅月の饗宴', atk: 34, heal: 0 },
+        { name: '不死の眠り', atk: 0, heal: 24 },
+        { name: '血霧の舞', atk: 20, heal: 10 }
+      ],
+      skill: {
+        name: '血の渇き', cd: 4,
+        text: '敵前衛全員に、それぞれ16ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ6回復する。',
+        effects: [{ type: 'damage', amount: 16, ignoreDefense: false }, { type: 'heal', amount: 6 }]
+      }
     }
   ];
 
