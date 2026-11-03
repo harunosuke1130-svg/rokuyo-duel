@@ -629,8 +629,10 @@
         if (!state.fatigueResetUsed) state.fatigueResetUsed = { player: false, cpu: false };
         // 疲労を消せるのは1戦に1回（陣営ごと）。何度も消すと決着がつかなくなるため
         if (state.fatigueResetUsed[side]) { addLog(state, ctx, `${team(state, side)}の回復疲労は、この戦闘ではもう消せない`, 'skill'); continue; }
-        state.fatigueResetUsed[side] = true;
         const before = healPercent(fatigueRound(state, side));
+        // まだ疲労していない（回復100%）ときは消さずに取っておく（1戦に1回の権利を使わない）
+        if (before >= 100) { addLog(state, ctx, `${team(state, side)}はまだ回復疲労がない（疲労を消す力は取っておく）`, 'skill'); continue; }
+        state.fatigueResetUsed[side] = true;
         // rounds があればその巡数ぶんだけ疲労を戻す（無ければ全部なくす）。今の巡より先には戻らない
         state.fatigueFrom[side] = eff.rounds ? Math.min(state.round, (state.fatigueFrom[side] || 0) + eff.rounds) : state.round;
         const after = healPercent(fatigueRound(state, side));
@@ -763,6 +765,7 @@
       if (e.type === 'fatigueReset') {
         const percent = healPercent(round);
         if (state.fatigueResetUsed && state.fatigueResetUsed[side]) return { type: 'fatigueReset', percent, after: percent, used: true };
+        if (percent >= 100) return { type: 'fatigueReset', percent, after: percent, notYet: true };   // まだ疲労していない：消さずに取っておく
         round = e.rounds ? Math.max(1, round - e.rounds) : 1; // この後の回復は戻した後の割合
         return { type: 'fatigueReset', percent, after: healPercent(round) };
       }

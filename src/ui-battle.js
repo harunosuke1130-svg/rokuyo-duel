@@ -1204,7 +1204,7 @@
       if (p.type === 'barrier') return `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">結界（次の防御可能なダメージ1回を半減）</span></div><div class="chips">${p.targets.map(t => `<span class="chip">${esc(t.name)} ${t.already ? '（すでに結界あり）' : '<b>結界</b>'}</span>`).join('')}</div>`;
       if (p.type === 'atkMultiplier') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 ×${p.value}（回復は変わらない）</div>`;
       if (p.type === 'atkBonus') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 +${p.value}（攻撃0の技は除く）</div>`;
-      if (p.type === 'fatigueReset') return `<div class="pv-line"><span class="pv-range heal">味方</span>${p.used ? '回復疲労はこの戦闘ではもう消せない（1戦に1回）' : `回復疲労をなくす（今の回復${p.percent}%→${p.after}%・1戦に1回）`}</div>`;
+      if (p.type === 'fatigueReset') return `<div class="pv-line"><span class="pv-range heal">味方</span>${p.used ? '回復疲労はこの戦闘ではもう消せない（1戦に1回）' : p.notYet ? 'まだ回復疲労がないので、疲労を消す力は取っておく（疲労してから使うと消せる）' : `回復疲労をなくす（今の回復${p.percent}%→${p.after}%・1戦に1回）`}</div>`;
       if (p.type === 'reroll') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} を振り直す（同じ数字の可能性あり）</div>`;
       if (p.type === 'chooseDice') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} → 下で選んだ数字</div>`;
       return '';
@@ -1250,7 +1250,7 @@
       else if (p.type === 'damage') { big = `ダメージ ${p.base}`; sub = p.ignoreDefense ? '敵前衛全員・防御と属性を無視' : '敵前衛全員・属性倍率なし・結界は有効'; }
       else if (p.type === 'chooseDice') { big = '出目を選ぶ'; sub = mine && s.dice ? `今の出目 ${s.dice} を、1〜6の好きな数字に変える` : '確定した出目を、1〜6の好きな数字に変える'; }
       else if (p.type === 'reroll') { big = '振り直し'; sub = mine && s.dice ? `今の出目 ${s.dice} を振り直す` : '確定した出目を振り直す'; }
-      else if (p.type === 'fatigueReset') { big = '疲労回復'; sub = p.used ? 'この戦闘ではもう使えない（1戦に1回）' : `回復${p.percent}% → ${p.after}%`; }
+      else if (p.type === 'fatigueReset') { big = '疲労回復'; sub = p.used ? 'この戦闘ではもう使えない（1戦に1回）' : p.notYet ? 'まだ疲労なし（使わずに取っておく）' : `回復${p.percent}% → ${p.after}%`; }
       return { type: p.type, big, sub, icon: (SKILL_KIND[p.type] || {}).icon || '✦', when: (SKILL_KIND[p.type] || {}).when || '' };
     });
   }

@@ -485,6 +485,16 @@ test('★4 蒼泉の聖女：固有スキルで回復疲労をなくす・リー
   assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], 0).ok); // リーダー：蒼泉の聖女
   assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
   assert.ok(E.rollInitiative(s, playerFirst()).ok);
+  // まだ疲労していない（10巡目）ときは、疲労を消す権利を使わずに回復だけする
+  const early = JSON.parse(JSON.stringify(s));
+  early.round = 10;
+  assert.ok(E.roll(early, 'player', fixed(1)).ok);
+  assert.equal(E.previewSkill(early, 'player', 0)[0].notYet, true);
+  const re = E.useSkill(early, 'player', 0);
+  assert.ok(re.ok, re.error);
+  assert.equal(early.fatigueResetUsed.player, false, '取っておく');
+  assert.equal(early.fatigueFrom.player, 0, '疲労の数え方は変えない');
+  assert.ok(!re.events.some(e => e.type === 'fatigueReset'));
   // 回復疲労：20巡目は50%。スキルの予測では、疲労をなくした後の回復は100%
   s.round = 20;
   s.teams.player[1].hp = 40; s.teams.player[2].hp = 30;
