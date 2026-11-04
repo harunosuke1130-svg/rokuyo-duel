@@ -3925,6 +3925,133 @@ body[data-screen="gacha"] .topbar {
         text: '敵前衛全員に、それぞれ16ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ6回復する。',
         effects: [{ type: 'damage', amount: 16, ignoreDefense: false }, { type: 'heal', amount: 6 }]
       }
+    },
+    // ---- 自動追加 2026-11-04 ----
+    {
+      id: 'kataribe', name: '森番の語り部', glyph: '語', maxHp: 94, element: 'nature',
+      subTypes: ['語り部'],
+      leaderSkill: { name: '語らいの輪', text: '味方全員の通常技の回復+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
+      moves: [
+        { name: '薪くべ', atk: 9, heal: 0 },
+        { name: '森の昔話', atk: 0, heal: 9 },
+        { name: '落ち葉払い', atk: 12, heal: 0 },
+        { name: '温もりの輪', atk: 0, heal: 7 },
+        { name: '松ぼっくり投げ', atk: 13, heal: 0 },
+        { name: '木霊の声', atk: 3, heal: 3 },
+        { name: '倒木の一撃', atk: 18, heal: 0 },
+        { name: '炉辺の夜話', atk: 0, heal: 14 },
+        { name: '森祭りの踊り', atk: 11, heal: 7 }
+      ],
+      skill: {
+        name: '森の言い伝え', cd: 3,
+        text: 'このターンの通常技の攻撃に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'atkBonus', value: 5 }]
+      }
+    },
+    {
+      id: 'sentakumusume', name: '川辺の洗濯娘', glyph: '洗', maxHp: 88, element: 'water',
+      subTypes: ['村人'],
+      leaderSkill: { name: '洗いたての朝', text: '味方全員の最大HPと初期HPを4%上げる（端数切り捨て）。', effects: [{ type: 'maxHp', scope: 'all', percent: 4 }] },
+      moves: [
+        { name: '洗濯棒', atk: 10, heal: 0 },
+        { name: '冷たい水', atk: 0, heal: 10 },
+        { name: '水しぶき', atk: 12, heal: 0 },
+        { name: '干し布の陰', atk: 0, heal: 6 },
+        { name: '桶投げ', atk: 14, heal: 0 },
+        { name: '川面のうたた寝', atk: 2, heal: 4 },
+        { name: '激流の洗い', atk: 18, heal: 0 },
+        { name: '清流の癒し', atk: 0, heal: 14 },
+        { name: '泡の舞', atk: 10, heal: 8 }
+      ],
+      skill: {
+        name: '洗い流し', cd: 3,
+        text: '味方前衛全員を、それぞれ8回復する。',
+        effects: [{ type: 'heal', amount: 8 }]
+      }
+    },
+    {
+      id: 'hanabishi', name: '花火師の弟子', glyph: '火', maxHp: 106, element: 'fire',
+      subTypes: ['職人'],
+      leaderSkill: { name: '夏祭りの夜', text: '猛火属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 3 }] },
+      moves: [
+        { name: '爆竹', atk: 16, heal: 0 },
+        { name: '打ち上げ', atk: 18, heal: 0 },
+        { name: '火薬の調合', atk: 0, heal: 10 },
+        { name: '線香花火', atk: 6, heal: 6 },
+        { name: '尺玉', atk: 20, heal: 0 },
+        { name: '煙の幕', atk: 0, heal: 8 },
+        { name: '大輪の花火', atk: 28, heal: 0 },
+        { name: '夜空の癒し', atk: 0, heal: 18 },
+        { name: '連発花火', atk: 18, heal: 6 }
+      ],
+      skill: {
+        name: '仕掛け花火', cd: 4,
+        text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'jufu', name: '呪符の書生', glyph: '符', maxHp: 112, element: 'dark',
+      subTypes: ['術士', '学者'],
+      leaderSkill: { name: '墨染めの夜', text: '味方の固有スキルの直接ダメージ+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      moves: [
+        { name: '呪符投げ', atk: 14, heal: 0 },
+        { name: '護符の守り', atk: 2, heal: 10 },
+        { name: '黒墨の筆', atk: 16, heal: 0 },
+        { name: '写経', atk: 0, heal: 12 },
+        { name: '祟りの印', atk: 18, heal: 0 },
+        { name: '夜更かし', atk: 6, heal: 0 },
+        { name: '大呪符', atk: 24, heal: 0 },
+        { name: '清めの札', atk: 0, heal: 20 },
+        { name: '符術乱舞', atk: 16, heal: 8 }
+      ],
+      skill: {
+        name: '封じの札', cd: 4,
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に2を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 2 }]
+      }
+    },
+    {
+      id: 'hyouga', name: '氷河の狩人', glyph: '氷', maxHp: 138, element: 'water',
+      subTypes: ['狩人'],
+      leaderSkill: { name: '雪原の行軍', text: '水脈属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 4 }] },
+      moves: [
+        { name: '氷の槍', atk: 22, heal: 0 },
+        { name: '雪解け水', atk: 0, heal: 14 },
+        { name: '吹雪の矢', atk: 24, heal: 0 },
+        { name: '氷の盾', atk: 8, heal: 8 },
+        { name: '凍てつく一撃', atk: 26, heal: 0 },
+        { name: '白い息', atk: 0, heal: 12 },
+        { name: '氷河崩し', atk: 34, heal: 0 },
+        { name: '雪原の癒し', atk: 0, heal: 24 },
+        { name: '氷晶の舞', atk: 20, heal: 12 }
+      ],
+      skill: {
+        name: '獲物の見極め', cd: 4,
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に6を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 6 }]
+      }
+    },
+    {
+      id: 'senpu', name: '紅炎の戦斧士', glyph: '斧', maxHp: 150, element: 'fire',
+      subTypes: ['戦士'],
+      leaderSkill: { name: '炎斧の誓い', text: '猛火属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 5 }] },
+      moves: [
+        { name: '斧振り', atk: 22, heal: 0 },
+        { name: '戦士の休息', atk: 0, heal: 14 },
+        { name: '炎の薙ぎ払い', atk: 24, heal: 0 },
+        { name: '鉄の構え', atk: 6, heal: 10 },
+        { name: '火炎斬', atk: 20, heal: 0 },
+        { name: '雄叫び', atk: 10, heal: 0 },
+        { name: '業炎の大斧', atk: 36, heal: 0 },
+        { name: '焚火の手当', atk: 0, heal: 22 },
+        { name: '斧の旋風', atk: 22, heal: 10 }
+      ],
+      skill: {
+        name: '戦斧の咆哮', cd: 4,
+        text: 'このターンの通常技の攻撃を1.5倍にする（回復は変わらない）。',
+        effects: [{ type: 'atkMultiplier', value: 1.5 }]
+      }
     }
   ];
 
