@@ -4053,6 +4053,133 @@ body[data-screen="gacha"] .topbar {
         text: 'このターンの通常技の攻撃を1.5倍にする（回復は変わらない）。',
         effects: [{ type: 'atkMultiplier', value: 1.5 }]
       }
+    },
+    // ---- 自動追加 2026-11-05 ----
+    {
+      id: 'suzufuri', name: '鈴振りの少年僧', glyph: '鈴', maxHp: 92, element: 'holy',
+      subTypes: ['僧侶'],
+      leaderSkill: { name: '鈴の加護', text: '味方の固有スキルの回復+1（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 1 }] },
+      moves: [
+        { name: '鈴の音', atk: 8, heal: 0 },
+        { name: '合掌', atk: 0, heal: 10 },
+        { name: '錫杖つき', atk: 12, heal: 0 },
+        { name: '念仏', atk: 0, heal: 7 },
+        { name: '托鉢の椀', atk: 13, heal: 0 },
+        { name: '小さな祈願', atk: 3, heal: 4 },
+        { name: '大鈴の響き', atk: 18, heal: 0 },
+        { name: '慈悲の読経', atk: 0, heal: 14 },
+        { name: '鈴鳴らしの舞', atk: 10, heal: 8 }
+      ],
+      skill: {
+        name: '清めの鈴', cd: 3,
+        text: '味方前衛全員を、それぞれ10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
+    },
+    {
+      id: 'hachikai', name: '蜂飼いの娘', glyph: '蜂', maxHp: 90, element: 'nature',
+      subTypes: ['村人'],
+      leaderSkill: { name: '花蜜の恵み', text: '味方全員の通常技の回復+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      moves: [
+        { name: '蜂の一刺し', atk: 11, heal: 0 },
+        { name: '蜂蜜の壺', atk: 0, heal: 10 },
+        { name: '煙いぶし', atk: 9, heal: 0 },
+        { name: '花畑の散歩', atk: 0, heal: 6 },
+        { name: '蜂の群れ', atk: 14, heal: 0 },
+        { name: '蜜蝋の膏薬', atk: 2, heal: 5 },
+        { name: '女王蜂の怒り', atk: 18, heal: 0 },
+        { name: '黄金の蜜', atk: 0, heal: 14 },
+        { name: '羽音の嵐', atk: 11, heal: 7 }
+      ],
+      skill: {
+        name: '蜂の群舞', cd: 4,
+        text: '敵前衛全員に、それぞれ8ダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'seikatai', name: '聖歌隊の少女', glyph: '歌', maxHp: 108, element: 'holy',
+      subTypes: ['歌い手'],
+      leaderSkill: { name: '聖歌の響き', text: '味方の固有スキルの回復+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
+      moves: [
+        { name: '讃美歌', atk: 0, heal: 14 },
+        { name: '高音の響き', atk: 16, heal: 0 },
+        { name: '合唱の波', atk: 14, heal: 0 },
+        { name: '鎮めの歌', atk: 4, heal: 8 },
+        { name: '光の旋律', atk: 18, heal: 0 },
+        { name: '祝福の鐘歌', atk: 0, heal: 10 },
+        { name: '天上の合唱', atk: 24, heal: 0 },
+        { name: '癒しの子守歌', atk: 0, heal: 22 },
+        { name: '輪唱の舞', atk: 12, heal: 12 }
+      ],
+      skill: {
+        name: '聖歌の調べ', cd: 4,
+        text: '味方前衛全員を、それぞれ16回復する。',
+        effects: [{ type: 'heal', amount: 16 }]
+      }
+    },
+    {
+      id: 'touzoku', name: '月夜の盗賊', glyph: '盗', maxHp: 110, element: 'dark',
+      subTypes: ['盗賊'],
+      leaderSkill: { name: '盗賊団の掟', text: '呪闇属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
+      moves: [
+        { name: '短剣の一閃', atk: 16, heal: 0 },
+        { name: '盗み食い', atk: 0, heal: 10 },
+        { name: '背後からの突き', atk: 18, heal: 0 },
+        { name: '煙玉', atk: 4, heal: 6 },
+        { name: '投げナイフ', atk: 14, heal: 0 },
+        { name: '闇に潜む', atk: 0, heal: 8 },
+        { name: '急所狙い', atk: 26, heal: 0 },
+        { name: '隠れ家の休息', atk: 0, heal: 18 },
+        { name: '屋根伝いの逃走', atk: 16, heal: 8 }
+      ],
+      skill: {
+        name: '早業', cd: 4,
+        text: 'このターンの通常技の攻撃に7を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'atkBonus', value: 7 }]
+      }
+    },
+    {
+      id: 'ooshika', name: '白樺の大鹿', glyph: '鹿', maxHp: 152, element: 'nature',
+      subTypes: ['獣', '守護者'],
+      leaderSkill: { name: '白樺の森', text: '味方の固有スキルの回復+4（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 4 }] },
+      moves: [
+        { name: '角の突進', atk: 22, heal: 0 },
+        { name: '若芽の癒し', atk: 0, heal: 16 },
+        { name: '蹄の一撃', atk: 20, heal: 0 },
+        { name: '樹皮の鎧', atk: 6, heal: 10 },
+        { name: '角払い', atk: 24, heal: 0 },
+        { name: '森の静寂', atk: 0, heal: 12 },
+        { name: '大角の怒り', atk: 32, heal: 0 },
+        { name: '白樺の祝福', atk: 0, heal: 26 },
+        { name: '鹿の跳躍', atk: 18, heal: 12 }
+      ],
+      skill: {
+        name: '森の守り手', cd: 4,
+        text: '味方前衛全員を、それぞれ18回復する。さらに、このターンの通常技の攻撃に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'heal', amount: 18 }, { type: 'atkBonus', value: 4 }]
+      }
+    },
+    {
+      id: 'sabakuou', name: '灼熱の砂漠王', glyph: '砂', maxHp: 140, element: 'fire',
+      subTypes: ['王族', '戦士'],
+      leaderSkill: { name: '砂漠の覇気', text: '戦闘開始時、味方前衛全員に結界を付ける（各自、次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'startBarrier' }] },
+      moves: [
+        { name: '砂嵐', atk: 20, heal: 0 },
+        { name: 'オアシスの水', atk: 0, heal: 14 },
+        { name: '熱砂の刃', atk: 24, heal: 0 },
+        { name: '王の威厳', atk: 8, heal: 8 },
+        { name: '灼熱の陽射し', atk: 22, heal: 0 },
+        { name: '日除けの天幕', atk: 0, heal: 10 },
+        { name: '砂漠の大嵐', atk: 34, heal: 0 },
+        { name: '王家の秘薬', atk: 0, heal: 24 },
+        { name: '砂塵の舞', atk: 20, heal: 12 }
+      ],
+      skill: {
+        name: '王の号令', cd: 4,
+        text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃に4を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'atkBonus', value: 4 }]
+      }
     }
   ];
 
