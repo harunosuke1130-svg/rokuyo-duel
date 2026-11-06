@@ -1,0 +1,40 @@
+# 白亜の天空神殿（skytemple）の絵の指示
+
+雲の上に浮かぶ、天使たちの神殿。　推奨 Lv16〜
+
+共通：繊細な線と手描きの水彩風ファンタジー（既存の採用済みの絵を参考画像として渡す）。名前・HP・星・ボタンなどの文字は描かない。余白なしで画面全体を覆う。
+
+## 1階の雑魚（floor1・9:16）
+迷い羽の天使見習い／聖光／雑魚　→ `src/img/chara/b-cherub.webp`
+
+```
+Hand-painted watercolor fantasy illustration with delicate fine ink linework, soft layered washes, subtle paper texture, rich but harmonious colors, in the same style as the reference images. A single fantasy monster for a dice battle game: a small apprentice angel child with slightly too-big fluffy white wings and a few stray feathers, a crooked little golden halo, short curly hair, a simple white tunic with a gold sash, holding a tiny wooden bow with light arrows, a curious and mischievous expression, hovering just above a marble floor tile. It is the first-floor minion of a dungeon: a white marble temple complex floating high above a sea of clouds, with tall ivory colonnades, golden domes, broken arches drifting in the air, floating stairways, soft morning sunlight streaming through the clouds, feathers drifting on the wind, and distant floating islands with waterfalls pouring into the clouds. Element: holy light — colors and mood: ivory, pale gold and soft white light, sacred glow, feathers and marble. a small lesser monster, modest and slightly comical or feral, simple silhouette, the creature fills about 55-65% of the image height, calm eye-level view. Exactly one creature, no other characters, not a group shot. Full body visible from head to feet, centered, facing the viewer at a slight angle, face clearly visible in the upper part of the image. The dungeon environment is softly painted behind it and fills the whole canvas edge to edge. Vertical portrait composition (9:16). No text, no letters, no numbers, no logo, no watermark, no UI, no buttons, no HP bar, no stars, no name plate, no card frame, no border, no vignette frame.
+```
+
+## 2階の中ボス（floor2・9:16）
+神殿の石像騎士／聖光／中ボス　→ `src/img/chara/b-paladin.webp`
+
+```
+Hand-painted watercolor fantasy illustration with delicate fine ink linework, soft layered washes, subtle paper texture, rich but harmonious colors, in the same style as the reference images. A single fantasy monster for a dice battle game: a towering knight statue of white marble come to life, heavy carved plate armor with gold inlays, a huge kite shield engraved with a sun emblem, a long holy sword glowing with pale gold light, cracks in the stone glowing softly from within, faceless closed helm with a radiant visor slit, standing guard on temple steps. It is the second-floor mid-boss of a dungeon: a white marble temple complex floating high above a sea of clouds, with tall ivory colonnades, golden domes, broken arches drifting in the air, floating stairways, soft morning sunlight streaming through the clouds, feathers drifting on the wind, and distant floating islands with waterfalls pouring into the clouds. Element: holy light — colors and mood: ivory, pale gold and soft white light, sacred glow, feathers and marble. a formidable mid-tier guardian, larger and heavily built, armored or richly adorned, powerful dynamic stance, the creature fills about 75-80% of the image height. Exactly one creature, no other characters, not a group shot. Full body visible from head to feet, centered, facing the viewer at a slight angle, face clearly visible in the upper part of the image. The dungeon environment is softly painted behind it and fills the whole canvas edge to edge. Vertical portrait composition (9:16). No text, no letters, no numbers, no logo, no watermark, no UI, no buttons, no HP bar, no stars, no name plate, no card frame, no border, no vignette frame.
+```
+
+## 3階の大ボス（floor3・9:16）
+熾天使ルミエル／聖光／大ボス　→ `src/img/chara/b-seraph.webp`
+
+```
+Hand-painted watercolor fantasy illustration with delicate fine ink linework, soft layered washes, subtle paper texture, rich but harmonious colors, in the same style as the reference images. A single fantasy monster for a dice battle game: a majestic six-winged seraph with long flowing platinum hair, serene but stern face, ornate golden armor over flowing white and gold robes, a radiant halo ring of light behind the head, holding a long flaming sword of white-gold fire, six enormous luminous wings spread wide filling the sky, hovering above the highest altar of the temple with beams of light around. It is the third-floor final boss of a dungeon: a white marble temple complex floating high above a sea of clouds, with tall ivory colonnades, golden domes, broken arches drifting in the air, floating stairways, soft morning sunlight streaming through the clouds, feathers drifting on the wind, and distant floating islands with waterfalls pouring into the clouds. Element: holy light — colors and mood: ivory, pale gold and soft white light, sacred glow, feathers and marble. an awe-inspiring final boss, towering and majestic, intricate ornate details, radiant magical aura, dramatic low-angle view, the creature fills about 90% of the image height with overwhelming presence. Exactly one creature, no other characters, not a group shot. Full body visible from head to feet, centered, facing the viewer at a slight angle, face clearly visible in the upper part of the image. The dungeon environment is softly painted behind it and fills the whole canvas edge to edge. Vertical portrait composition (9:16). No text, no letters, no numbers, no logo, no watermark, no UI, no buttons, no HP bar, no stars, no name plate, no card frame, no border, no vignette frame.
+```
+
+## スマホ用の縦長背景（portrait・9:16）
+→ `src/img/battle/skytemple-portrait.webp`
+
+```
+Hand-painted watercolor fantasy illustration with delicate fine ink linework, soft layered washes, subtle paper texture, rich but harmonious colors, in the same style as the reference images. An empty background scene of a fantasy dungeon: a white marble temple complex floating high above a sea of clouds, with tall ivory colonnades, golden domes, broken arches drifting in the air, floating stairways, soft morning sunlight streaming through the clouds, feathers drifting on the wind, and distant floating islands with waterfalls pouring into the clouds. Colors and mood: ivory, pale gold and soft white light, sacred glow, feathers and marble. No characters, no creatures, no people — scenery only. Open ground in the lower third where battle characters can stand; the center is not too busy so game cards stay readable over it. Vertical composition (9:16) for smartphones; important landmarks within the central 80% of the width. Fills the whole canvas edge to edge with no empty margins. No text, no letters, no numbers, no logo, no watermark, no UI, no buttons, no HP bar, no stars, no name plate, no card frame, no border, no vignette frame.
+```
+
+## PC 用の横長背景（landscape・16:9）
+→ `src/img/battle/skytemple-landscape.webp`
+
+```
+Hand-painted watercolor fantasy illustration with delicate fine ink linework, soft layered washes, subtle paper texture, rich but harmonious colors, in the same style as the reference images. An empty background scene of a fantasy dungeon: a white marble temple complex floating high above a sea of clouds, with tall ivory colonnades, golden domes, broken arches drifting in the air, floating stairways, soft morning sunlight streaming through the clouds, feathers drifting on the wind, and distant floating islands with waterfalls pouring into the clouds. Colors and mood: ivory, pale gold and soft white light, sacred glow, feathers and marble. No characters, no creatures, no people — scenery only. Open ground in the lower third where battle characters can stand; the center is not too busy so game cards stay readable over it. Wide horizontal composition (16:9) for PC; the main landmark sits in the middle horizontal band so it can be cropped into a 2:1 banner. Fills the whole canvas edge to edge with no empty margins. No text, no letters, no numbers, no logo, no watermark, no UI, no buttons, no HP bar, no stars, no name plate, no card frame, no border, no vignette frame.
+```

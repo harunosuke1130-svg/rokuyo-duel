@@ -4331,7 +4331,17 @@ body[data-screen="gacha"] .topbar {
       skill: { name: '溶岩の鎧', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
     { id: 'b-dragon', name: '炎竜ヴァルグ', glyph: '竜', maxHp: 460, element: 'fire', subTypes: ['竜', '王族'], rank: '大ボス',
       moves: [{ name: '竜の爪', atk: 30, heal: 0 }, { name: '灼熱の吐息', atk: 25, heal: 0 }, { name: '鱗の再生', atk: 0, heal: 20 }, { name: '炎の翼', atk: 33, heal: 0 }, { name: '焦土', atk: 18, heal: 5 }, { name: '終末の業火', atk: 45, heal: 0 }],
-      skill: { name: '業火の息吹', cd: 4, text: '敵前衛全員に、それぞれ20ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 20, ignoreDefense: true }] } }
+      skill: { name: '業火の息吹', cd: 4, text: '敵前衛全員に、それぞれ20ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 20, ignoreDefense: true }] } },
+    // 白亜の天空神殿（2026-11-06）
+    { id: 'b-cherub', name: '迷い羽の天使見習い', glyph: '羽', maxHp: 150, element: 'holy', subTypes: ['天使'], rank: '雑魚',
+      moves: [{ name: '光の小矢', atk: 15, heal: 0 }, { name: '翼打ち', atk: 12, heal: 0 }, { name: '雲の上で休む', atk: 0, heal: 12 }, { name: '聖光弾', atk: 17, heal: 0 }, { name: 'つつき', atk: 9, heal: 3 }, { name: '天の雷', atk: 20, heal: 0 }],
+      skill: { name: '聖なる光雨', cd: 4, text: '敵前衛全員に、それぞれ11ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 11 }] } },
+    { id: 'b-paladin', name: '神殿の石像騎士', glyph: '像', maxHp: 240, element: 'holy', subTypes: ['守護者', '騎士'], rank: '中ボス',
+      moves: [{ name: '聖剣の一撃', atk: 22, heal: 0 }, { name: '大盾の突進', atk: 18, heal: 0 }, { name: '石の祈り', atk: 0, heal: 17 }, { name: '光の槍', atk: 17, heal: 0 }, { name: '守りの構え', atk: 14, heal: 5 }, { name: '天罰の剣', atk: 31, heal: 0 }],
+      skill: { name: '聖盾の加護', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
+    { id: 'b-seraph', name: '熾天使ルミエル', glyph: '光', maxHp: 300, element: 'holy', subTypes: ['天使', '王族'], rank: '大ボス',
+      moves: [{ name: '熾光の剣', atk: 22, heal: 0 }, { name: '審判の光', atk: 18, heal: 0 }, { name: '六翼の癒し', atk: 0, heal: 21 }, { name: '六翼の嵐', atk: 24, heal: 0 }, { name: '浄化の焔', atk: 13, heal: 5 }, { name: '終焉の福音', atk: 32, heal: 0 }],
+      skill: { name: '天上の裁き', cd: 4, text: '敵前衛全員に、それぞれ21ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 21, ignoreDefense: true }] } }
   ];
 
   /*
@@ -4352,7 +4362,9 @@ body[data-screen="gacha"] .topbar {
     { id: 'tower', name: '宵闇の塔', text: '星を喰らう魔王が棲む、夜の塔。', recommend: 'Lv10〜', requires: 'sea', firstClearStones: 600, clearStones: 80,
       floors: [{ boss: 'b-imp', level: 9, exp: 220 }, { boss: 'b-witch', level: 10, exp: 320 }, { boss: 'b-maou', level: 11, exp: 450 }] },
     { id: 'volcano', name: '紅蓮の火山洞', text: '溶岩が流れる、炎竜の眠る洞窟。', recommend: 'Lv13〜', requires: 'tower', firstClearStones: 650, clearStones: 90,
-      floors: [{ boss: 'b-salamander', level: 12, exp: 260 }, { boss: 'b-golem', level: 13, exp: 380 }, { boss: 'b-dragon', level: 14, exp: 520 }] }
+      floors: [{ boss: 'b-salamander', level: 12, exp: 260 }, { boss: 'b-golem', level: 13, exp: 380 }, { boss: 'b-dragon', level: 14, exp: 520 }] },
+    { id: 'skytemple', name: '白亜の天空神殿', text: '雲の上に浮かぶ、天使たちの神殿。', recommend: 'Lv16〜', requires: 'volcano', firstClearStones: 700, clearStones: 100,
+      floors: [{ boss: 'b-cherub', level: 15, exp: 300 }, { boss: 'b-paladin', level: 16, exp: 420 }, { boss: 'b-seraph', level: 17, exp: 580 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };

@@ -63,6 +63,7 @@ const ELEMENT_LOOK = {
   holy: 'ivory, pale gold and soft white light, sacred glow, feathers and marble',
   dark: 'indigo, violet and moonlit silver, deep shadows, faint magic glow'
 };
+const ELEMENT_EN = { fire: 'fire', water: 'water', nature: 'nature', holy: 'holy light', dark: 'darkness' };
 // 雑魚・中ボス・大ボスで姿と迫力を変える
 const RANK_LOOK = {
   '雑魚': 'a small lesser monster, modest and slightly comical or feral, simple silhouette, the creature fills about 55-65% of the image height, calm eye-level view',
@@ -110,9 +111,9 @@ function buildPrompts(id) {
       prompt: [
         `${STYLE}`,
         `A single fantasy monster for a dice battle game: ${a.describe || b.name}.`,
-        `It is the ${b.rank === '雑魚' ? 'first-floor minion' : b.rank === '中ボス' ? 'second-floor mid-boss' : 'third-floor final boss'} of the dungeon "${d.name}" (${art.world}).`,
-        `Element: ${D.ELEMENTS[b.element].name} — colors and mood: ${ELEMENT_LOOK[b.element]}.`,
-        `Signature skill: "${b.skill.name}" — ${b.skill.text}`,
+        `It is the ${b.rank === '雑魚' ? 'first-floor minion' : b.rank === '中ボス' ? 'second-floor mid-boss' : 'third-floor final boss'} of a dungeon: ${art.world}.`,
+        // 日本語（名前・スキルの説明）は入れない：画像の AI が文字として描き込んでしまうため
+        `Element: ${ELEMENT_EN[b.element]} — colors and mood: ${ELEMENT_LOOK[b.element]}.`,
         `${RANK_LOOK[b.rank]}.`,
         'Exactly one creature, no other characters, not a group shot. Full body visible from head to feet, centered, facing the viewer at a slight angle, face clearly visible in the upper part of the image.',
         `The dungeon environment is softly painted behind it and fills the whole canvas edge to edge. Vertical portrait composition (9:16).`,
@@ -122,7 +123,7 @@ function buildPrompts(id) {
   });
   const bg = orient => [
     STYLE,
-    `An empty background scene of the dungeon "${d.name}": ${art.world}.`,
+    `An empty background scene of a fantasy dungeon: ${art.world}.`,
     `Colors and mood: ${ELEMENT_LOOK[el]}.`,
     'No characters, no creatures, no people — scenery only.',
     'Open ground in the lower third where battle characters can stand; the center is not too busy so game cards stay readable over it.',
