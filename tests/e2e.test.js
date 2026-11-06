@@ -1549,3 +1549,33 @@ test('mobile: かけらを使う・限界突破（結晶）・ガチャで重な
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('mobile: ボタンを押すと音が鳴る（画面を開く・始める・閉じる・ふつう）・設定で消せる', async () => {
+  const { ctx, page, errors } = await open('mobile');
+  await H.startLocal(page, '音の確認', { claim: false });
+  const last = () => page.evaluate(() => ({ last: window.RikuyouSound.last, count: window.RikuyouSound.count }));
+  await page.click('.home-banner[data-go="gacha"]');
+  await page.waitForSelector('#screen-gacha:not(.hidden)');
+  assert.equal((await last()).last, 'open', 'ガチャを開くと「開く」の音');
+  await page.evaluate(() => { window.RikuyouApp.getProfile().stones = 500; });
+  await page.click('#gacha-dupe [data-dupe="kakera"]');
+  assert.equal((await last()).last, 'tap', 'ふつうのボタン');
+  await page.click('#tabbar [data-tab="home"]');
+  await page.click('.home-banner[data-go="gacha"]');
+  await page.click('#btn-gacha-1');
+  await page.waitForSelector('#modal[data-kind="gacha"]:not(.hidden)');
+  assert.equal((await last()).last, 'start', '召喚は「始める」の音');
+  await page.click('#modal .modal-actions [data-close="1"]');
+  assert.equal((await last()).last, 'back', '閉じると「戻る」の音');
+  // 押せないボタンでは鳴らさない
+  const before = (await last()).count;
+  await page.evaluate(() => { const b = document.querySelector('#btn-gacha-10'); b.disabled = true; b.click(); });
+  assert.equal((await last()).count, before, '押せないボタンは無音');
+  // 設定の「効果音」を切ると鳴らない
+  await page.evaluate(() => window.RikuyouDice.setSfx(false));
+  await page.click('#tabbar [data-tab="home"]');
+  assert.equal((await last()).count, before, '効果音オフでは鳴らさない');
+  await page.evaluate(() => window.RikuyouDice.setSfx(true));
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

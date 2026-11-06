@@ -1309,7 +1309,7 @@
       </div>
       <p class="muted">${esc(p.name)}・${esc(app.backend.label)}</p>
       <div class="modal-actions">
-        <button type="button" class="btn btn-ghost btn-block" id="btn-settings-sfx" aria-pressed="${window.RikuyouDice.sfxOn()}">${sfxLabel()}<small class="btn-sub">サイコロが盤に当たる音（この端末だけの設定）</small></button>
+        <button type="button" class="btn btn-ghost btn-block" id="btn-settings-sfx" aria-pressed="${window.RikuyouDice.sfxOn()}">${sfxLabel()}<small class="btn-sub">ボタンを押したときの音と、サイコロが盤に当たる音（この端末だけの設定）</small></button>
         <button type="button" class="btn btn-ghost btn-block" id="btn-settings-help">遊び方</button>
         <button type="button" class="btn btn-ghost btn-block" data-go="logout">ログアウト<small class="btn-sub">${app.backend.mode === 'local' ? '別のプレイヤーに切り替える' : 'このアカウントからログアウト'}</small></button>
         <button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button>
