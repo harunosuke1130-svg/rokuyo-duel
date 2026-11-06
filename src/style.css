@@ -2516,3 +2516,9 @@ body[data-screen="gacha"] .topbar {
 .grow-box .it-chip { color: #f3e6c8; }
 /* 編成・図鑑（明るい紙の画面）から開いたキャラの詳細：暗い箱の中の文字が紙の画面の濃い色を受け継いで読みにくかったので、明るい色に */
 #modal[data-kind="team-char"] .modal-box, #modal[data-kind="zukan"] .modal-box { color: var(--text); }
+
+/* ---- dungeon-art: skytemple（scripts/dungeon-art.js が書く。顔の位置は art/skytemple/art.json の emblem で直す） ---- */
+[data-char="b-cherub"] { --cx: 50%; --cy: 27%; --ex: 50%; --ey: 27%; --es: 220%; }
+[data-char="b-paladin"] { --cx: 51%; --cy: 6%; --ex: 51%; --ey: 6%; --es: 240%; }
+[data-char="b-seraph"] { --cx: 51%; --cy: 11%; --ex: 51%; --ey: 11%; --es: 260%; }
+/* ---- dungeon-art: skytemple ここまで ---- */
