@@ -1,20 +1,23 @@
 #!/usr/bin/env node
 /* ダンジョンの勝率の試算（CPU 同士）。
- *   node scripts/sim-dungeon.js <ダンジョンID> <味方のレベル> [回数=300]
- * 味方は「仲間キャラから毎回ランダムに6体・すべて指定レベル・初期構成」。3階を HP 引き継ぎで連戦し、
+ *   node scripts/sim-dungeon.js <ダンジョンID> <味方のレベル> [回数=300] [--all]
+ * 味方は「最初の8体（CHARACTERS の先頭8体＝始めたばかりの人がガチャで持つ仲間）から毎回ランダムに6体・
+ * すべて指定レベル・初期構成」。--all を付けると全キャラから選ぶ。3階を HP 引き継ぎで連戦し、
  * 大ボスまで倒せた割合（踏破率）と、各階まで到達・突破した割合を出す。乱数はシード固定。 */
 const E = require('../src/engine.js');
 const P = require('../src/profile.js');
 const CPU = require('../src/cpu.js');
 
-const [id, lvArg, nArg] = process.argv.slice(2);
+const args = process.argv.slice(2);
+const ALL = args.includes('--all');
+const [id, lvArg, nArg] = args.filter(a => a !== '--all');
 const d = P.getDungeon(id);
 if (!d || !lvArg) { console.error('使い方：node scripts/sim-dungeon.js <ダンジョンID> <レベル> [回数]'); process.exit(1); }
 const level = Number(lvArg), N = Number(nArg || 300);
 
 let seed = 12345;
 const rng = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
-const pool = E.CHARACTERS.map(c => c.id);
+const pool = (ALL ? E.CHARACTERS : E.CHARACTERS.slice(0, 8)).map(c => c.id);   // 難しさの基準は最初の8体（利用者の希望）
 
 function fight(team, floor, startHp) {
   const en = P.floorEnemy(id, floor);
@@ -51,5 +54,5 @@ for (let k = 0; k < N; k++) {
   }
 }
 const pct = x => (100 * x / N).toFixed(1) + '%';
-console.log(`${d.name}（${id}）Lv${level} ×${N}回：踏破率 ${pct(clears)}`);
+console.log(`${d.name}（${id}）Lv${level} ×${N}回・味方は${ALL ? '全' + pool.length + '体' : '最初の8体'}から6体：踏破率 ${pct(clears)}`);
 d.floors.forEach((f, i) => console.log(`  ${i + 1}階 ${E.getChar(f.boss).name}：到達 ${pct(reach[i])}・突破 ${pct(win[i])}`));

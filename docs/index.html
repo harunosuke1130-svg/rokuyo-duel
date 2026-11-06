@@ -4332,24 +4332,24 @@ body[data-screen="gacha"] .topbar {
       skill: { name: '魔王の覚醒', cd: 4, text: 'このターンに使う通常技の攻撃を2倍にする。', effects: [{ type: 'atkMultiplier', value: 2 }] } },
     // 紅蓮の火山洞（2026-10-30 自動追加）
     { id: 'b-salamander', name: '火蜥蜴', glyph: '蜥', maxHp: 190, element: 'fire', subTypes: ['クリーチャー', '火竜の子'], rank: '雑魚',
-      moves: [{ name: '火の息', atk: 20, heal: 0 }, { name: '尻尾払い', atk: 16, heal: 0 }, { name: '岩陰で休む', atk: 0, heal: 11 }, { name: '火炎弾', atk: 23, heal: 0 }, { name: '噛みつき', atk: 12, heal: 3 }, { name: '溶岩流', atk: 28, heal: 0 }],
-      skill: { name: '火の粉の雨', cd: 4, text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 10 }] } },
+      moves: [{ name: '火の息', atk: 23, heal: 0 }, { name: '尻尾払い', atk: 18, heal: 0 }, { name: '岩陰で休む', atk: 0, heal: 11 }, { name: '火炎弾', atk: 26, heal: 0 }, { name: '噛みつき', atk: 14, heal: 3 }, { name: '溶岩流', atk: 32, heal: 0 }],
+      skill: { name: '火の粉の雨', cd: 4, text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 12 }] } },
     { id: 'b-golem', name: '溶岩ゴーレム', glyph: '岩', maxHp: 370, element: 'fire', subTypes: ['守護者', '剛力'], rank: '中ボス',
-      moves: [{ name: '溶岩の拳', atk: 30, heal: 0 }, { name: '岩なだれ', atk: 24, heal: 0 }, { name: '冷えて固まる', atk: 0, heal: 16 }, { name: '地響き', atk: 23, heal: 0 }, { name: '火山弾', atk: 19, heal: 5 }, { name: '大噴火', atk: 44, heal: 0 }],
+      moves: [{ name: '溶岩の拳', atk: 35, heal: 0 }, { name: '岩なだれ', atk: 28, heal: 0 }, { name: '冷えて固まる', atk: 0, heal: 16 }, { name: '地響き', atk: 26, heal: 0 }, { name: '火山弾', atk: 22, heal: 5 }, { name: '大噴火', atk: 51, heal: 0 }],
       skill: { name: '溶岩の鎧', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
     { id: 'b-dragon', name: '炎竜ヴァルグ', glyph: '竜', maxHp: 460, element: 'fire', subTypes: ['竜', '王族'], rank: '大ボス',
-      moves: [{ name: '竜の爪', atk: 30, heal: 0 }, { name: '灼熱の吐息', atk: 25, heal: 0 }, { name: '鱗の再生', atk: 0, heal: 20 }, { name: '炎の翼', atk: 33, heal: 0 }, { name: '焦土', atk: 18, heal: 5 }, { name: '終末の業火', atk: 45, heal: 0 }],
-      skill: { name: '業火の息吹', cd: 4, text: '敵前衛全員に、それぞれ20ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 20, ignoreDefense: true }] } },
+      moves: [{ name: '竜の爪', atk: 35, heal: 0 }, { name: '灼熱の吐息', atk: 29, heal: 0 }, { name: '鱗の再生', atk: 0, heal: 20 }, { name: '炎の翼', atk: 38, heal: 0 }, { name: '焦土', atk: 21, heal: 5 }, { name: '終末の業火', atk: 52, heal: 0 }],
+      skill: { name: '業火の息吹', cd: 4, text: '敵前衛全員に、それぞれ23ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 23, ignoreDefense: true }] } },
     // 白亜の天空神殿（2026-11-06）
-    { id: 'b-cherub', name: '迷い羽の天使見習い', glyph: '羽', maxHp: 150, element: 'holy', subTypes: ['天使'], rank: '雑魚',
-      moves: [{ name: '光の小矢', atk: 15, heal: 0 }, { name: '翼打ち', atk: 12, heal: 0 }, { name: '雲の上で休む', atk: 0, heal: 12 }, { name: '聖光弾', atk: 17, heal: 0 }, { name: 'つつき', atk: 9, heal: 3 }, { name: '天の雷', atk: 20, heal: 0 }],
-      skill: { name: '聖なる光雨', cd: 4, text: '敵前衛全員に、それぞれ11ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 11 }] } },
-    { id: 'b-paladin', name: '神殿の石像騎士', glyph: '像', maxHp: 240, element: 'holy', subTypes: ['守護者', '騎士'], rank: '中ボス',
-      moves: [{ name: '聖剣の一撃', atk: 22, heal: 0 }, { name: '大盾の突進', atk: 18, heal: 0 }, { name: '石の祈り', atk: 0, heal: 17 }, { name: '光の槍', atk: 17, heal: 0 }, { name: '守りの構え', atk: 14, heal: 5 }, { name: '天罰の剣', atk: 31, heal: 0 }],
+    { id: 'b-cherub', name: '迷い羽の天使見習い', glyph: '羽', maxHp: 240, element: 'holy', subTypes: ['天使'], rank: '雑魚',
+      moves: [{ name: '光の小矢', atk: 21, heal: 0 }, { name: '翼打ち', atk: 17, heal: 0 }, { name: '雲の上で休む', atk: 0, heal: 12 }, { name: '聖光弾', atk: 24, heal: 0 }, { name: 'つつき', atk: 13, heal: 3 }, { name: '天の雷', atk: 29, heal: 0 }],
+      skill: { name: '聖なる光雨', cd: 4, text: '敵前衛全員に、それぞれ16ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 16 }] } },
+    { id: 'b-paladin', name: '神殿の石像騎士', glyph: '像', maxHp: 384, element: 'holy', subTypes: ['守護者', '騎士'], rank: '中ボス',
+      moves: [{ name: '聖剣の一撃', atk: 31, heal: 0 }, { name: '大盾の突進', atk: 26, heal: 0 }, { name: '石の祈り', atk: 0, heal: 17 }, { name: '光の槍', atk: 24, heal: 0 }, { name: '守りの構え', atk: 20, heal: 5 }, { name: '天罰の剣', atk: 44, heal: 0 }],
       skill: { name: '聖盾の加護', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
-    { id: 'b-seraph', name: '熾天使ルミエル', glyph: '光', maxHp: 300, element: 'holy', subTypes: ['天使', '王族'], rank: '大ボス',
-      moves: [{ name: '熾光の剣', atk: 22, heal: 0 }, { name: '審判の光', atk: 18, heal: 0 }, { name: '六翼の癒し', atk: 0, heal: 21 }, { name: '六翼の嵐', atk: 24, heal: 0 }, { name: '浄化の焔', atk: 13, heal: 5 }, { name: '終焉の福音', atk: 32, heal: 0 }],
-      skill: { name: '天上の裁き', cd: 4, text: '敵前衛全員に、それぞれ21ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 21, ignoreDefense: true }] } }
+    { id: 'b-seraph', name: '熾天使ルミエル', glyph: '光', maxHp: 480, element: 'holy', subTypes: ['天使', '王族'], rank: '大ボス',
+      moves: [{ name: '熾光の剣', atk: 31, heal: 0 }, { name: '審判の光', atk: 26, heal: 0 }, { name: '六翼の癒し', atk: 0, heal: 21 }, { name: '六翼の嵐', atk: 34, heal: 0 }, { name: '浄化の焔', atk: 19, heal: 5 }, { name: '終焉の福音', atk: 46, heal: 0 }],
+      skill: { name: '天上の裁き', cd: 4, text: '敵前衛全員に、それぞれ30ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 30, ignoreDefense: true }] } }
   ];
 
   /*
