@@ -545,7 +545,7 @@
         <span class="rs-name">${elMark(ch)}<b>${esc(ch.name)}</b></span>
         <span class="rs-lvline"><span class="rs-lv">Lv <b class="rs-lv-from">${g.fromLv}</b><span class="rs-up"> → <b>${g.toLv}</b></span></span>${g.gained ? `<span class="rs-exp">EXP <b>+${g.gained}</b></span>` : ''}</span>
         <span class="rs-bar"><i></i></span>
-        <span class="rs-sub">${g.hp !== undefined ? `<span class="rs-hp">${g.hp}</span>` : ''}<span class="rs-expnum">${expText}</span></span>
+        <span class="rs-sub">${g.hp !== undefined ? `<span class="rs-hp"${/満タン|復活/.test(g.hp) ? ' data-full="1"' : ''}>${g.hp}</span>` : ''}<span class="rs-expnum">${expText}</span></span>
         ${up ? `<span class="rs-stats">${stats.map(esc).join('・')}</span>` : ''}
       </span>
     </div>`;
@@ -1027,7 +1027,7 @@
     openModal(`<h3>ダンジョンの遊び方</h3>
       <ol class="help-list">
         <li>自分の6体のチームで、1階の雑魚・2階の中ボス・3階の大ボスを1体ずつ順番に倒します。</li>
-        <li>HPと戦闘不能は次の階に引き継ぎます。階の間に、生き残ったキャラは最大HPの${R.healBetweenFloorsPercent}%回復します。</li>
+        <li>HPと戦闘不能は次の階に引き継ぎます。階の間に、生き残ったキャラは最大HPの${R.healBetweenFloorsPercent}%回復します。レベルが上がったキャラは、戦闘不能でも復活してHPが満タンになります。</li>
         <li>勝った階では経験値が入ります。負けた階でも${R.loseExpPercent}%もらえます。</li>
         <li>大ボスを倒すと踏破です。初回は多めの石、2回目以降も石がもらえます。</li>
         <li>前のダンジョンを踏破すると、次のダンジョンが解放されます。道が2つに分かれる所（分かれ道）は、どちらか1つを踏破すれば先へ進めます。</li>
@@ -1090,9 +1090,13 @@
     const buttons = [];
     let extra = '', line2;
     if (res.won && !r.last) {
-      const hp = P.carryOverHp(units);
-      growth.forEach(g => { const u = units.find(x => x.charId === g.id); if (u) g.hp = hp[g.id] > 0 ? `HP ${hp[g.id]}/${u.maxHp}` : '戦闘不能'; });
-      extra = `<p class="rs-carry">次の階へ引き継ぐHP（カードの数字）：生き残ったキャラは最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復します。</p>`;
+      const hp = P.carryOverHp(units, r.levelUps);
+      growth.forEach(g => {
+        const u = units.find(x => x.charId === g.id);
+        if (!u) return;
+        g.hp = hp[g.id] === P.FULL_HP ? (u.hp > 0 ? 'HP満タン' : '復活！') : hp[g.id] > 0 ? `HP ${hp[g.id]}/${u.maxHp}` : '戦闘不能';
+      });
+      extra = `<p class="rs-carry">次の階へ引き継ぐHP（カードの数字）：生き残ったキャラは最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復します。レベルが上がったキャラは、戦闘不能でも復活してHPが満タンになります。</p>`;
       line2 = `${ctx.floor + 1}階 突破（全${d.floors.length}階）`;
       const nb = E.getChar(d.floors[ctx.floor + 1].boss);
       buttons.push({ label: `${ctx.floor + 2}階へ進む（${nb.rank}：${nb.name}）`, primary: true, run: () => startDungeon(ctx.dungeonId, ctx.floor + 1, hp) });
@@ -1381,7 +1385,7 @@
       <h4>遊び方の種類</h4>
       <ul class="help-list">
         <li><b>対戦（CPU）</b>：CPUのチームと6対6。ランク戦は勝つと次の相手が出てきます。フリー対戦は自分と同じくらいの強さの相手です。</li>
-        <li><b>ダンジョン</b>：6人のチームで、1階の雑魚・2階の中ボス・3階の大ボスを1体ずつ順に倒します。HPと戦闘不能は次の階に引き継ぎ（階の間に生存キャラが最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復）。大ボスを倒すと踏破です。</li>
+        <li><b>ダンジョン</b>：6人のチームで、1階の雑魚・2階の中ボス・3階の大ボスを1体ずつ順に倒します。HPと戦闘不能は次の階に引き継ぎ（階の間に生存キャラが最大HPの${D.DUNGEON_RULES.healBetweenFloorsPercent}%回復。レベルが上がったキャラは復活して満タン）。大ボスを倒すと踏破です。</li>
         <li><b>プレイヤー対戦</b>：ルームを作ってコードを伝えるか、コードで参加します。</li>
       </ul>
       <h4>成長</h4>

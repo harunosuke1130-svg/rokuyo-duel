@@ -694,8 +694,9 @@ test('mobile: ダンジョン：1階の雑魚（1体）を倒すと、HPを引�
   assert.equal(await page.evaluate(() => window.RikuyouApp.getState()), null, 'まだ戦闘は始まっていない');
   await page.click('#modal [data-close="1"].dg-btn');
   await page.waitForTimeout(500);
-  let won1 = false;
+  let won1 = false, p0;
   for (let tries = 0; tries < 4 && !won1; tries++) {
+    p0 = await H.profile(page);   // この挑戦の前のレベル
     if (tries === 0) { await page.click('[data-dg="forest"]'); await page.click('#btn-dg-start'); }
     else await page.click('#modal [data-act]:has-text("1階から挑み直す")');
     await H.formation(page, [0, 1, 2], 0);
@@ -717,7 +718,11 @@ test('mobile: ダンジョン：1階の雑魚（1体）を倒すと、HPを引�
   await page.waitForSelector('#modal[data-kind="formation"]:not(.hidden)');
   const s2 = await H.state(page);
   assert.equal(s2.teams.cpu[0].charId, 'b-boar', '2階は中ボス');
-  s2.teams.player.forEach(u => assert.equal(u.hp, expected[u.charId], u.charId + 'のHPを引き継ぐ'));
+  s2.teams.player.forEach(u => {
+    // その階でレベルが上がったキャラは、戦闘不能でも復活して満タン
+    if (p1.chars[u.charId].level > p0.chars[u.charId].level) assert.equal(u.hp, u.maxHp, u.charId + 'はレベルアップで全回復');
+    else assert.equal(u.hp, expected[u.charId], u.charId + 'のHPを引き継ぐ');
+  });
   // 戦闘不能のキャラは配置で選べない
   const koIdx = s2.teams.player.findIndex(u => u.hp <= 0);
   if (koIdx >= 0) {

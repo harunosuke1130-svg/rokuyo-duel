@@ -322,11 +322,17 @@
     const f = getDungeon(id).floors[floor];
     return { ids: [f.boss], levels: { [f.boss]: f.level }, leader: null };
   }
-  // 次の階層に引き継ぐHP：生存キャラは最大HPの一部を回復、戦闘不能はそのまま
-  function carryOverHp(units) {
+  // 次の階層に引き継ぐHP：生存キャラは最大HPの一部を回復、戦闘不能はそのまま。
+  // levelUps（applyDungeonFloor の結果）でレベルが上がったキャラは、戦闘不能でも復活して全回復
+  // （新しいレベルの最大HPは次の戦闘で決まるので、とても大きな数を入れておき、createBattle が最大HPに切り詰める）
+  const FULL_HP = Number.MAX_SAFE_INTEGER;
+  function carryOverHp(units, levelUps) {
+    const up = {};
+    (levelUps || []).forEach(l => { if (l && l.to > l.from) up[l.id] = true; });
     const hp = {};
     units.forEach(u => {
-      hp[u.charId] = u.hp > 0 ? Math.min(u.maxHp, u.hp + Math.floor(u.maxHp * DUNGEON_RULES.healBetweenFloorsPercent / 100)) : 0;
+      if (up[u.charId]) hp[u.charId] = FULL_HP;
+      else hp[u.charId] = u.hp > 0 ? Math.min(u.maxHp, u.hp + Math.floor(u.maxHp * DUNGEON_RULES.healBetweenFloorsPercent / 100)) : 0;
     });
     return hp;
   }
@@ -372,7 +378,7 @@
     gachaCost, drawGacha, getGacha, gachaPool,
     loginStatus, claimLogin,
     getMatch, matchUnlocked, matchEnemy, applyMatchResult,
-    getDungeon, dungeonRequires, dungeonSiblings, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, applyDungeonFloor,
+    getDungeon, dungeonRequires, dungeonSiblings, dungeonCleared, dungeonUnlocked, floorEnemy, carryOverHp, FULL_HP, applyDungeonFloor,
     applyPvpResult
   };
 

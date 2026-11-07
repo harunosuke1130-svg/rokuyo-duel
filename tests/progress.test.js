@@ -312,6 +312,19 @@ test('階をまたぐHP：生存キャラは最大HPの20%回復、戦闘不能�
   assert.deepEqual(hp, { a: 74, b: 0, c: 100 });
 });
 
+test('階をまたぐHP：その階でレベルが上がったキャラは、戦闘不能でも復活して満タンで次の階へ', () => {
+  const units = [{ charId: 'a', hp: 0, maxHp: 120 }, { charId: 'b', hp: 10, maxHp: 100 }, { charId: 'c', hp: 0, maxHp: 100 }];
+  const hp = P.carryOverHp(units, [{ id: 'a', from: 3, to: 4 }, { id: 'b', from: 3, to: 5 }, { id: 'c', from: 30, to: 30 }]);
+  assert.equal(hp.a, P.FULL_HP); assert.equal(hp.b, P.FULL_HP);
+  assert.equal(hp.c, 0, 'レベルが上がらなければ戦闘不能のまま');
+  // 次の階の戦闘では、新しいレベルの最大HPで出る
+  const team = ['ryogen', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
+  const s = E.createBattle(team, ['b-boar'], { enemyKind: 'boss', levels: { player: { ryogen: 4 }, cpu: { 'b-boar': 2 } },
+    startHp: { player: { ryogen: P.FULL_HP, gessen: 0 } } });
+  const r = s.teams.player.find(u => u.charId === 'ryogen');
+  assert.equal(r.hp, r.maxHp); assert.equal(s.teams.player.find(u => u.charId === 'gessen').hp, 0);
+});
+
 test('ボス戦：敵1体でも進行し、前衛が3体未満の配置・HPの引き継ぎ・リーダーのHPアップは減ったHPを保つ', () => {
   const team = ['ryogen', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
   const s = E.createBattle(team, ['b-goblin'], {
