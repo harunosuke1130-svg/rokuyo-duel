@@ -4,19 +4,53 @@
   "enemies": {
     "b-cherub": {
       "describe": "a small apprentice angel child with slightly too-big fluffy white wings and a few stray feathers, a crooked little golden halo, short curly hair, a simple white tunic with a gold sash, holding a tiny wooden bow with light arrows, a curious and mischievous expression, hovering just above a marble floor tile",
-      "emblem": { "ex": 50, "ey": 25, "es": 200 },
-      "focus": [0.5, 0.5]
+      "emblem": {
+        "ex": 50,
+        "ey": 27,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
     },
     "b-paladin": {
       "describe": "a towering knight statue of white marble come to life, heavy carved plate armor with gold inlays, a huge kite shield engraved with a sun emblem, a long holy sword glowing with pale gold light, cracks in the stone glowing softly from within, faceless closed helm with a radiant visor slit, standing guard on temple steps",
-      "emblem": { "ex": 50, "ey": 15, "es": 200 },
-      "focus": [0.5, 0.5]
+      "emblem": {
+        "ex": 51,
+        "ey": 6,
+        "es": 240
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
     },
     "b-seraph": {
       "describe": "a majestic six-winged seraph with long flowing platinum hair, serene but stern face, ornate golden armor over flowing white and gold robes, a radiant halo ring of light behind the head, holding a long flaming sword of white-gold fire, six enormous luminous wings spread wide filling the sky, hovering above the highest altar of the temple with beams of light around",
-      "emblem": { "ex": 50, "ey": 14, "es": 220 },
-      "focus": [0.5, 0.5]
+      "emblem": {
+        "ex": 51,
+        "ey": 11,
+        "es": 260
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
     }
   },
-  "backgrounds": { "portraitFocus": [0.5, 0.5], "landscapeFocus": [0.5, 0.5], "bannerFocus": [0.5, 0.5] }
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.5
+    ]
+  }
 }
