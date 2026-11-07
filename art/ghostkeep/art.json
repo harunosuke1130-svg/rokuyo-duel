@@ -1,0 +1,56 @@
+{
+  "dungeon": "ghostkeep",
+  "world": "a ruined gothic castle sunk in a misty valley at dusk, crumbling black stone towers and broken battlements, a collapsed drawbridge over a dark moat, dead twisted trees, overgrown graveyards with leaning tombstones inside the courtyard, tattered banners, pale blue ghost-lights floating in the fog, a cold violet and deep indigo sky with a thin crescent moon",
+  "enemies": {
+    "b-wisp": {
+      "describe": "a small wandering will-o'-the-wisp spirit, a floating flame of pale blue and violet fire with a simple round ghostly face of two dark eyes and a small open mouth, wispy flame tail trailing behind, faint sparks drifting around it, hovering low over an old mossy tombstone, timid and lonely expression",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-armor": {
+      "describe": "a towering suit of cursed black plate armor with no body inside, dented and rusted steel edged with tarnished silver, violet ghost-fire glowing through the gaps and the empty visor slit, a long tattered dark cape, gripping a huge notched greatsword with both gauntlets, chains hanging from the shoulders, standing guard in a ruined castle hall",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-lich": {
+      "describe": "a majestic undead lich king, a tall gaunt skeletal figure in flowing layered robes of deep purple and black with gold embroidery, a tall jagged iron crown, glowing violet eyes in a skull face, a long staff topped with a dark crystal and a ring of floating spectral skulls, cold mist and ghostly souls swirling around, raising one bony hand, seated before a broken throne under a huge gothic window",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}
