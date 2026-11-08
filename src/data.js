@@ -1315,7 +1315,17 @@
       skill: { name: '呪鎧の構え', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
     { id: 'b-lich', name: '不死王ネクロス', glyph: '骸', maxHp: 456, element: 'dark', subTypes: ['亡霊', '王族'], rank: '大ボス',
       moves: [{ name: '死霊の杖', atk: 27, heal: 0 }, { name: '骨の槍', atk: 25, heal: 0 }, { name: '魂を喰らう', atk: 13, heal: 12 }, { name: '冥府の炎', atk: 31, heal: 0 }, { name: '命の吸い取り', atk: 18, heal: 6 }, { name: '永遠の眠り', atk: 43, heal: 0 }],
-      skill: { name: '死者の行進', cd: 4, text: '敵前衛全員に、それぞれ25ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 25, ignoreDefense: true }] } }
+      skill: { name: '死者の行進', cd: 4, text: '敵前衛全員に、それぞれ25ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 25, ignoreDefense: true }] } },
+    // 蒼氷の大氷河（2026-11-08）
+    { id: 'b-icicle', name: 'つららの小妖精', glyph: '氷', maxHp: 235, element: 'water', subTypes: ['妖精'], rank: '雑魚',
+      moves: [{ name: '氷のつぶて', atk: 19, heal: 0 }, { name: 'こごえる息', atk: 16, heal: 0 }, { name: '雪にもぐる', atk: 0, heal: 13 }, { name: 'つらら落とし', atk: 24, heal: 0 }, { name: '霜のいたずら', atk: 12, heal: 4 }, { name: '吹雪の舞', atk: 27, heal: 0 }],
+      skill: { name: '細雪の嵐', cd: 4, text: '敵前衛全員に、それぞれ15ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 15 }] } },
+    { id: 'b-icebear', name: '氷河の大白熊', glyph: '熊', maxHp: 400, element: 'water', subTypes: ['クリーチャー', '剛力'], rank: '中ボス',
+      moves: [{ name: '氷爪の一撃', atk: 30, heal: 0 }, { name: '体当たり氷塊', atk: 24, heal: 0 }, { name: '雪で傷を冷やす', atk: 0, heal: 18 }, { name: '凍てつく咆哮', atk: 23, heal: 0 }, { name: '分厚い毛皮', atk: 18, heal: 5 }, { name: '氷山砕き', atk: 43, heal: 0 }],
+      skill: { name: '白銀の毛皮', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
+    { id: 'b-icequeen', name: '氷の女王セルシア', glyph: '雪', maxHp: 480, element: 'water', subTypes: ['王族', '魔術師'], rank: '大ボス',
+      moves: [{ name: '氷晶の剣', atk: 28, heal: 0 }, { name: '霜の槍', atk: 26, heal: 0 }, { name: '氷の玉座', atk: 0, heal: 22 }, { name: '絶対零度', atk: 33, heal: 0 }, { name: '雪華の舞', atk: 19, heal: 6 }, { name: '永久凍土', atk: 45, heal: 0 }],
+      skill: { name: '白き終焉', cd: 4, text: '敵前衛全員に、それぞれ26ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 26, ignoreDefense: true }] } }
   ];
 
   /*
@@ -1340,7 +1350,9 @@
     { id: 'skytemple', name: '白亜の天空神殿', text: '雲の上に浮かぶ、天使たちの神殿。', recommend: 'Lv16〜', requires: 'volcano', firstClearStones: 700, clearStones: 100,
       floors: [{ boss: 'b-cherub', level: 15, exp: 300 }, { boss: 'b-paladin', level: 16, exp: 420 }, { boss: 'b-seraph', level: 17, exp: 580 }] },
     { id: 'ghostkeep', name: '亡霊の古城', text: '霧の谷に沈む、死者たちの城。', recommend: 'Lv16〜', requires: 'volcano', firstClearStones: 700, clearStones: 100,
-      floors: [{ boss: 'b-wisp', level: 15, exp: 300 }, { boss: 'b-armor', level: 16, exp: 420 }, { boss: 'b-lich', level: 17, exp: 580 }] }
+      floors: [{ boss: 'b-wisp', level: 15, exp: 300 }, { boss: 'b-armor', level: 16, exp: 420 }, { boss: 'b-lich', level: 17, exp: 580 }] },
+    { id: 'glacier', name: '蒼氷の大氷河', text: '分かれ道の先で一つになる、凍てつく氷の大地。', recommend: 'Lv20〜', requires: ['skytemple', 'ghostkeep'], firstClearStones: 800, clearStones: 110,
+      floors: [{ boss: 'b-icicle', level: 19, exp: 340 }, { boss: 'b-icebear', level: 20, exp: 480 }, { boss: 'b-icequeen', level: 21, exp: 660 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
