@@ -5,9 +5,9 @@
     "b-icicle": {
       "describe": "a tiny ice fairy no bigger than a child, a body of clear blue ice with an icicle-shaped pointed hat, small frosted dragonfly-like wings, round curious eyes and rosy frost-bitten cheeks, holding a little icicle like a wand, snowflakes swirling around it, hovering mischievously above a snowdrift",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 60,
+        "ey": 30,
+        "es": 240
       },
       "focus": [
         0.5,
@@ -17,9 +17,9 @@
     "b-icebear": {
       "describe": "a huge white glacier bear standing on its hind legs, thick shaggy fur crusted with ice and hanging icicles, blue ice crystals growing like armor plates on its shoulders and back, massive claws of solid ice, frosty breath steaming from its jaws, fierce pale blue eyes, roaring on a cracked ice field",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 52,
+        "ey": 2,
+        "es": 240
       },
       "focus": [
         0.5,
@@ -29,9 +29,9 @@
     "b-icequeen": {
       "describe": "a majestic ice queen sorceress, tall and regal with long flowing silver-white hair, a pale serene but cold face, an elaborate crown of jagged ice crystals, a sweeping gown of layered frost-blue silk and translucent ice lace with a long train, holding a scepter topped with a glowing snowflake crystal, a storm of snow and shards of ice swirling around her, standing before a grand throne of ice in a vaulted ice palace",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 220
+        "ex": 40,
+        "ey": 5,
+        "es": 240
       },
       "focus": [
         0.5,

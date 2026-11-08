@@ -2529,3 +2529,15 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-paladin"] { --cx: 51%; --cy: 6%; --ex: 51%; --ey: 6%; --es: 240%; }
 [data-char="b-seraph"] { --cx: 51%; --cy: 11%; --ex: 51%; --ey: 11%; --es: 260%; }
 /* ---- dungeon-art: skytemple ここまで ---- */
+
+/* ---- dungeon-art: ghostkeep（scripts/dungeon-art.js が書く。顔の位置は art/ghostkeep/art.json の emblem で直す） ---- */
+[data-char="b-wisp"] { --cx: 57%; --cy: 46%; --ex: 57%; --ey: 46%; --es: 220%; }
+[data-char="b-armor"] { --cx: 52%; --cy: 7%; --ex: 52%; --ey: 7%; --es: 240%; }
+[data-char="b-lich"] { --cx: 47%; --cy: 11%; --ex: 47%; --ey: 11%; --es: 240%; }
+/* ---- dungeon-art: ghostkeep ここまで ---- */
+
+/* ---- dungeon-art: glacier（scripts/dungeon-art.js が書く。顔の位置は art/glacier/art.json の emblem で直す） ---- */
+[data-char="b-icicle"] { --cx: 60%; --cy: 30%; --ex: 60%; --ey: 30%; --es: 240%; }
+[data-char="b-icebear"] { --cx: 52%; --cy: 2%; --ex: 52%; --ey: 2%; --es: 240%; }
+[data-char="b-icequeen"] { --cx: 40%; --cy: 5%; --ex: 40%; --ey: 5%; --es: 240%; }
+/* ---- dungeon-art: glacier ここまで ---- */
