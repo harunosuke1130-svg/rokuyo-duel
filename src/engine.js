@@ -122,7 +122,8 @@
     }
     const mult = boost && boost.mult ? boost.mult : 1;
     const bonus = boost && boost.bonus ? boost.bonus : 0;
-    const boosted = base * mult + bonus;
+    const power = boost && boost.power ? boost.power : 1;
+    const boosted = (base * mult + bonus) * power;   // 技の数字（倍率）×攻撃力
     const advantage = hasAdvantage(attackerChar.element, unitChar(defenderUnit).element);
     const barrier = !!defenderUnit.barrier;
     return { base, boosted, advantage, barrier, damage: finalizeDamage(boosted, advantage, barrier) };
@@ -206,11 +207,10 @@
       .filter(e => e.type === 'atkBonus' && (e.scope === 'all' || (e.scope === 'element' && e.element === attackerChar.element)))
       .reduce((a, e) => a + e.value, 0);
   }
-  // 通常技の攻撃強化：スキルの倍率・加算（そのターンのみ）＋リーダーの加算
-  // 通常技の攻撃強化：スキルの倍率・加算（そのターンのみ）＋リーダーの加算＋レベルの加算
+  // 通常技の攻撃強化：スキルの倍率・加算（そのターンのみ）＋リーダーの加算（どれも技の数字に足す）。power＝そのキャラの攻撃力
   function attackBoost(state, side, unit, dice) {
     const b = (state.turnSide === side && state.phase === 'action') ? state.boost : { mult: 1, bonus: 0 };
-    return { mult: b.mult, bonus: b.bonus + leaderAtkBonus(state, side, unitChar(unit)) + lowDiceBonus(state, side, 'atk', dice) + levelAtkBonus(unit.level || 1) };
+    return { mult: b.mult, bonus: b.bonus + leaderAtkBonus(state, side, unitChar(unit)) + lowDiceBonus(state, side, 'atk', dice), power: unitAtk(unit) };
   }
   // リーダースキル lowDice：出目が指定の数字（例 1・2）のとき、通常技の攻撃・回復に加算（攻撃0・回復0の技は除く）
   function lowDiceBonus(state, side, key, dice) {
@@ -218,9 +218,9 @@
     if (!d) return 0;
     return leaderEffects(state, side).filter(e => e.type === 'lowDice' && (e.dice || []).indexOf(d) >= 0).reduce((a, e) => a + (e[key] || 0), 0);
   }
-  // 通常技の回復の基礎値（リーダーの加算込み・疲労補正前）
-  function moveHealBase(state, side, move, dice) {
-    return move.heal > 0 ? move.heal + leaderSum(state, side, 'healBonus') + lowDiceBonus(state, side, 'heal', dice) : 0;
+  // 通常技の回復の基礎値（（技の回復＋リーダーの加算）×回復力・疲労補正前）
+  function moveHealBase(state, side, move, dice, unit) {
+    return move.heal > 0 ? (move.heal + leaderSum(state, side, 'healBonus') + lowDiceBonus(state, side, 'heal', dice)) * unitHeal(unit) : 0;
   }
 
   /* ---------- レベル ---------- */
@@ -244,10 +244,38 @@
   function levelMaxHp(baseHp, lv) {
     return Math.floor(baseHp * (100 + levelGrowth(lv, 'hp')) / 100);
   }
-  // レベルによる通常技の攻撃加算（攻撃0の技には加算しない）。Lv90 までは 1レベル+1
+  // （旧）レベルによる攻撃の伸びの合計。今は攻撃力・回復力の伸び（charPower）に使う
   function levelAtkBonus(lv) {
     return Math.floor(levelGrowth(lv, 'atk'));
   }
+
+  /* ---------- 攻撃力・回復力・HP（CONFIG.POWER） ---------- */
+  const POW = CONFIG.POWER;
+  // レベル1の攻撃力・回復力（★と属性で決まる。ボスは一律）
+  function basePower(charId) {
+    const c = getChar(charId);
+    if (!c) return { atk: 1, heal: 1 };
+    if (isBoss(charId)) return { atk: POW.boss, heal: POW.boss };
+    const b = POW.stars[starsOf(charId)] || POW.stars[1];
+    const t = POW.element[c.element] || { atk: 0, heal: 0 };
+    return { atk: b + t.atk, heal: b + t.heal };
+  }
+  // データの maxHp を、属性の補正込みで実際の基礎HPにする（レベル1の最大HP）
+  function baseMaxHp(charId) {
+    const c = getChar(charId);
+    if (!c) return 1;
+    const t = isBoss(charId) ? 0 : ((POW.element[c.element] || {}).hp || 0);
+    return Math.round(c.maxHp * POW.hpScale * (100 + t) / 100);
+  }
+  // そのレベルの攻撃力・回復力・最大HP
+  function charPower(charId, lv) {
+    const b = basePower(charId);
+    const g = 1 + levelGrowth(lv, 'atk') / POW.growthPer;
+    return { atk: Math.round(b.atk * g), heal: Math.round(b.heal * g), hp: levelMaxHp(baseMaxHp(charId), lv) };
+  }
+  // ユニットの攻撃力・回復力（古い状態などで無ければ計算し直す）
+  const unitAtk = unit => (unit.atkPow || charPower(unit.charId, unit.level || 1).atk);
+  const unitHeal = unit => (unit.healPow || charPower(unit.charId, unit.level || 1).heal);
 
   /* ---------- 状態の生成 ---------- */
   function makeUnit(charId, index, loadout, level) {
@@ -257,8 +285,8 @@
     const err = loadoutError(charId, lo, level);
     if (err) throw new Error(c.name + '：' + err);
     const lv = clampLevel(level);
-    const hp = levelMaxHp(c.maxHp, lv);
-    return { charId, index, level: lv, hp, maxHp: hp, cd: 0, barrier: false, loadout: lo.slice() };
+    const pw = charPower(charId, lv);
+    return { charId, index, level: lv, hp: pw.hp, maxHp: pw.hp, atkPow: pw.atk, healPow: pw.heal, cd: 0, barrier: false, loadout: lo.slice() };
   }
 
   // プレイヤー側：通常キャラ6体。boss:true のときは敵（ダンジョン）用で、1〜6体・ボスも可
@@ -416,7 +444,8 @@
     // リーダースキル regen：自分のターンの開始時に前衛全員を少し回復（全員満タンなら何もしない）
     const regen = leaderSum(state, side, 'regen');
     if (regen > 0 && frontAlive(state, side).some(i => state.teams[side][i].hp < state.teams[side][i].maxHp)) {
-      healFront(state, ctx, side, regen, unitChar(state.teams[side][state.leader[side]]).leaderSkill.name);
+      const lu = state.teams[side][state.leader[side]];
+      healFront(state, ctx, side, regen * unitHeal(lu), unitChar(lu).leaderSkill.name);
     }
   }
 
@@ -619,7 +648,7 @@
         state.boost.bonus += eff.value;
         addLog(state, ctx, `このターンの通常技の攻撃に+${eff.value}（攻撃0の技は除く）`, 'skill');
       } else if (eff.type === 'heal') {
-        healFront(state, ctx, side, eff.amount + leaderSum(state, side, 'skillHealBonus'), skill.name);
+        healFront(state, ctx, side, (eff.amount + leaderSum(state, side, 'skillHealBonus')) * unitHeal(user), skill.name);
       } else if (eff.type === 'barrier') {
         const got = frontAlive(state, side).filter(i => !state.teams[side][i].barrier);
         got.forEach(i => { state.teams[side][i].barrier = true; ctx.events.push({ type: 'barrier', side, idx: i }); });
@@ -652,7 +681,7 @@
         const targets = frontAlive(state, targetSide); // 処理開始時の敵前衛だけが対象
         const parts = targets.map(i => {
           const t = state.teams[targetSide][i];
-          const r = computeSkillDamage(eff.amount + leaderSum(state, side, 'skillDamageBonus'), eff.ignoreDefense, t);
+          const r = computeSkillDamage((eff.amount + leaderSum(state, side, 'skillDamageBonus')) * unitAtk(user), eff.ignoreDefense, t);
           damageUnit(state, ctx, targetSide, i, r.damage, r.barrier);
           return `${unitName(t)} ${r.damage}${r.barrier ? '（結界で半減）' : ''}（HP ${t.hp}/${t.maxHp}）`;
         });
@@ -700,11 +729,11 @@
         if (r.barrier) notes.push('結界で半減');
         return `${unitName(t)} ${r.damage}${notes.length ? '（' + notes.join('・') + '）' : ''}（HP ${t.hp}/${t.maxHp}）`;
       });
-      const boostNote = (boost.mult !== 1 || boost.bonus) ? `・強化後${move.atk * boost.mult + boost.bonus}` : '';
-      addLog(state, ctx, `［${move.name}・攻撃${move.atk}${boostNote}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
+      const boostNote = (boost.mult !== 1 || boost.bonus) ? `・強化後×${move.atk * boost.mult + boost.bonus}` : '';
+      addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
       attacked = targets.length > 0;
     }
-    if (move.heal > 0) healFront(state, ctx, side, moveHealBase(state, side, move), move.name);
+    if (move.heal > 0) healFront(state, ctx, side, moveHealBase(state, side, move, null, unit), move.name);
     if (move.atk <= 0 && move.heal <= 0) addLog(state, ctx, '何も起こらなかった', 'info');
 
     // 技の効果をすべて処理してから、戦闘不能・勝敗・補充を判定
@@ -747,13 +776,14 @@
       return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, computeAttack(move.atk, boost, ch, t));
     }) : [];
     const round = Math.max(1, fatigueRound(state, side));
-    const healBase = moveHealBase(state, side, move, d);
+    const healBase = moveHealBase(state, side, move, d, unit);
     const amount = fatiguedHeal(healBase, round);
     const heals = move.heal > 0 ? frontAlive(state, side).map(i => {
       const t = state.teams[side][i];
       return { idx: i, name: unitName(t), amount, effective: Math.min(amount, t.maxHp - t.hp) };
     }) : [];
-    return { dice: d, move, user: idx, attacks, heals, healBase, healPercent: healPercent(round), boosted: attacks.length ? attacks[0].boosted : move.atk };
+    return { dice: d, move, user: idx, attacks, heals, healBase, healPercent: healPercent(round), atkPow: unitAtk(unit), healPow: unitHeal(unit),
+      boosted: attacks.length ? attacks[0].boosted : (move.atk * boost.mult + boost.bonus) * boost.power };
   }
 
   function previewSkill(state, side, userIdx) {
@@ -770,13 +800,13 @@
         return { type: 'fatigueReset', percent, after: healPercent(round) };
       }
       if (e.type === 'heal') {
-        const base = e.amount + leaderSum(state, side, 'skillHealBonus');
+        const base = (e.amount + leaderSum(state, side, 'skillHealBonus')) * unitHeal(unit);
         const amount = fatiguedHeal(base, round);
         return { type: 'heal', base, percent: healPercent(round), amount,
           targets: frontAlive(state, side).map(i => { const t = state.teams[side][i]; return { idx: i, name: unitName(t), effective: Math.min(amount, t.maxHp - t.hp) }; }) };
       }
       if (e.type === 'damage') {
-        const base = e.amount + leaderSum(state, side, 'skillDamageBonus');
+        const base = (e.amount + leaderSum(state, side, 'skillDamageBonus')) * unitAtk(unit);
         return { type: 'damage', base, ignoreDefense: !!e.ignoreDefense,
           targets: frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; const r = computeSkillDamage(base, e.ignoreDefense, t); return { idx: i, name: unitName(t), damage: r.damage, barrier: r.barrier }; }) };
       }
@@ -795,7 +825,7 @@
     rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, lowDiceBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
-    clampLevel, levelMaxHp, levelAtkBonus, levelGrowth,
+    clampLevel, levelMaxHp, levelAtkBonus, levelGrowth, basePower, baseMaxHp, charPower,
     actionBlockReason, swapBlockReason, skillBlockReason, moveBlockReason,
     previewMove, previewSkill
   };

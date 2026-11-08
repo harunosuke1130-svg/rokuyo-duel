@@ -30,7 +30,8 @@
     lowFrontHp: 30,     // 前衛のHPがこの値以下なら危険（相手の全体攻撃を受けるため）
     lowFrontPenalty: 16,
     cdPenalty: 2.2,     // 自分のCD1あたりの減点（スキルの無駄撃ち防止）
-    win: 100000
+    win: 100000,
+    hpScale: (Engine.CONFIG.POWER && Engine.CONFIG.POWER.hpScale) || 1   // HP は 10 倍になったので、評価では元の大きさに戻す
   };
 
   function evaluate(state, side) {
@@ -39,7 +40,7 @@
     const scoreTeam = (s, sign) => {
       state.teams[s].forEach((u, i) => {
         if (!isAlive(u)) return;
-        let v = u.hp + W.alive;
+        let v = u.hp / W.hpScale + W.alive;
         if (u.barrier) v += Engine.isFront(state, s, i) ? W.barrier : W.barrierBack;
         score += sign * v;
       });
@@ -48,7 +49,7 @@
     scoreTeam(opp(side), -1);
     frontAlive(state, side).forEach(i => {
       const u = state.teams[side][i];
-      if (u.hp <= W.lowFrontHp && !u.barrier) score -= W.lowFrontPenalty;
+      if (u.hp / W.hpScale <= W.lowFrontHp && !u.barrier) score -= W.lowFrontPenalty;
     });
     state.teams[side].forEach(u => { if (isAlive(u)) score -= u.cd * W.cdPenalty; });
     return score;

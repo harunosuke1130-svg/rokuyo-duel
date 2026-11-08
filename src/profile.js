@@ -285,7 +285,8 @@
   function matchEnemy(id) {
     const m = getMatch(id);
     const levels = {};
-    m.enemies.forEach(cid => { levels[cid] = m.level; });
+    // 敵のレベルは enemyLevel（あれば。強さの調整用・2026-11-08）。無ければ level
+    m.enemies.forEach(cid => { levels[cid] = m.enemyLevel || m.level; });
     return { ids: m.enemies.slice(), levels, leader: m.leader };
   }
   // 勝利：チーム6体に経験値・石（初勝利は多め）。敗北：経験値の3割だけ

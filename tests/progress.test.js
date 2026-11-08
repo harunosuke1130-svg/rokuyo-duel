@@ -12,7 +12,7 @@ const seq = vals => { let k = 0; return () => vals[k++ % vals.length]; };
 const TEAM = ['ryogen', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
 const FOE = ['suiju', 'raimei', 'mukai', 'kohaku', 'gessen', 'ryogen'];
 
-test('レベル：最大HPと通常技の攻撃が上がる（スキルの直接ダメージ・攻撃0の技は対象外）', () => {
+test('レベル：最大HP・攻撃力・回復力が上がる（攻撃力はスキルのダメージにも掛かる）', () => {
   assert.equal(E.levelMaxHp(120, 1), 120);
   assert.equal(E.levelMaxHp(120, 11), 168);   // +40%
   assert.equal(E.levelMaxHp(95, 30), 205);    // 95×2.16=205.2
@@ -20,7 +20,7 @@ test('レベル：最大HPと通常技の攻撃が上がる（スキルの直接
   assert.equal(E.levelAtkBonus(11), 10);
   assert.equal(E.clampLevel(99), 99, 'Lv30を超えても上げられる');
   assert.equal(E.clampLevel(1e6), D.CONFIG.LEVEL.max);
-  // Lv31〜90 は HP だけ少し緩く（+3%）、攻撃は+1のまま。Lv91からは HP+1%・攻撃は2レベルで+1
+  // Lv31〜90 は HP だけ少し緩く（+3%）、伸びは+1のまま。Lv91からは HP+1%・伸びは2レベルで+1
   assert.equal(E.levelMaxHp(100, 31), 219);
   assert.equal(E.levelMaxHp(100, 90), 396);
   assert.equal(E.levelMaxHp(100, 100), 406);
@@ -28,25 +28,59 @@ test('レベル：最大HPと通常技の攻撃が上がる（スキルの直接
   assert.equal(E.levelAtkBonus(90), 89);
   assert.equal(E.levelAtkBonus(100), 94);
   assert.equal(E.clampLevel(0), 1);
+  // 燎原の剣士（★3・猛火）：攻撃力 12×(1+10/15)=20、回復力 9×(1+10/15)=15、HP 1200×1.4=1680
+  assert.deepEqual(E.charPower('ryogen', 1), { atk: 12, heal: 9, hp: 1200 });
+  assert.deepEqual(E.charPower('ryogen', 11), { atk: 20, heal: 15, hp: 1680 });
   const s = E.createBattle(TEAM, FOE, { levels: { player: { ryogen: 11, yoiyami: 5 } } });
-  assert.equal(s.teams.player[0].maxHp, 168);
-  assert.equal(s.teams.player[0].hp, 168);
-  assert.equal(s.teams.cpu[5].maxHp, 120, '相手はレベル1');
+  assert.equal(s.teams.player[0].maxHp, 1680);
+  assert.equal(s.teams.player[0].hp, 1680);
+  assert.equal(s.teams.player[0].atkPow, 20);
+  assert.equal(s.teams.cpu[5].maxHp, 1200, '相手はレベル1');
   E.chooseFormation(s, 'player', [0, 4, 1], null);
   E.chooseFormation(s, 'cpu', [0, 1, 2], null);
   E.rollInitiative(s, seq([0.99, 0.01]));
   E.roll(s, 'player', fixed(3));
   const before = s.teams.cpu.map(u => u.hp);
-  E.useMove(s, 'player', 0); // 紅蓮の一閃 32+10=42：翠樹（自然）42×1.05=44.1→44、雷鳴42、霧海42
-  assert.deepEqual(before.map((h, i) => h - s.teams.cpu[i].hp), [44, 42, 42, 0, 0, 0]);
-  // スキルの直接ダメージにはレベル加算なし
+  E.useMove(s, 'player', 0); // 紅蓮の一閃 ×32・攻撃力20＝640：翠樹（自然）640×1.05=672、雷鳴640、霧海640
+  assert.deepEqual(before.map((h, i) => h - s.teams.cpu[i].hp), [672, 640, 640, 0, 0, 0]);
+  // スキルのダメージも攻撃力×数字（宵闇 Lv20 の攻撃力23 × 20 ＝ 460・防御無視）
   const s2 = E.createBattle(TEAM, FOE, { levels: { player: { yoiyami: 20 } } });
+  assert.equal(s2.teams.player[4].atkPow, 23);
   E.chooseFormation(s2, 'player', [4, 0, 1], null);
   E.chooseFormation(s2, 'cpu', [0, 1, 2], null);
   E.rollInitiative(s2, seq([0.99, 0.01]));
   E.roll(s2, 'player', fixed(1));
   E.useSkill(s2, 'player', 4);
-  assert.equal(s2.teams.cpu[0].hp, 110 - 20);
+  assert.equal(s2.teams.cpu[0].hp, 1210 - 460);
+});
+
+test('攻撃力・回復力・HP：★と属性で決まり、回復は回復力×技の数字', () => {
+  const C = D.CONFIG.POWER;
+  // ★ごとの基準（★3 は 10）＋属性の特色
+  assert.deepEqual(E.basePower('suiju'), { atk: 10 + C.element.nature.atk, heal: 10 + C.element.nature.heal }, '★3 自然');
+  assert.deepEqual(E.basePower('mukai'), { atk: 9, heal: 12 }, '★3 水脈：攻撃力-1・回復力+2');
+  assert.deepEqual(E.basePower('gessen'), { atk: 9, heal: 10 }, '★2 聖光：回復力+1');
+  assert.equal(E.baseMaxHp('kohaku'), 1760, '自然は HP+10%（160×10×1.1）');
+  assert.equal(E.baseMaxHp('yoiyami'), 950, '呪闇は HP-5%');
+  assert.deepEqual(E.basePower('b-goblin'), { atk: C.boss, heal: C.boss }, 'ダンジョンの敵は一律');
+  assert.equal(E.baseMaxHp('b-goblin'), E.getChar('b-goblin').maxHp * 10, '敵は属性の補正なし');
+  // ★が高いほど基準が高い
+  const stars = Object.keys(C.stars).map(Number).sort();
+  stars.slice(1).forEach((st, k) => assert.ok(C.stars[st] >= C.stars[stars[k]]));
+  // 回復：霧海の旅人（回復力12）の回復技 → 回復力×数字が味方前衛それぞれに入る
+  const s = E.createBattle(TEAM, FOE);
+  E.chooseFormation(s, 'player', [5, 1, 2], null);
+  E.chooseFormation(s, 'cpu', [0, 1, 2], null);
+  E.rollInitiative(s, seq([0.99, 0.01]));
+  const k = s.teams.player[5].loadout.findIndex(m => E.getChar('mukai').moves[m].heal > 0);
+  assert.ok(k >= 0);
+  E.roll(s, 'player', fixed(k + 1));
+  s.teams.player[1].hp = 100;
+  const pv = E.previewMove(s, 'player', 5);
+  const heal = E.unitMove(s.teams.player[5], k + 1).heal;
+  assert.equal(pv.healBase, heal * 12);
+  E.useMove(s, 'player', 5);
+  assert.equal(s.teams.player[1].hp, Math.min(s.teams.player[1].maxHp, 100 + heal * 12));
 });
 
 test('先攻・後攻はサイコロで決まり、同じ数は振り直し。巡は先攻側のターンで進む', () => {
@@ -332,13 +366,13 @@ test('ボス戦：敵1体でも進行し、前衛が3体未満の配置・HPの�
     startHp: { player: { ryogen: 0, gessen: 0, gyakufu: 0, kohaku: 0, yoiyami: 40, mukai: 10 } }
   });
   assert.equal(s.teams.cpu.length, 1);
-  assert.equal(s.teams.cpu[0].maxHp, E.levelMaxHp(E.getChar('b-goblin').maxHp, 3));
+  assert.equal(s.teams.cpu[0].maxHp, E.charPower('b-goblin', 3).hp);
   assert.equal(E.frontRequired(s, 'player'), 2, '生存2体なら前衛2体');
   assert.equal(E.frontRequired(s, 'cpu'), 1);
   assert.equal(E.chooseFormation(s, 'player', [4, 5, 0], 3).ok, false, '戦闘不能は前衛にできない');
   assert.ok(E.chooseFormation(s, 'player', [4, 5], 3).ok); // 琥珀の砦：最大HP+10%（倒れているキャラも最大HPは上がる）
-  assert.equal(s.teams.player[4].maxHp, 110);
-  assert.equal(s.teams.player[4].hp, 50, '40＋上がった10');
+  assert.equal(s.teams.player[4].maxHp, 1045, '宵闇 950 の 10%増し');
+  assert.equal(s.teams.player[4].hp, 135, '40＋上がった95');
   assert.equal(s.teams.player[0].hp, 0, '戦闘不能は復活しない');
   assert.ok(E.chooseFormation(s, 'cpu', [0], null).ok);
   assert.ok(E.rollInitiative(s, E.createRng(9)).ok);

@@ -12,8 +12,14 @@ const P = ['ryogen', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
 //          0 翠樹(自然) 1 雷鳴(聖光) 2 霧海(水) 3 琥珀(自然) 4 月泉(聖光) 5 燎原(火)
 const C = ['suiju', 'raimei', 'mukai', 'kohaku', 'gessen', 'ryogen'];
 
+// 技の順番・対象・端数などの仕組みを確かめるテストは、攻撃力・回復力を1、HPを元の大きさ（データの maxHp）にして行う。
+// 攻撃力・回復力・HP の10倍は「攻撃力・回復力」のテストで確かめる
+function oldScale(s) {
+  ['player', 'cpu'].forEach(sd => s.teams[sd].forEach(u => { u.atkPow = 1; u.healPow = 1; u.hp = u.maxHp = E.getChar(u.charId).maxHp; }));
+  return s;
+}
 function battle(fp = [0, 1, 2], fc = [0, 1, 2], p = P, c = C) {
-  const s = E.createBattle(p, c);
+  const s = oldScale(E.createBattle(p, c));
   // 既存の数値テストはリーダーなし（null）で行い、リーダースキルは専用のテストで確認する
   assert.ok(E.chooseFormation(s, 'player', fp, null).ok);
   assert.ok(E.chooseFormation(s, 'cpu', fc, null).ok);
@@ -481,7 +487,7 @@ test('CPU同士の自動対戦が決着まで進む（120戦）', () => {
 test('★4 蒼泉の聖女：固有スキルで回復疲労をなくす・リーダースキルで毎ターン少し回復', () => {
   assert.equal(E.starsOf('aoizumi'), 4, '★4（合計196）');
   const team = ['aoizumi', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
-  const s = E.createBattle(team, C);
+  const s = oldScale(E.createBattle(team, C));
   assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], 0).ok); // リーダー：蒼泉の聖女
   assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
   assert.ok(E.rollInitiative(s, playerFirst()).ok);
@@ -586,7 +592,7 @@ test('投げ方つきの出目：速さ帯ごとに1〜6が均等・不正な値
 // 星4「暁星の占星術師」：出目を選ぶスキル（chooseDice）と、出目1・2で強くなるリーダー（lowDice）
 test('暁星の占星術師：出目を選ぶ（1〜6の検証・1回だけ・CPUは一番よい数字）と、出目1・2のリーダー強化', () => {
   const team = ['akeboshi', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'];
-  const s = E.createBattle(team, C);
+  const s = oldScale(E.createBattle(team, C));
   assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], 0).ok);
   assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
   assert.ok(E.rollInitiative(s, playerFirst()).ok);
@@ -600,9 +606,8 @@ test('暁星の占星術師：出目を選ぶ（1〜6の検証・1回だけ・CP
   }
   // リーダー（出目1・2で攻撃+6・回復+6）：出目3では加算なし
   const atk3 = E.previewMove(s, 'player', 1, 3), atk1 = E.previewMove(s, 'player', 1, 1);
-  const lvl = E.levelAtkBonus(1);
-  if (atk1.move.atk > 0) assert.equal(atk1.boosted, atk1.move.atk + lvl + 6, '出目1は攻撃+6');
-  if (atk3.move.atk > 0) assert.equal(atk3.boosted, atk3.move.atk + lvl, '出目3は加算なし');
+  if (atk1.move.atk > 0) assert.equal(atk1.boosted, atk1.move.atk + 6, '出目1は攻撃+6');
+  if (atk3.move.atk > 0) assert.equal(atk3.boosted, atk3.move.atk, '出目3は加算なし');
   if (atk1.move.heal > 0) assert.equal(atk1.healBase, atk1.move.heal + 6, '出目1は回復+6');
   // 選んだ数字になる。待ち時間が付き、2回目は使えない
   const r = E.useSkill(s, 'player', 0, null, { dice: 1 });

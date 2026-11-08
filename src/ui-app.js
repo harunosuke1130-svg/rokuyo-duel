@@ -320,7 +320,7 @@
     openModal(`<div class="zk-detail">${portrait(ch)}<div>
         <h3>${esc(ch.name)}${starsHtml(ch)}</h3>
         <div>${elementTag(ch)}${subTags(ch)}</div>
-        <p class="hptext">Lv${c.level}<span class="muted">（上限${cap}）</span>・最大HP <b>${E.levelMaxHp(ch.maxHp, c.level)}</b>${c.level > 1 ? `（基礎${ch.maxHp}）・攻撃+${E.levelAtkBonus(c.level)}` : ''}</p>
+        <p class="hptext">Lv${c.level}<span class="muted">（上限${cap}）</span>・${powerText(id, c.level)}</p>
         <div class="exp-line"><span class="muted">${maxed ? (cap >= CONFIG.LEVEL.max ? '最大レベル' : `上限のLv${cap}（限界突破で先へ）`) : `次のレベルまで ${P.expToNext(c.level) - c.exp}`}</span><div class="hpbar exp"><i style="width:${maxed ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
       </div></div>
       ${growBox(p, id)}
@@ -533,10 +533,16 @@
     segs.push({ from: start, to: expPct(g.toLv, g.toExp, cap) });
     return segs;
   }
+  // 最大HP・攻撃力・回復力（技の数字×攻撃力／回復力が実際のダメージ・回復）
+  function powerText(id, lv) {
+    const pw = E.charPower(id, lv);
+    return `<span class="nw">最大HP <b>${pw.hp}</b></span>・<span class="nw">攻撃力 <b>${pw.atk}</b></span>・<span class="nw">回復力 <b>${pw.heal}</b></span>`;
+  }
   function growthCard(g, k) {
     const ch = E.getChar(g.id);
     const up = g.toLv > g.fromLv;
-    const stats = up ? [`HP ${E.levelMaxHp(ch.maxHp, g.fromLv)}→${E.levelMaxHp(ch.maxHp, g.toLv)}`, `攻撃+${E.levelAtkBonus(g.toLv) - E.levelAtkBonus(g.fromLv)}`, `技力+${E.loadoutBudget(g.id, g.toLv) - E.loadoutBudget(g.id, g.fromLv)}`] : [];
+    const a = E.charPower(g.id, g.fromLv), b = E.charPower(g.id, g.toLv);
+    const stats = up ? [`HP ${a.hp}→${b.hp}`, `攻撃力 ${a.atk}→${b.atk}`, `回復力 ${a.heal}→${b.heal}`, `技力+${E.loadoutBudget(g.id, g.toLv) - E.loadoutBudget(g.id, g.fromLv)}`] : [];
     const capped = g.toLv >= capFor(g);
     const expText = capped ? (capFor(g) >= CONFIG.LEVEL.max ? 'MAX' : `上限Lv${capFor(g)}`) : `${g.toExp} / ${P.expToNext(g.toLv)}`;
     return `<div class="rs-card${up ? ' up' : ''}" data-k="${k}" style="--i:${k}">
@@ -546,7 +552,7 @@
         <span class="rs-lvline"><span class="rs-lv">Lv <b class="rs-lv-from">${g.fromLv}</b><span class="rs-up"> → <b>${g.toLv}</b></span></span>${g.gained ? `<span class="rs-exp">EXP <b>+${g.gained}</b></span>` : ''}</span>
         <span class="rs-bar"><i></i></span>
         <span class="rs-sub">${g.hp !== undefined ? `<span class="rs-hp"${/満タン|復活/.test(g.hp) ? ' data-full="1"' : ''}>${g.hp}</span>` : ''}<span class="rs-expnum">${expText}</span></span>
-        ${up ? `<span class="rs-stats">${stats.map(esc).join('・')}</span>` : ''}
+        ${up ? `<span class="rs-stats">${stats.map(t => `<span class="nw">${esc(t)}</span>`).join('・')}</span>` : ''}
       </span>
     </div>`;
   }
@@ -684,10 +690,10 @@
     $('#match-wheel').appendChild($('#match-open'));   // 一覧を作り直す前に、大きな札を外へ（一緒に消さない）
     $('#match-list').innerHTML = ms.map((m, k) => {
       const st = matchState(p, m, k), ch = matchArt(m);
-      return `<button type="button" class="mt-item" data-pick="${k}" data-state="${st.key}" tabindex="-1" role="option" aria-label="${esc(m.rank)}「${esc(m.name)}」敵Lv${m.level}・${st.label}">
+      return `<button type="button" class="mt-item" data-pick="${k}" data-state="${st.key}" tabindex="-1" role="option" aria-label="${esc(m.rank)}「${esc(m.name)}」敵Lv${m.enemyLevel || m.level}・${st.label}">
         <span class="mt-item-art">${emblem(ch, null, 'small')}</span>
         <span class="mt-item-main"><small>${esc(m.rank)}</small><b>${esc(m.name)}</b></span>
-        <span class="mt-item-lv">敵Lv${m.level}</span>
+        <span class="mt-item-lv">敵Lv${m.enemyLevel || m.level}</span>
         <span class="mt-item-st">${st.won ? '✓ 勝利済み' : st.un ? '挑戦できる' : '🔒 未解放'}</span></button>`;
     }).join('');
     // 大きな札は一覧の中に置く（札やボタンの上から始めたスワイプでも、一覧がそのままスクロールする）
@@ -775,7 +781,7 @@
       <div class="mt-art">${portrait(ch)}<span class="mt-state">${st.label}</span></div>
       <div class="mt-info">
         <div class="mt-foes" aria-label="敵の編成">${m.enemies.map((id, i) => `<span class="mt-foe${i === m.leader ? ' lead' : ''}" title="${esc(E.getChar(id).name)}${i === m.leader ? '（リーダー）' : ''}">${emblem(E.getChar(id), null, 'small')}</span>`).join('')}</div>
-        <dl class="mt-stats"><div><dt>敵</dt><dd>Lv${m.level}</dd></div><div><dt>経験値</dt><dd>${m.exp}</dd></div><div class="mt-reward">${reward.replace('<span>', '<dt>').replace('</span>', '</dt>').replace('<b>', '<dd>').replace('</b>', '</dd>')}</div></dl>
+        <dl class="mt-stats"><div><dt>敵</dt><dd>Lv${m.enemyLevel || m.level}</dd></div><div><dt>経験値</dt><dd>${m.exp}</dd></div><div class="mt-reward">${reward.replace('<span>', '<dt>').replace('</span>', '</dt>').replace('<b>', '<dd>').replace('</b>', '</dd>')}</div></dl>
         ${action}
       </div></div>`;
     // 中央の札の位置（一覧の中の座標）に重ねる
@@ -901,7 +907,7 @@
     if (id === 'free') { startFree(); return; }
     if (!P.matchUnlocked(app.profile, id)) { toast('まだ挑戦できない相手です'); return; }
     const m = P.getMatch(id);
-    startCpuBattle({ kind: 'match', matchId: id, title: `ランク戦 ${m.rank}「${m.name}」`, foeName: `${m.name}（Lv${m.level}）`, enemy: P.matchEnemy(id) });
+    startCpuBattle({ kind: 'match', matchId: id, title: `ランク戦 ${m.rank}「${m.name}」`, foeName: `${m.name}（Lv${m.enemyLevel || m.level}）`, enemy: P.matchEnemy(id) });
   }
   function onMatchFinish(ctx, res) {
     const p = app.profile;
@@ -999,7 +1005,7 @@
           const b = E.getChar(f.boss);
           return `<li class="dg-floor${i === d.floors.length - 1 ? ' last' : ''}">${emblem(b, null, 'big')}
             <span class="dg-floor-info"><span class="dg-floor-no">${i + 1}階・${esc(b.rank)}</span><b>${esc(b.name)}</b>
-            <span class="muted">Lv${f.level}・HP${E.levelMaxHp(b.maxHp, f.level)}・${elementTag(b)}</span></span>
+            <span class="muted">Lv${f.level}・HP${E.charPower(b.id, f.level).hp}・攻撃力${E.charPower(b.id, f.level).atk}・${elementTag(b)}</span></span>
             <span class="dg-floor-exp">経験値<br>${f.exp}</span></li>`;
         }).join('')}</ol>
         <h4>報酬</h4>
@@ -1361,7 +1367,7 @@
     openModal(`<div class="zk-detail">${portrait(ch, { dim: !owned })}<div>
         <h3>${esc(ch.name)}${starsHtml(ch)}</h3>
         <div>${elementTag(ch)}${subTags(ch)}</div>
-        <p class="hptext">${owned ? `Lv${lv}・最大HP <b>${E.levelMaxHp(ch.maxHp, lv)}</b>（基礎${ch.maxHp}）` : `最大HP <b>${ch.maxHp}</b>（Lv1）・<span class="reason">未所持</span>`}</p>
+        <p class="hptext">${owned ? `Lv${lv}・${powerText(id, lv)}` : `${powerText(id, 1)}（Lv1）・<span class="reason">未所持</span>`}</p>
       </div></div>
       <h4>技（候補${ch.moves.length}個・番号は${owned ? '今の' : '初期の'}出目）</h4>
       <p class="muted">技力の上限 ${E.loadoutBudget(id, lv)}（Lv${lv}）。「Lv○〜」の技はそのレベルから入れ替えに使えます。</p>
@@ -1390,7 +1396,8 @@
       </ul>
       <h4>成長</h4>
       <ul class="help-list">
-        <li><b>レベル</b>：1レベルごとに最大HP+4%（Lv31〜90は+3%、Lv91からは+1%）、通常技の攻撃+1（攻撃0の技は除く。Lv91からは2レベルで+1）。30レベルごとに止まり、<b>結晶</b>（ダンジョン・CPU対戦の勝利で手に入る）で<b>限界突破</b>すると、次の30レベルへ進めます。</li>
+        <li><b>攻撃力・回復力</b>：技の数字は倍率です。ダメージ＝攻撃力×技の攻撃、回復＝回復力×技の回復（固有スキルの数字も同じ）。基準は★で決まり（★1 ${CONFIG.POWER.stars[1]}・★2 ${CONFIG.POWER.stars[2]}・★3 ${CONFIG.POWER.stars[3]}・★4 ${CONFIG.POWER.stars[4]}）、属性の特色が付きます（猛火は攻撃力が高い、水脈は回復力が高い、自然は HP が高い など）。</li>
+        <li><b>レベル</b>：1レベルごとに最大HP+4%（Lv31〜90は+3%、Lv91からは+1%）、攻撃力と回復力も上がります（Lv1 で 10 なら Lv30 で約 29）。30レベルごとに止まり、<b>結晶</b>（ダンジョン・CPU対戦の勝利で手に入る）で<b>限界突破</b>すると、次の30レベルへ進めます。</li>
         <li><b>かけら</b>：ガチャで持っているキャラが出たとき「かけらとして残す」を選ぶと手に入ります。編成のキャラの詳細で、好きなキャラの経験値（1個${D.ECONOMY.kakeraExp}）にできます。</li>
         <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>
         <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。7・8・9個目の技はLv${CONFIG.LEVEL.moveUnlock.join('・')}で解放、技力の上限は1レベルごとに+1（Lv91からは2レベルで+1）。</li>
@@ -1406,7 +1413,7 @@
       <h4>属性相性（通常技の攻撃のみ ×${CONFIG.ADVANTAGE_MULTIPLIER}）</h4>
       <p>${['water', 'fire', 'nature', 'water'].map(k => D.ELEMENTS[k].name).join(' → ')}、${D.ELEMENTS.holy.name} ⇄ ${D.ELEMENTS.dark.name}。それ以外は等倍です。</p>
       <h4>計算の順番</h4>
-      <p class="muted">基礎ダメージ ×スキル倍率 ＋（スキル・リーダー・レベルの加算）→ 属性倍率 → 結界（半減）→ 最後に四捨五入。</p>
+      <p class="muted">（技の攻撃 ×スキル倍率 ＋ スキル・リーダーの加算）× 攻撃力 → 属性倍率 → 結界（半減）→ 最後に四捨五入。</p>
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'help' });
   }
 

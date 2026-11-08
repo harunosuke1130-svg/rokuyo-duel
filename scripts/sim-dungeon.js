@@ -15,8 +15,8 @@ const d = P.getDungeon(id);
 if (!d || !lvArg) { console.error('使い方：node scripts/sim-dungeon.js <ダンジョンID> <レベル> [回数]'); process.exit(1); }
 const level = Number(lvArg), N = Number(nArg || 300);
 
-let seed = 12345;
-const rng = () => { seed = (seed * 1103515245 + 12345) % 2147483648; return seed / 2147483648; };
+// 乱数はゲームと同じ作り方（シード固定）。前の簡単な作り方は、少し数値を変えるだけで結果が大きく揺れた
+const rng = E.createRng(Number(process.env.SIM_SEED || 12345));
 const pool = (ALL ? E.CHARACTERS : E.CHARACTERS.slice(0, 8)).map(c => c.id);   // 難しさの基準は最初の8体（利用者の希望）
 
 function fight(team, floor, startHp) {

@@ -371,15 +371,16 @@
   function previewChips(p) {
     let html = '';
     if (p.attacks.length) {
-      const b = p.boosted !== p.move.atk ? `（強化後${atkNum(p.boosted)}）` : '';
-      html += `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">攻撃${p.move.atk}${b}</span></div><div class="chips">` +
+      const plain = p.move.atk * p.atkPow;
+      const b = p.boosted !== plain ? `・強化後${atkNum(p.boosted)}` : '';
+      html += `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">攻撃力${p.atkPow}×${p.move.atk}＝${plain}${b}</span></div><div class="chips">` +
         p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('') + '</div>';
     } else if (p.move.atk > 0) {
       html += '<div class="pv-line muted">攻撃できる敵前衛がいません</div>';
     }
     if (p.heals.length) {
       const f = p.healPercent < 100 ? `（疲労${p.healPercent}%で${p.heals[0].amount}）` : '';
-      html += `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">回復${p.healBase}${f}</span></div><div class="chips">` +
+      html += `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">回復力${p.healPow}×${p.move.heal}＝${p.healPow * p.move.heal}${p.healBase !== p.healPow * p.move.heal ? `・強化後${p.healBase}` : ''}${f}</span></div><div class="chips">` +
         p.heals.map(h => `<span class="chip heal">${esc(h.name)} <b>+${h.effective}</b></span>`).join('') + '</div>';
     }
     if (!p.move.atk && !p.move.heal) html += '<div class="pv-line muted">何も起こらない</div>';
@@ -1225,7 +1226,7 @@
     const acting = side === bt.me && myActing(s) && E.isFront(s, side, idx);
     const p = acting ? E.previewMove(s, side, idx) : null;
     openModal(`<h3>${esc(ch.name)}${starsHtml(ch)} の通常技</h3>
-      <p class="muted">出目1〜6に対応する技です。攻撃は敵前衛全員、回復は味方前衛全員に入ります${(u.level || 1) > 1 && !E.isBoss(u.charId) ? `（レベルで攻撃+${E.levelAtkBonus(u.level)}）` : ''}。</p>
+      <p class="muted">出目1〜6に対応する技です。攻撃は敵前衛全員、回復は味方前衛全員に入ります。技の数字×攻撃力（${u.atkPow || E.charPower(u.charId, u.level || 1).atk}）がダメージ、×回復力（${u.healPow || E.charPower(u.charId, u.level || 1).heal}）が回復量です。</p>
       ${movesList(ch, s.dice && (side === bt.me ? s.turnSide === bt.me : s.turnSide === side) ? s.dice : null, u.loadout)}
       ${p ? `<div class="effect-box"><b>今の出目 ${s.dice}「${esc(p.move.name)}」</b>${previewChips(p)}</div>` : ''}
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'moves' });

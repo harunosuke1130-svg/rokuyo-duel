@@ -16,7 +16,7 @@
       max: 999,                // レベルの上限（実質いつまでも上げられる）
       capStep: 30,             // 30レベルごとに止まり、限界突破（結晶）で次の30レベルへ進める
       // 1レベル上がるごとの上昇量。to までのレベルにその値を使う（Lv31〜90 は HP だけ少し緩く、Lv91〜 はしっかり緩く）
-      //   hp＝最大HP（基礎値に対する%）、atk＝通常技の攻撃加算（攻撃0の技は除く）、power＝技力の上限。atk・power の端数は切り捨て
+      //   hp＝最大HP（基礎値に対する%）、atk＝攻撃力・回復力の伸び（POWER.growthPer を参照）、power＝技力の上限（端数は切り捨て）
       growth: [
         { to: 30,  hp: 4, atk: 1,   power: 1 },
         { to: 90,  hp: 3, atk: 1,   power: 1 },
@@ -27,6 +27,22 @@
       moveUnlock: [3, 6, 10]   // 技の候補の7・8・9個目が使えるようになるレベル（1〜6個目は最初から）
     },
     DICE_SIDES: 6,             // 出目の最大値（1〜6）
+    // 攻撃力・回復力・HP（2026-11-08〜）。技の数字は倍率：ダメージ＝攻撃力×技の攻撃、回復＝回復力×技の回復。
+    // スキルの「20ダメージ」なども攻撃力×20、回復スキルは回復力×数字。
+    POWER: {
+      hpScale: 10,                          // 最大HP＝データの maxHp × 10（×属性の補正）
+      stars: { 1: 8, 2: 9, 3: 10, 4: 10 },  // ★ごとの攻撃力・回復力の基準
+      boss: 10,                             // ダンジョンの敵の攻撃力・回復力（属性の補正なし）
+      growthPer: 15,                        // 攻撃力・回復力＝基準×(1＋LEVEL.growth の atk の合計÷15)。Lv1 で 10 なら Lv30 で約 29
+      // 属性の特色（攻撃力・回復力は足す数、HP は%）
+      element: {
+        fire:   { atk: 2,  heal: -1, hp: 0 },
+        dark:   { atk: 1,  heal: 0,  hp: -5 },
+        nature: { atk: 0,  heal: 1,  hp: 10 },
+        water:  { atk: -1, heal: 2,  hp: 0 },
+        holy:   { atk: 0,  heal: 1,  hp: 5 }
+      }
+    },
     ADVANTAGE_MULTIPLIER: 1.05, // 属性有利の倍率（ここ1か所で変更）
     BARRIER_MULTIPLIER: 0.5,   // 琥珀の結界の被ダメージ倍率
     FATIGUE: {
@@ -98,7 +114,7 @@
     {
       id: 'ryogen', name: '燎原の剣士', glyph: '燎', maxHp: 120, element: 'fire',
       subTypes: ['騎士', '剣士'],
-      leaderSkill: { name: '騎士団の先陣', text: '味方全員の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 3 }] },
+      leaderSkill: { name: '騎士団の先陣', text: '味方全員の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 3 }] },
       moves: [
         { name: '火花', atk: 8, heal: 0 },
         { name: '斬り払い', atk: 14, heal: 0 },
@@ -119,7 +135,7 @@
     {
       id: 'gessen', name: '月泉の巫女', glyph: '月', maxHp: 100, element: 'holy',
       subTypes: ['巫女', '治癒師'],
-      leaderSkill: { name: '月泉の加護', text: '味方全員の通常技の回復+4（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 4 }] },
+      leaderSkill: { name: '月泉の加護', text: '味方全員の通常技の回復の数字+4（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 4 }] },
       moves: [
         { name: '泉の祝福', atk: 0, heal: 39 },
         { name: '月のしずく', atk: 10, heal: 13 },
@@ -133,14 +149,14 @@
       ],
       skill: {
         name: '月泉の祝福', cd: 3,
-        text: '味方前衛全員をそれぞれ35回復する（後衛は回復しない）。',
+        text: '味方前衛全員をそれぞれ回復力×35回復する（後衛は回復しない）。',
         effects: [{ type: 'heal', amount: 35 }]
       }
     },
     {
       id: 'gyakufu', name: '逆風の射手', glyph: '風', maxHp: 95, element: 'nature',
       subTypes: ['射手', '風使い'],
-      leaderSkill: { name: '追い風の号令', text: '自然属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'nature', value: 5 }] },
+      leaderSkill: { name: '追い風の号令', text: '自然属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'nature', value: 5 }] },
       moves: [
         { name: '風穿ち', atk: 40, heal: 0 },
         { name: '双連矢', atk: 28, heal: 0 },
@@ -182,7 +198,7 @@
     {
       id: 'yoiyami', name: '宵闇の魔術師', glyph: '宵', maxHp: 100, element: 'dark',
       subTypes: ['魔術師'],
-      leaderSkill: { name: '虚空の導き', text: '味方の固有スキルの直接ダメージ+5（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 5 }] },
+      leaderSkill: { name: '虚空の導き', text: '味方の固有スキルのダメージの数字+5（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 5 }] },
       moves: [
         { name: '影のささやき', atk: 5, heal: 0 },
         { name: '星喰い', atk: 36, heal: 0 },
@@ -196,14 +212,14 @@
       ],
       skill: {
         name: '虚空の穿孔', cd: 4,
-        text: '敵前衛全員に、それぞれ20ダメージ（防御・属性を無視）。',
+        text: '敵前衛全員に、それぞれ攻撃力×20のダメージ（防御・属性を無視）。',
         effects: [{ type: 'damage', amount: 20, ignoreDefense: true }]
       }
     },
     {
       id: 'suiju', name: '翠樹の薬師', glyph: '翠', maxHp: 110, element: 'nature',
       subTypes: ['薬師', '治癒師'],
-      leaderSkill: { name: '森の恵み', text: '味方の固有スキルの回復+6（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 6 }] },
+      leaderSkill: { name: '森の恵み', text: '味方の固有スキルの回復の数字+6（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 6 }] },
       moves: [
         { name: '若葉の薬', atk: 0, heal: 23 },
         { name: '棘の種', atk: 16, heal: 0 },
@@ -217,14 +233,14 @@
       ],
       skill: {
         name: '翠樹の活力', cd: 4,
-        text: '味方前衛全員をそれぞれ20回復する。さらに、このターンの通常技の攻撃に10を加える（攻撃0の技には加算しない）。',
+        text: '味方前衛全員をそれぞれ回復力×20回復する。さらに、このターンの通常技の攻撃の数字に10を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'heal', amount: 20 }, { type: 'atkBonus', value: 10 }]
       }
     },
     {
       id: 'raimei', name: '雷鳴の渡り鳥', glyph: '雷', maxHp: 105, element: 'holy',
       subTypes: ['クリーチャー', '雷使い'],
-      leaderSkill: { name: '雷雲の先導', text: '聖光属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 5 }] },
+      leaderSkill: { name: '雷雲の先導', text: '聖光属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 5 }] },
       moves: [
         { name: '羽ばたき', atk: 12, heal: 0 },
         { name: '雷の羽', atk: 20, heal: 0 },
@@ -238,7 +254,7 @@
       ],
       skill: {
         name: '先駆けの雷', cd: 3,
-        text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。',
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 12, ignoreDefense: false }]
       }
     },
@@ -259,7 +275,7 @@
       ],
       skill: {
         name: '潮のめぐり', cd: 3,
-        text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ16回復する。',
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ回復力×16回復する。',
         effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'heal', amount: 16 }]
       }
     },
@@ -268,7 +284,7 @@
       // CPU同士300戦の試算：片側だけにいると勝率約62%（★3で最も高い琥珀の守人は約57%）。決着しない戦闘なし
       id: 'aoizumi', name: '蒼泉の聖女', glyph: '蒼', maxHp: 168, element: 'water',
       subTypes: ['聖女', '治癒師'],
-      leaderSkill: { name: '泉のめぐみ', text: '自分のターンの開始時に、味方前衛全員をそれぞれ5回復する（回復疲労の影響を受ける）。', effects: [{ type: 'regen', value: 5 }] },
+      leaderSkill: { name: '泉のめぐみ', text: '自分のターンの開始時に、味方前衛全員をそれぞれ回復力×5回復する（回復疲労の影響を受ける）。', effects: [{ type: 'regen', value: 5 }] },
       moves: [
         { name: 'さざ波の杖', atk: 12, heal: 16 },
         { name: '清めの雫', atk: 0, heal: 24 },
@@ -282,7 +298,7 @@
       ],
       skill: {
         name: '蒼泉の再生', cd: 4,
-        text: '回復疲労があるときは、それをなくす（この巡から数え直し、回復量が100%に戻る。1戦に1回まで。まだ疲労していないときは消さずに取っておく）。さらに味方前衛全員をそれぞれ20回復する。',
+        text: '回復疲労があるときは、それをなくす（この巡から数え直し、回復量が100%に戻る。1戦に1回まで。まだ疲労していないときは消さずに取っておく）。さらに味方前衛全員をそれぞれ回復力×20回復する。',
         effects: [{ type: 'fatigueReset' }, { type: 'heal', amount: 20 }]
       }
     },
@@ -290,7 +306,7 @@
       // ★4（合計 HP157＋攻撃の平均26＋回復の平均15＝198）。出目を操る：好きな出目を選ぶスキルと、弱い目（1・2）を強くするリーダー
       id: 'akeboshi', name: '暁星の占星術師', glyph: '星', maxHp: 166, element: 'holy',
       subTypes: ['占星術師', '術士'],
-      leaderSkill: { name: '小さき星の加護', text: '出目が1か2のとき、味方の通常技の攻撃+6・回復+6（攻撃0・回復0の技は除く）。', effects: [{ type: 'lowDice', dice: [1, 2], atk: 6, heal: 6 }] },
+      leaderSkill: { name: '小さき星の加護', text: '出目が1か2のとき、味方の通常技の攻撃の数字+6・回復+6（攻撃0・回復0の技は除く）。', effects: [{ type: 'lowDice', dice: [1, 2], atk: 6, heal: 6 }] },
       moves: [
         { name: '星屑の矢', atk: 20, heal: 10 },
         { name: '星明かりの祈り', atk: 12, heal: 20 },
@@ -312,7 +328,7 @@
     {
       id: 'benitetsu', name: '紅鉄の鍛冶師', glyph: '鉄', maxHp: 140, element: 'fire',
       subTypes: ['鍛冶師', '戦士'],
-      leaderSkill: { name: '鍛冶場の熱気', text: '猛火属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
+      leaderSkill: { name: '鍛冶場の熱気', text: '猛火属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
       moves: [
         { name: '火打ちの槌', atk: 12, heal: 0 },
         { name: '赤熱の一撃', atk: 20, heal: 0 },
@@ -326,14 +342,14 @@
       ],
       skill: {
         name: '炉の加護', cd: 4,
-        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に6を加える（攻撃0の技には加算しない）。',
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃の数字に6を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 6 }]
       }
     },
     {
       id: 'kokuyou', name: '黒曜の騎士', glyph: '曜', maxHp: 125, element: 'dark',
       subTypes: ['騎士', '守護者'],
-      leaderSkill: { name: '闇夜の軍旗', text: '呪闇属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 5 }] },
+      leaderSkill: { name: '闇夜の軍旗', text: '呪闇属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 5 }] },
       moves: [
         { name: '黒曜の剣', atk: 18, heal: 0 },
         { name: '影踏み', atk: 24, heal: 0 },
@@ -347,14 +363,14 @@
       ],
       skill: {
         name: '黒曜の断罪', cd: 3,
-        text: '敵前衛全員に、それぞれ16ダメージ（属性倍率なし・結界は有効）。',
+        text: '敵前衛全員に、それぞれ攻撃力×16のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 16, ignoreDefense: false }]
       }
     },
     {
       id: 'homurao', name: '焔尾の狐', glyph: '狐', maxHp: 100, element: 'fire',
       subTypes: ['獣', '術士'],
-      leaderSkill: { name: '陽だまりの尾', text: '味方全員の通常技の回復+3（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 3 }] },
+      leaderSkill: { name: '陽だまりの尾', text: '味方全員の通常技の回復の数字+3（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 3 }] },
       moves: [
         { name: '火の玉', atk: 10, heal: 0 },
         { name: '尾払い', atk: 18, heal: 0 },
@@ -375,7 +391,7 @@
     {
       id: 'kagenui', name: '影縫いの暗殺者', glyph: '影', maxHp: 95, element: 'dark',
       subTypes: ['暗殺者', '影使い'],
-      leaderSkill: { name: '暗殺者の心得', text: '味方の固有スキルの直接ダメージ+3（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 3 }] },
+      leaderSkill: { name: '暗殺者の心得', text: '味方の固有スキルのダメージの数字+3（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 3 }] },
       moves: [
         { name: '暗器投げ', atk: 16, heal: 0 },
         { name: '影走り', atk: 22, heal: 0 },
@@ -389,7 +405,7 @@
       ],
       skill: {
         name: '影縫いの一閃', cd: 4,
-        text: '敵前衛全員に、それぞれ14ダメージ（防御・属性無視）。',
+        text: '敵前衛全員に、それぞれ攻撃力×14のダメージ（防御・属性無視）。',
         effects: [{ type: 'damage', amount: 14, ignoreDefense: true }]
       }
     },
@@ -410,14 +426,14 @@
       ],
       skill: {
         name: '小波の癒し', cd: 3,
-        text: '味方前衛全員をそれぞれ15回復する（後衛は回復しない）。',
+        text: '味方前衛全員をそれぞれ回復力×15回復する（後衛は回復しない）。',
         effects: [{ type: 'heal', amount: 15 }]
       }
     },
     {
       id: 'tomoshibi', name: '灯火の修道士', glyph: '灯', maxHp: 85, element: 'holy',
       subTypes: ['修道士', '治癒師'],
-      leaderSkill: { name: '灯火の導き', text: '味方の固有スキルの回復+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
+      leaderSkill: { name: '灯火の導き', text: '味方の固有スキルの回復の数字+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
       moves: [
         { name: '灯の棒', atk: 6, heal: 0 },
         { name: 'ささやかな祈り', atk: 10, heal: 6 },
@@ -439,7 +455,7 @@
     {
       id: 'wakakusa', name: '若草の羊飼い', glyph: '草', maxHp: 92, element: 'nature',
       subTypes: ['牧人'],
-      leaderSkill: { name: '牧場の朝', text: '味方全員の通常技の回復+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      leaderSkill: { name: '牧場の朝', text: '味方全員の通常技の回復の数字+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
       moves: [
         { name: '牧杖の一打', atk: 8, heal: 0 },
         { name: '草笛', atk: 0, heal: 8 },
@@ -460,7 +476,7 @@
     {
       id: 'okibi', name: '熾火の小鬼', glyph: '熾', maxHp: 88, element: 'fire',
       subTypes: ['小鬼'],
-      leaderSkill: { name: '小鬼のいたずら', text: '猛火属性の味方の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 2 }] },
+      leaderSkill: { name: '小鬼のいたずら', text: '猛火属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 2 }] },
       moves: [
         { name: '熾りの爪', atk: 10, heal: 0 },
         { name: '小鬼の引っかき', atk: 8, heal: 0 },
@@ -474,7 +490,7 @@
       ],
       skill: {
         name: '熾火の悪戯', cd: 3,
-        text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。',
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
       }
     },
@@ -495,14 +511,14 @@
       ],
       skill: {
         name: '雨乞いの歌', cd: 4,
-        text: '味方前衛全員を、それぞれ14回復する。',
+        text: '味方前衛全員を、それぞれ回復力×14回復する。',
         effects: [{ type: 'heal', amount: 14 }]
       }
     },
     {
       id: 'yogarasu', name: '夜鴉の占い師', glyph: '鴉', maxHp: 100, element: 'dark',
       subTypes: ['占い師', '術士'],
-      leaderSkill: { name: '夜の占い', text: '味方の固有スキルの直接ダメージ+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      leaderSkill: { name: '夜の占い', text: '味方の固有スキルのダメージの数字+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
       moves: [
         { name: '鴉の爪', atk: 14, heal: 0 },
         { name: '不吉な予言', atk: 20, heal: 0 },
@@ -516,14 +532,14 @@
       ],
       skill: {
         name: '運命の水晶', cd: 3,
-        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃の数字に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 4 }]
       }
     },
     {
       id: 'hakugin', name: '白銀の聖騎士', glyph: '銀', maxHp: 135, element: 'holy',
       subTypes: ['騎士', '守護者'],
-      leaderSkill: { name: '聖騎士団の旗', text: '聖光属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 5 }] },
+      leaderSkill: { name: '聖騎士団の旗', text: '聖光属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 5 }] },
       moves: [
         { name: '銀の剣', atk: 18, heal: 0 },
         { name: '聖なる突き', atk: 24, heal: 0 },
@@ -537,7 +553,7 @@
       ],
       skill: {
         name: '白銀の加護', cd: 4,
-        text: '味方前衛全員に結界を付け、それぞれ10回復する。',
+        text: '味方前衛全員に結界を付け、それぞれ回復力×10回復する。',
         effects: [{ type: 'barrier' }, { type: 'heal', amount: 10 }]
       }
     },
@@ -580,14 +596,14 @@
       ],
       skill: {
         name: '引き潮', cd: 3,
-        text: '味方前衛全員を、それぞれ10回復する。',
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
         effects: [{ type: 'heal', amount: 10 }]
       }
     },
     {
       id: 'kuroneko', name: '墓守の黒猫', glyph: '猫', maxHp: 86, element: 'dark',
       subTypes: ['獣'],
-      leaderSkill: { name: '夜歩き', text: '味方の固有スキルの直接ダメージ+1（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 1 }] },
+      leaderSkill: { name: '夜歩き', text: '味方の固有スキルのダメージの数字+1（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 1 }] },
       moves: [
         { name: '猫パンチ', atk: 10, heal: 0 },
         { name: '闇夜の跳躍', atk: 14, heal: 0 },
@@ -601,14 +617,14 @@
       ],
       skill: {
         name: '不吉な横切り', cd: 3,
-        text: '敵前衛全員に、それぞれ9ダメージ（属性倍率なし・結界を無視）。',
+        text: '敵前衛全員に、それぞれ攻撃力×9のダメージ（属性倍率なし・結界を無視）。',
         effects: [{ type: 'damage', amount: 9, ignoreDefense: true }]
       }
     },
     {
       id: 'akatsuki', name: '暁の鐘つき', glyph: '鐘', maxHp: 102, element: 'holy',
       subTypes: ['僧侶'],
-      leaderSkill: { name: '朝告げの鐘', text: '味方の固有スキルの回復+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
+      leaderSkill: { name: '朝告げの鐘', text: '味方の固有スキルの回復の数字+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
       moves: [
         { name: '鐘の響き', atk: 12, heal: 0 },
         { name: '朝の祈り', atk: 0, heal: 12 },
@@ -622,14 +638,14 @@
       ],
       skill: {
         name: '目覚めの鐘', cd: 3,
-        text: 'このターンの通常技の攻撃に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: 'このターンの通常技の攻撃の数字に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'atkBonus', value: 5 }]
       }
     },
     {
       id: 'enbu', name: '炎舞の踊り子', glyph: '舞', maxHp: 104, element: 'fire',
       subTypes: ['踊り子'],
-      leaderSkill: { name: '舞台の熱気', text: '猛火属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 3 }] },
+      leaderSkill: { name: '舞台の熱気', text: '猛火属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 3 }] },
       moves: [
         { name: '火の扇', atk: 14, heal: 0 },
         { name: '炎のステップ', atk: 18, heal: 0 },
@@ -650,7 +666,7 @@
     {
       id: 'fukashio', name: '深潮の槍騎士', glyph: '槍', maxHp: 140, element: 'water',
       subTypes: ['騎士', '戦士'],
-      leaderSkill: { name: '潮騎士の号令', text: '水脈属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 5 }] },
+      leaderSkill: { name: '潮騎士の号令', text: '水脈属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 5 }] },
       moves: [
         { name: '潮槍の突き', atk: 20, heal: 0 },
         { name: '渦の薙ぎ', atk: 24, heal: 0 },
@@ -664,14 +680,14 @@
       ],
       skill: {
         name: '渦潮の陣', cd: 4,
-        text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員に結界を付ける。',
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員に結界を付ける。',
         effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'barrier' }]
       }
     },
     {
       id: 'tenbin', name: '天秤の裁定者', glyph: '秤', maxHp: 125, element: 'holy',
       subTypes: ['裁定者', '術士'],
-      leaderSkill: { name: '天秤の加護', text: '味方全員の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 2 }] },
+      leaderSkill: { name: '天秤の加護', text: '味方全員の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 2 }] },
       moves: [
         { name: '裁きの光', atk: 16, heal: 0 },
         { name: '均衡の祈り', atk: 0, heal: 22 },
@@ -685,7 +701,7 @@
       ],
       skill: {
         name: '均衡の審判', cd: 4,
-        text: '味方前衛全員を、それぞれ12回復する。さらに、このターンの通常技の攻撃に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: '味方前衛全員を、それぞれ回復力×12回復する。さらに、このターンの通常技の攻撃の数字に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'heal', amount: 12 }, { type: 'atkBonus', value: 4 }]
       }
     },
@@ -693,7 +709,7 @@
     {
       id: 'rouban', name: '炉番の小僧', glyph: '炉', maxHp: 92, element: 'fire',
       subTypes: ['職人'],
-      leaderSkill: { name: '火床の熱', text: '味方の固有スキルの直接ダメージ+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      leaderSkill: { name: '火床の熱', text: '味方の固有スキルのダメージの数字+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
       moves: [
         { name: '火かき棒', atk: 10, heal: 0 },
         { name: '炉の温もり', atk: 0, heal: 8 },
@@ -707,14 +723,14 @@
       ],
       skill: {
         name: '火の番', cd: 3,
-        text: 'このターンの通常技の攻撃に6を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: 'このターンの通常技の攻撃の数字に6を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'atkBonus', value: 6 }]
       }
     },
     {
       id: 'kinokogari', name: '茸狩りの少女', glyph: '茸', maxHp: 88, element: 'nature',
       subTypes: ['森人'],
-      leaderSkill: { name: '森の小道', text: '自然属性の味方の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'nature', value: 2 }] },
+      leaderSkill: { name: '森の小道', text: '自然属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'nature', value: 2 }] },
       moves: [
         { name: '胞子まき', atk: 8, heal: 0 },
         { name: '茸のスープ', atk: 0, heal: 10 },
@@ -728,14 +744,14 @@
       ],
       skill: {
         name: '眠り胞子', cd: 4,
-        text: '敵前衛全員に、それぞれ8ダメージ（属性倍率なし・結界は有効）。',
+        text: '敵前衛全員に、それぞれ攻撃力×8のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
       }
     },
     {
       id: 'ningyoshi', name: '月影の人形師', glyph: '傀', maxHp: 108, element: 'dark',
       subTypes: ['術士', '職人'],
-      leaderSkill: { name: '操り糸の宴', text: '呪闇属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
+      leaderSkill: { name: '操り糸の宴', text: '呪闇属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
       moves: [
         { name: '糸繰り', atk: 14, heal: 0 },
         { name: '人形の盾', atk: 4, heal: 8 },
@@ -749,7 +765,7 @@
       ],
       skill: {
         name: '糸の結界', cd: 4,
-        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に4を加える（攻撃0の技には加算しない）。',
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃の数字に4を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 4 }]
       }
     },
@@ -770,14 +786,14 @@
       ],
       skill: {
         name: '狙い澄まし', cd: 4,
-        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に3を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃の数字に3を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 3 }]
       }
     },
     {
       id: 'kagerou', name: '陽炎の剣舞士', glyph: '陽', maxHp: 132, element: 'fire',
       subTypes: ['戦士', '踊り手'],
-      leaderSkill: { name: '炎天の号令', text: '猛火属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
+      leaderSkill: { name: '炎天の号令', text: '猛火属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
       moves: [
         { name: '陽炎斬り', atk: 22, heal: 0 },
         { name: '熱砂の舞', atk: 18, heal: 0 },
@@ -798,7 +814,7 @@
     {
       id: 'watashimori', name: '冥府の渡し守', glyph: '冥', maxHp: 145, element: 'dark',
       subTypes: ['船頭', '霊媒'],
-      leaderSkill: { name: '彼岸の灯', text: '味方の固有スキルの直接ダメージ+4（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 4 }] },
+      leaderSkill: { name: '彼岸の灯', text: '味方の固有スキルのダメージの数字+4（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 4 }] },
       moves: [
         { name: '櫂の一撃', atk: 20, heal: 0 },
         { name: '魂送りの歌', atk: 0, heal: 18 },
@@ -812,7 +828,7 @@
       ],
       skill: {
         name: '魂の渡し', cd: 4,
-        text: '敵前衛全員に、それぞれ14ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ10回復する。',
+        text: '敵前衛全員に、それぞれ攻撃力×14のダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ回復力×10回復する。',
         effects: [{ type: 'damage', amount: 14, ignoreDefense: false }, { type: 'heal', amount: 10 }]
       }
     },
@@ -820,7 +836,7 @@
     {
       id: 'shiodamari', name: '潮溜まりの漁り子', glyph: '漁', maxHp: 90, element: 'water',
       subTypes: ['漁師'],
-      leaderSkill: { name: '潮騒の励まし', text: '水脈属性の味方の通常技の攻撃+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 2 }] },
+      leaderSkill: { name: '潮騒の励まし', text: '水脈属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 2 }] },
       moves: [
         { name: '浜石つぶて', atk: 9, heal: 0 },
         { name: '潮水の手当', atk: 0, heal: 9 },
@@ -834,7 +850,7 @@
       ],
       skill: {
         name: '潮しぶき', cd: 4,
-        text: '敵前衛全員に、それぞれ7ダメージ（属性倍率なし・結界は有効）。',
+        text: '敵前衛全員に、それぞれ攻撃力×7のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 7, ignoreDefense: false }]
       }
     },
@@ -855,14 +871,14 @@
       ],
       skill: {
         name: '花の癒し', cd: 3,
-        text: '味方前衛全員を、それぞれ9回復する。',
+        text: '味方前衛全員を、それぞれ回復力×9回復する。',
         effects: [{ type: 'heal', amount: 9 }]
       }
     },
     {
       id: 'kirisame', name: '霧雨の薬売り', glyph: '薬', maxHp: 110, element: 'water',
       subTypes: ['薬師', '旅人'],
-      leaderSkill: { name: '雨上がりの香', text: '味方の固有スキルの回復+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
+      leaderSkill: { name: '雨上がりの香', text: '味方の固有スキルの回復の数字+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
       moves: [
         { name: '霧の小瓶', atk: 12, heal: 0 },
         { name: '潤いの薬', atk: 0, heal: 14 },
@@ -876,14 +892,14 @@
       ],
       skill: {
         name: '霧雨の調合', cd: 4,
-        text: '味方前衛全員を、それぞれ14回復する。さらに、このターンの通常技の攻撃に3を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: '味方前衛全員を、それぞれ回復力×14回復する。さらに、このターンの通常技の攻撃の数字に3を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'heal', amount: 14 }, { type: 'atkBonus', value: 3 }]
       }
     },
     {
       id: 'hakuyoku', name: '白翼の伝令', glyph: '翼', maxHp: 114, element: 'holy',
       subTypes: ['騎士', '伝令'],
-      leaderSkill: { name: '白翼の行軍', text: '聖光属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 3 }] },
+      leaderSkill: { name: '白翼の行軍', text: '聖光属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 3 }] },
       moves: [
         { name: '羽根の矢', atk: 15, heal: 0 },
         { name: '白き祈り', atk: 0, heal: 12 },
@@ -897,7 +913,7 @@
       ],
       skill: {
         name: '急ぎの報せ', cd: 3,
-        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に2を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃の数字に2を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 2 }]
       }
     },
@@ -918,14 +934,14 @@
       ],
       skill: {
         name: '石の守り', cd: 4,
-        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に5を加える（攻撃0の技には加算しない）。',
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃の数字に5を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 5 }]
       }
     },
     {
       id: 'kyuuketsu', name: '夜霧の吸血姫', glyph: '血', maxHp: 128, element: 'dark',
       subTypes: ['王族', '魔物'],
-      leaderSkill: { name: '紅き夜会', text: '呪闇属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
+      leaderSkill: { name: '紅き夜会', text: '呪闇属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
       moves: [
         { name: '吸血の牙', atk: 22, heal: 0 },
         { name: '血の契り', atk: 6, heal: 10 },
@@ -939,7 +955,7 @@
       ],
       skill: {
         name: '血の渇き', cd: 4,
-        text: '敵前衛全員に、それぞれ16ダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ6回復する。',
+        text: '敵前衛全員に、それぞれ攻撃力×16のダメージ（属性倍率なし・結界は有効）。さらに味方前衛全員をそれぞれ回復力×6回復する。',
         effects: [{ type: 'damage', amount: 16, ignoreDefense: false }, { type: 'heal', amount: 6 }]
       }
     },
@@ -947,7 +963,7 @@
     {
       id: 'kataribe', name: '森番の語り部', glyph: '語', maxHp: 94, element: 'nature',
       subTypes: ['語り部'],
-      leaderSkill: { name: '語らいの輪', text: '味方全員の通常技の回復+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
+      leaderSkill: { name: '語らいの輪', text: '味方全員の通常技の回復の数字+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
       moves: [
         { name: '薪くべ', atk: 9, heal: 0 },
         { name: '森の昔話', atk: 0, heal: 9 },
@@ -961,7 +977,7 @@
       ],
       skill: {
         name: '森の言い伝え', cd: 3,
-        text: 'このターンの通常技の攻撃に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: 'このターンの通常技の攻撃の数字に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'atkBonus', value: 5 }]
       }
     },
@@ -982,14 +998,14 @@
       ],
       skill: {
         name: '洗い流し', cd: 3,
-        text: '味方前衛全員を、それぞれ8回復する。',
+        text: '味方前衛全員を、それぞれ回復力×8回復する。',
         effects: [{ type: 'heal', amount: 8 }]
       }
     },
     {
       id: 'hanabishi', name: '花火師の弟子', glyph: '火', maxHp: 106, element: 'fire',
       subTypes: ['職人'],
-      leaderSkill: { name: '夏祭りの夜', text: '猛火属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 3 }] },
+      leaderSkill: { name: '夏祭りの夜', text: '猛火属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 3 }] },
       moves: [
         { name: '爆竹', atk: 16, heal: 0 },
         { name: '打ち上げ', atk: 18, heal: 0 },
@@ -1003,14 +1019,14 @@
       ],
       skill: {
         name: '仕掛け花火', cd: 4,
-        text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。',
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
       }
     },
     {
       id: 'jufu', name: '呪符の書生', glyph: '符', maxHp: 112, element: 'dark',
       subTypes: ['術士', '学者'],
-      leaderSkill: { name: '墨染めの夜', text: '味方の固有スキルの直接ダメージ+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      leaderSkill: { name: '墨染めの夜', text: '味方の固有スキルのダメージの数字+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
       moves: [
         { name: '呪符投げ', atk: 14, heal: 0 },
         { name: '護符の守り', atk: 2, heal: 10 },
@@ -1024,14 +1040,14 @@
       ],
       skill: {
         name: '封じの札', cd: 4,
-        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃に2を加える（攻撃0の技には加算しない）。',
+        text: '味方前衛全員に結界を付ける。さらに、このターンの通常技の攻撃の数字に2を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'barrier' }, { type: 'atkBonus', value: 2 }]
       }
     },
     {
       id: 'hyouga', name: '氷河の狩人', glyph: '氷', maxHp: 138, element: 'water',
       subTypes: ['狩人'],
-      leaderSkill: { name: '雪原の行軍', text: '水脈属性の味方の通常技の攻撃+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 4 }] },
+      leaderSkill: { name: '雪原の行軍', text: '水脈属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 4 }] },
       moves: [
         { name: '氷の槍', atk: 22, heal: 0 },
         { name: '雪解け水', atk: 0, heal: 14 },
@@ -1045,14 +1061,14 @@
       ],
       skill: {
         name: '獲物の見極め', cd: 4,
-        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃に6を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: '確定した数字を振り直す。さらに、このターンの通常技の攻撃の数字に6を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'reroll' }, { type: 'atkBonus', value: 6 }]
       }
     },
     {
       id: 'senpu', name: '紅炎の戦斧士', glyph: '斧', maxHp: 150, element: 'fire',
       subTypes: ['戦士'],
-      leaderSkill: { name: '炎斧の誓い', text: '猛火属性の味方の通常技の攻撃+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 5 }] },
+      leaderSkill: { name: '炎斧の誓い', text: '猛火属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 5 }] },
       moves: [
         { name: '斧振り', atk: 22, heal: 0 },
         { name: '戦士の休息', atk: 0, heal: 14 },
@@ -1074,7 +1090,7 @@
     {
       id: 'suzufuri', name: '鈴振りの少年僧', glyph: '鈴', maxHp: 92, element: 'holy',
       subTypes: ['僧侶'],
-      leaderSkill: { name: '鈴の加護', text: '味方の固有スキルの回復+1（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 1 }] },
+      leaderSkill: { name: '鈴の加護', text: '味方の固有スキルの回復の数字+1（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 1 }] },
       moves: [
         { name: '鈴の音', atk: 8, heal: 0 },
         { name: '合掌', atk: 0, heal: 10 },
@@ -1088,14 +1104,14 @@
       ],
       skill: {
         name: '清めの鈴', cd: 3,
-        text: '味方前衛全員を、それぞれ10回復する。',
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
         effects: [{ type: 'heal', amount: 10 }]
       }
     },
     {
       id: 'hachikai', name: '蜂飼いの娘', glyph: '蜂', maxHp: 90, element: 'nature',
       subTypes: ['村人'],
-      leaderSkill: { name: '花蜜の恵み', text: '味方全員の通常技の回復+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      leaderSkill: { name: '花蜜の恵み', text: '味方全員の通常技の回復の数字+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
       moves: [
         { name: '蜂の一刺し', atk: 11, heal: 0 },
         { name: '蜂蜜の壺', atk: 0, heal: 10 },
@@ -1109,14 +1125,14 @@
       ],
       skill: {
         name: '蜂の群舞', cd: 4,
-        text: '敵前衛全員に、それぞれ8ダメージ（属性倍率なし・結界は有効）。',
+        text: '敵前衛全員に、それぞれ攻撃力×8のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
       }
     },
     {
       id: 'seikatai', name: '聖歌隊の少女', glyph: '歌', maxHp: 108, element: 'holy',
       subTypes: ['歌い手'],
-      leaderSkill: { name: '聖歌の響き', text: '味方の固有スキルの回復+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
+      leaderSkill: { name: '聖歌の響き', text: '味方の固有スキルの回復の数字+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
       moves: [
         { name: '讃美歌', atk: 0, heal: 14 },
         { name: '高音の響き', atk: 16, heal: 0 },
@@ -1130,14 +1146,14 @@
       ],
       skill: {
         name: '聖歌の調べ', cd: 4,
-        text: '味方前衛全員を、それぞれ16回復する。',
+        text: '味方前衛全員を、それぞれ回復力×16回復する。',
         effects: [{ type: 'heal', amount: 16 }]
       }
     },
     {
       id: 'touzoku', name: '月夜の盗賊', glyph: '盗', maxHp: 110, element: 'dark',
       subTypes: ['盗賊'],
-      leaderSkill: { name: '盗賊団の掟', text: '呪闇属性の味方の通常技の攻撃+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
+      leaderSkill: { name: '盗賊団の掟', text: '呪闇属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
       moves: [
         { name: '短剣の一閃', atk: 16, heal: 0 },
         { name: '盗み食い', atk: 0, heal: 10 },
@@ -1151,14 +1167,14 @@
       ],
       skill: {
         name: '早業', cd: 4,
-        text: 'このターンの通常技の攻撃に7を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: 'このターンの通常技の攻撃の数字に7を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'atkBonus', value: 7 }]
       }
     },
     {
       id: 'ooshika', name: '白樺の大鹿', glyph: '鹿', maxHp: 152, element: 'nature',
       subTypes: ['獣', '守護者'],
-      leaderSkill: { name: '白樺の森', text: '味方の固有スキルの回復+4（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 4 }] },
+      leaderSkill: { name: '白樺の森', text: '味方の固有スキルの回復の数字+4（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 4 }] },
       moves: [
         { name: '角の突進', atk: 22, heal: 0 },
         { name: '若芽の癒し', atk: 0, heal: 16 },
@@ -1172,7 +1188,7 @@
       ],
       skill: {
         name: '森の守り手', cd: 4,
-        text: '味方前衛全員を、それぞれ18回復する。さらに、このターンの通常技の攻撃に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        text: '味方前衛全員を、それぞれ回復力×18回復する。さらに、このターンの通常技の攻撃の数字に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'heal', amount: 18 }, { type: 'atkBonus', value: 4 }]
       }
     },
@@ -1193,7 +1209,7 @@
       ],
       skill: {
         name: '王の号令', cd: 4,
-        text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃に4を加える（攻撃0の技には加算しない）。',
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃の数字に4を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'atkBonus', value: 4 }]
       }
     }
@@ -1239,14 +1255,14 @@
    */
   const CPU_MATCHES = [
     { id: 'm1', rank: '見習い', name: '森の入口の一団', enemies: ['suiju', 'gyakufu', 'kohaku', 'raimei', 'gessen', 'mukai'], level: 1, leader: 2, exp: 60, firstStones: 100, stones: 10 },
-    { id: 'm2', rank: '見習い', name: '苔むす小道の一団', enemies: ['gyakufu', 'suiju', 'mukai', 'ryogen', 'kohaku', 'gessen'], level: 2, leader: 0, exp: 80, firstStones: 100, stones: 10 },
+    { id: 'm2', rank: '見習い', name: '苔むす小道の一団', enemies: ['gyakufu', 'suiju', 'mukai', 'ryogen', 'kohaku', 'gessen'], level: 2, enemyLevel: 1, leader: 0, exp: 80, firstStones: 100, stones: 10 },
     { id: 'm3', rank: '一人前', name: '木霊の泉の一団', enemies: ['mukai', 'gessen', 'suiju', 'raimei', 'gyakufu', 'kohaku'], level: 3, leader: 1, exp: 100, firstStones: 120, stones: 15 },
-    { id: 'm4', rank: '一人前', name: '迷い路の一団', enemies: ['ryogen', 'kohaku', 'yoiyami', 'suiju', 'gyakufu', 'mukai'], level: 4, leader: 0, exp: 130, firstStones: 150, stones: 15 },
+    { id: 'm4', rank: '一人前', name: '迷い路の一団', enemies: ['ryogen', 'kohaku', 'yoiyami', 'suiju', 'gyakufu', 'mukai'], level: 4, enemyLevel: 3, leader: 0, exp: 130, firstStones: 150, stones: 15 },
     { id: 'm5', rank: '腕利き', name: '森の主の一団', enemies: ['kohaku', 'suiju', 'gyakufu', 'gessen', 'ryogen', 'raimei'], level: 6, leader: 0, exp: 180, firstStones: 300, stones: 20 },
     { id: 'm6', rank: '腕利き', name: '塔の一階の一団', enemies: ['yoiyami', 'raimei', 'gessen', 'ryogen', 'mukai', 'kohaku'], level: 7, leader: 0, exp: 220, firstStones: 150, stones: 20 },
     { id: 'm7', rank: '精鋭', name: '月影の回廊の一団', enemies: ['gessen', 'yoiyami', 'raimei', 'suiju', 'ryogen', 'mukai'], level: 9, leader: 0, exp: 260, firstStones: 180, stones: 25 },
     { id: 'm8', rank: '精鋭', name: '雷鳴の間の一団', enemies: ['raimei', 'ryogen', 'yoiyami', 'kohaku', 'gessen', 'gyakufu'], level: 11, leader: 0, exp: 300, firstStones: 200, stones: 25 },
-    { id: 'm9', rank: '達人', name: '虚空の書庫の一団', enemies: ['yoiyami', 'mukai', 'ryogen', 'raimei', 'kohaku', 'suiju'], level: 13, leader: 3, exp: 350, firstStones: 250, stones: 30 },
+    { id: 'm9', rank: '達人', name: '虚空の書庫の一団', enemies: ['yoiyami', 'mukai', 'ryogen', 'raimei', 'kohaku', 'suiju'], level: 13, enemyLevel: 12, leader: 3, exp: 350, firstStones: 250, stones: 30 },
     { id: 'm10', rank: '達人', name: '宵闇の頂の一団', enemies: ['yoiyami', 'ryogen', 'raimei', 'gessen', 'kohaku', 'mukai'], level: 16, leader: 4, exp: 400, firstStones: 500, stones: 40 }
   ];
 
@@ -1257,75 +1273,75 @@
    */
   const BOSSES = [
     // 翠の迷い森
-    { id: 'b-goblin', name: '苔ゴブリン', glyph: '苔', maxHp: 150, element: 'nature', subTypes: ['クリーチャー', '小鬼'], rank: '雑魚',
-      moves: [{ name: 'こん棒', atk: 14, heal: 0 }, { name: 'ひっかき', atk: 11, heal: 0 }, { name: '苔をかじる', atk: 0, heal: 8 }, { name: '体当たり', atk: 18, heal: 0 }, { name: '石つぶて', atk: 13, heal: 0 }, { name: 'めった打ち', atk: 22, heal: 0 }],
-      skill: { name: '仲間を呼ぶ声', cd: 4, text: '敵前衛全員に、それぞれ8ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 8 }] } },
-    { id: 'b-boar', name: '棘甲の大猪', glyph: '猪', maxHp: 290, element: 'nature', subTypes: ['クリーチャー', '剛力'], rank: '中ボス',
-      moves: [{ name: '突進', atk: 24, heal: 0 }, { name: '牙の一撃', atk: 19, heal: 0 }, { name: '泥浴び', atk: 0, heal: 12 }, { name: '棘の背', atk: 20, heal: 0 }, { name: '踏みならし', atk: 17, heal: 0 }, { name: '猛突進', atk: 34, heal: 0 }],
+    { id: 'b-goblin', name: '苔ゴブリン', glyph: '苔', maxHp: 139, element: 'nature', subTypes: ['クリーチャー', '小鬼'], rank: '雑魚',
+      moves: [{ name: 'こん棒', atk: 13, heal: 0 }, { name: 'ひっかき', atk: 10, heal: 0 }, { name: '苔をかじる', atk: 0, heal: 8 }, { name: '体当たり', atk: 17, heal: 0 }, { name: '石つぶて', atk: 12, heal: 0 }, { name: 'めった打ち', atk: 20, heal: 0 }],
+      skill: { name: '仲間を呼ぶ声', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×7のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 7 }] } },
+    { id: 'b-boar', name: '棘甲の大猪', glyph: '猪', maxHp: 268, element: 'nature', subTypes: ['クリーチャー', '剛力'], rank: '中ボス',
+      moves: [{ name: '突進', atk: 22, heal: 0 }, { name: '牙の一撃', atk: 18, heal: 0 }, { name: '泥浴び', atk: 0, heal: 12 }, { name: '棘の背', atk: 19, heal: 0 }, { name: '踏みならし', atk: 16, heal: 0 }, { name: '猛突進', atk: 31, heal: 0 }],
       skill: { name: '怒りの咆哮', cd: 4, text: 'このターンに使う通常技の攻撃を2倍にする。', effects: [{ type: 'atkMultiplier', value: 2 }] } },
-    { id: 'b-elder', name: '森の主・古樹ガルム', glyph: '樹', maxHp: 400, element: 'nature', subTypes: ['守護者', '古樹'], rank: '大ボス',
-      moves: [{ name: '根の鞭', atk: 31, heal: 0 }, { name: '枝の槍', atk: 40, heal: 0 }, { name: '大地の恵み', atk: 0, heal: 20 }, { name: '木の葉嵐', atk: 35, heal: 0 }, { name: '樹液の盾', atk: 18, heal: 10 }, { name: '大樹の怒り', atk: 53, heal: 0 }],
+    { id: 'b-elder', name: '森の主・古樹ガルム', glyph: '樹', maxHp: 370, element: 'nature', subTypes: ['守護者', '古樹'], rank: '大ボス',
+      moves: [{ name: '根の鞭', atk: 29, heal: 0 }, { name: '枝の槍', atk: 37, heal: 0 }, { name: '大地の恵み', atk: 0, heal: 20 }, { name: '木の葉嵐', atk: 32, heal: 0 }, { name: '樹液の盾', atk: 17, heal: 10 }, { name: '大樹の怒り', atk: 49, heal: 0 }],
       skill: { name: '古樹の結界', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
     // 霧の海底神殿
     { id: 'b-jelly', name: '霧クラゲ', glyph: '海', maxHp: 170, element: 'water', subTypes: ['クリーチャー'], rank: '雑魚',
       moves: [{ name: 'しびれ触手', atk: 17, heal: 0 }, { name: '泡はじけ', atk: 14, heal: 0 }, { name: 'ただよう', atk: 0, heal: 9 }, { name: '霧の毒', atk: 20, heal: 0 }, { name: '水鉄砲', atk: 15, heal: 0 }, { name: '大放電', atk: 26, heal: 0 }],
-      skill: { name: '霧の放電', cd: 4, text: '敵前衛全員に、それぞれ10ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 10 }] } },
+      skill: { name: '霧の放電', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 10 }] } },
     { id: 'b-serpent', name: '渦潮の大海蛇', glyph: '蛇', maxHp: 320, element: 'water', subTypes: ['クリーチャー', '竜'], rank: '中ボス',
       moves: [{ name: '締めつけ', atk: 25, heal: 0 }, { name: '水流ブレス', atk: 29, heal: 0 }, { name: '脱皮', atk: 0, heal: 15 }, { name: '尾の一撃', atk: 22, heal: 0 }, { name: '渦潮', atk: 18, heal: 5 }, { name: '大津波', atk: 40, heal: 0 }],
-      skill: { name: '渦の守り', cd: 4, text: '自分を30回復する。', effects: [{ type: 'heal', amount: 30 }] } },
+      skill: { name: '渦の守り', cd: 4, text: '自分を回復力×30回復する。', effects: [{ type: 'heal', amount: 30 }] } },
     { id: 'b-nagi', name: '深淵の海神ナギ', glyph: '凪', maxHp: 460, element: 'water', subTypes: ['神', '王族'], rank: '大ボス',
       moves: [{ name: '深海の槍', atk: 34, heal: 0 }, { name: '潮騒', atk: 27, heal: 5 }, { name: '凪の祈り', atk: 0, heal: 22 }, { name: '大渦', atk: 38, heal: 0 }, { name: '冷たい霧', atk: 23, heal: 0 }, { name: '海神の怒り', atk: 53, heal: 0 }],
-      skill: { name: '深淵の波動', cd: 4, text: '敵前衛全員に、それぞれ18ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 18, ignoreDefense: true }] } },
+      skill: { name: '深淵の波動', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×18のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 18, ignoreDefense: true }] } },
     // 宵闇の塔
-    { id: 'b-imp', name: '影の使い魔', glyph: '影', maxHp: 180, element: 'dark', subTypes: ['クリーチャー', '魔術師'], rank: '雑魚',
-      moves: [{ name: '影の爪', atk: 19, heal: 0 }, { name: '闇の玉', atk: 15, heal: 0 }, { name: '影に潜む', atk: 0, heal: 10 }, { name: '呪いの針', atk: 22, heal: 0 }, { name: 'いたずら', atk: 10, heal: 3 }, { name: '影の嵐', atk: 27, heal: 0 }],
+    { id: 'b-imp', name: '影の使い魔', glyph: '影', maxHp: 184, element: 'dark', subTypes: ['クリーチャー', '魔術師'], rank: '雑魚',
+      moves: [{ name: '影の爪', atk: 19, heal: 0 }, { name: '闇の玉', atk: 15, heal: 0 }, { name: '影に潜む', atk: 0, heal: 10 }, { name: '呪いの針', atk: 23, heal: 0 }, { name: 'いたずら', atk: 10, heal: 3 }, { name: '影の嵐', atk: 28, heal: 0 }],
       skill: { name: '影分身', cd: 3, text: '確定した数字を1回振り直す。', effects: [{ type: 'reroll' }] } },
-    { id: 'b-witch', name: '月喰いの魔女', glyph: '魔', maxHp: 350, element: 'dark', subTypes: ['魔術師', '哲学者'], rank: '中ボス',
-      moves: [{ name: '月蝕の矢', atk: 29, heal: 0 }, { name: '黒い呪文', atk: 23, heal: 0 }, { name: '生命吸収', atk: 18, heal: 9 }, { name: '星くず', atk: 22, heal: 0 }, { name: '魔力の泉', atk: 0, heal: 15 }, { name: '月喰い', atk: 43, heal: 0 }],
-      skill: { name: '虚無の詠唱', cd: 4, text: '敵前衛全員に、それぞれ20ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 20, ignoreDefense: true }] } },
-    { id: 'b-maou', name: '星喰いの魔王', glyph: '王', maxHp: 510, element: 'dark', subTypes: ['王族', '魔術師'], rank: '大ボス',
-      moves: [{ name: '魔王の剣', atk: 32, heal: 0 }, { name: '暗黒波', atk: 26, heal: 0 }, { name: '闇の玉座', atk: 0, heal: 23 }, { name: '星喰らい', atk: 35, heal: 0 }, { name: '絶望の霧', atk: 19, heal: 6 }, { name: '終焉の一撃', atk: 48, heal: 0 }],
+    { id: 'b-witch', name: '月喰いの魔女', glyph: '魔', maxHp: 359, element: 'dark', subTypes: ['魔術師', '哲学者'], rank: '中ボス',
+      moves: [{ name: '月蝕の矢', atk: 30, heal: 0 }, { name: '黒い呪文', atk: 24, heal: 0 }, { name: '生命吸収', atk: 18, heal: 9 }, { name: '星くず', atk: 23, heal: 0 }, { name: '魔力の泉', atk: 0, heal: 15 }, { name: '月喰い', atk: 44, heal: 0 }],
+      skill: { name: '虚無の詠唱', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×21のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 21, ignoreDefense: true }] } },
+    { id: 'b-maou', name: '星喰いの魔王', glyph: '王', maxHp: 523, element: 'dark', subTypes: ['王族', '魔術師'], rank: '大ボス',
+      moves: [{ name: '魔王の剣', atk: 33, heal: 0 }, { name: '暗黒波', atk: 27, heal: 0 }, { name: '闇の玉座', atk: 0, heal: 23 }, { name: '星喰らい', atk: 36, heal: 0 }, { name: '絶望の霧', atk: 19, heal: 6 }, { name: '終焉の一撃', atk: 49, heal: 0 }],
       skill: { name: '魔王の覚醒', cd: 4, text: 'このターンに使う通常技の攻撃を2倍にする。', effects: [{ type: 'atkMultiplier', value: 2 }] } },
     // 紅蓮の火山洞（2026-10-30 自動追加）
-    { id: 'b-salamander', name: '火蜥蜴', glyph: '蜥', maxHp: 190, element: 'fire', subTypes: ['クリーチャー', '火竜の子'], rank: '雑魚',
-      moves: [{ name: '火の息', atk: 23, heal: 0 }, { name: '尻尾払い', atk: 18, heal: 0 }, { name: '岩陰で休む', atk: 0, heal: 11 }, { name: '火炎弾', atk: 26, heal: 0 }, { name: '噛みつき', atk: 14, heal: 3 }, { name: '溶岩流', atk: 32, heal: 0 }],
-      skill: { name: '火の粉の雨', cd: 4, text: '敵前衛全員に、それぞれ12ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 12 }] } },
-    { id: 'b-golem', name: '溶岩ゴーレム', glyph: '岩', maxHp: 370, element: 'fire', subTypes: ['守護者', '剛力'], rank: '中ボス',
-      moves: [{ name: '溶岩の拳', atk: 35, heal: 0 }, { name: '岩なだれ', atk: 28, heal: 0 }, { name: '冷えて固まる', atk: 0, heal: 16 }, { name: '地響き', atk: 26, heal: 0 }, { name: '火山弾', atk: 22, heal: 5 }, { name: '大噴火', atk: 51, heal: 0 }],
+    { id: 'b-salamander', name: '火蜥蜴', glyph: '蜥', maxHp: 205, element: 'fire', subTypes: ['クリーチャー', '火竜の子'], rank: '雑魚',
+      moves: [{ name: '火の息', atk: 25, heal: 0 }, { name: '尻尾払い', atk: 19, heal: 0 }, { name: '岩陰で休む', atk: 0, heal: 11 }, { name: '火炎弾', atk: 28, heal: 0 }, { name: '噛みつき', atk: 15, heal: 3 }, { name: '溶岩流', atk: 35, heal: 0 }],
+      skill: { name: '火の粉の雨', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×13のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 13 }] } },
+    { id: 'b-golem', name: '溶岩ゴーレム', glyph: '岩', maxHp: 400, element: 'fire', subTypes: ['守護者', '剛力'], rank: '中ボス',
+      moves: [{ name: '溶岩の拳', atk: 38, heal: 0 }, { name: '岩なだれ', atk: 30, heal: 0 }, { name: '冷えて固まる', atk: 0, heal: 16 }, { name: '地響き', atk: 28, heal: 0 }, { name: '火山弾', atk: 24, heal: 5 }, { name: '大噴火', atk: 55, heal: 0 }],
       skill: { name: '溶岩の鎧', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
-    { id: 'b-dragon', name: '炎竜ヴァルグ', glyph: '竜', maxHp: 460, element: 'fire', subTypes: ['竜', '王族'], rank: '大ボス',
-      moves: [{ name: '竜の爪', atk: 35, heal: 0 }, { name: '灼熱の吐息', atk: 29, heal: 0 }, { name: '鱗の再生', atk: 0, heal: 20 }, { name: '炎の翼', atk: 38, heal: 0 }, { name: '焦土', atk: 21, heal: 5 }, { name: '終末の業火', atk: 52, heal: 0 }],
-      skill: { name: '業火の息吹', cd: 4, text: '敵前衛全員に、それぞれ23ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 23, ignoreDefense: true }] } },
+    { id: 'b-dragon', name: '炎竜ヴァルグ', glyph: '竜', maxHp: 497, element: 'fire', subTypes: ['竜', '王族'], rank: '大ボス',
+      moves: [{ name: '竜の爪', atk: 38, heal: 0 }, { name: '灼熱の吐息', atk: 31, heal: 0 }, { name: '鱗の再生', atk: 0, heal: 20 }, { name: '炎の翼', atk: 41, heal: 0 }, { name: '焦土', atk: 23, heal: 5 }, { name: '終末の業火', atk: 56, heal: 0 }],
+      skill: { name: '業火の息吹', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×25のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 25, ignoreDefense: true }] } },
     // 白亜の天空神殿（2026-11-06）
-    { id: 'b-cherub', name: '迷い羽の天使見習い', glyph: '羽', maxHp: 240, element: 'holy', subTypes: ['天使'], rank: '雑魚',
-      moves: [{ name: '光の小矢', atk: 21, heal: 0 }, { name: '翼打ち', atk: 17, heal: 0 }, { name: '雲の上で休む', atk: 0, heal: 12 }, { name: '聖光弾', atk: 24, heal: 0 }, { name: 'つつき', atk: 13, heal: 3 }, { name: '天の雷', atk: 29, heal: 0 }],
-      skill: { name: '聖なる光雨', cd: 4, text: '敵前衛全員に、それぞれ16ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 16 }] } },
-    { id: 'b-paladin', name: '神殿の石像騎士', glyph: '像', maxHp: 384, element: 'holy', subTypes: ['守護者', '騎士'], rank: '中ボス',
-      moves: [{ name: '聖剣の一撃', atk: 31, heal: 0 }, { name: '大盾の突進', atk: 26, heal: 0 }, { name: '石の祈り', atk: 0, heal: 17 }, { name: '光の槍', atk: 24, heal: 0 }, { name: '守りの構え', atk: 20, heal: 5 }, { name: '天罰の剣', atk: 44, heal: 0 }],
+    { id: 'b-cherub', name: '迷い羽の天使見習い', glyph: '羽', maxHp: 267, element: 'holy', subTypes: ['天使'], rank: '雑魚',
+      moves: [{ name: '光の小矢', atk: 23, heal: 0 }, { name: '翼打ち', atk: 19, heal: 0 }, { name: '雲の上で休む', atk: 0, heal: 12 }, { name: '聖光弾', atk: 27, heal: 0 }, { name: 'つつき', atk: 14, heal: 3 }, { name: '天の雷', atk: 32, heal: 0 }],
+      skill: { name: '聖なる光雨', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×18のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 18 }] } },
+    { id: 'b-paladin', name: '神殿の石像騎士', glyph: '像', maxHp: 427, element: 'holy', subTypes: ['守護者', '騎士'], rank: '中ボス',
+      moves: [{ name: '聖剣の一撃', atk: 35, heal: 0 }, { name: '大盾の突進', atk: 29, heal: 0 }, { name: '石の祈り', atk: 0, heal: 17 }, { name: '光の槍', atk: 27, heal: 0 }, { name: '守りの構え', atk: 22, heal: 5 }, { name: '天罰の剣', atk: 49, heal: 0 }],
       skill: { name: '聖盾の加護', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
-    { id: 'b-seraph', name: '熾天使ルミエル', glyph: '光', maxHp: 480, element: 'holy', subTypes: ['天使', '王族'], rank: '大ボス',
-      moves: [{ name: '熾光の剣', atk: 31, heal: 0 }, { name: '審判の光', atk: 26, heal: 0 }, { name: '六翼の癒し', atk: 0, heal: 21 }, { name: '六翼の嵐', atk: 34, heal: 0 }, { name: '浄化の焔', atk: 19, heal: 5 }, { name: '終焉の福音', atk: 46, heal: 0 }],
-      skill: { name: '天上の裁き', cd: 4, text: '敵前衛全員に、それぞれ30ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 30, ignoreDefense: true }] } },
+    { id: 'b-seraph', name: '熾天使ルミエル', glyph: '光', maxHp: 534, element: 'holy', subTypes: ['天使', '王族'], rank: '大ボス',
+      moves: [{ name: '熾光の剣', atk: 35, heal: 0 }, { name: '審判の光', atk: 29, heal: 0 }, { name: '六翼の癒し', atk: 0, heal: 21 }, { name: '六翼の嵐', atk: 38, heal: 0 }, { name: '浄化の焔', atk: 21, heal: 5 }, { name: '終焉の福音', atk: 51, heal: 0 }],
+      skill: { name: '天上の裁き', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×33のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 33, ignoreDefense: true }] } },
     // 亡霊の古城（2026-11-07）
-    { id: 'b-wisp', name: 'さまよう鬼火', glyph: '燐', maxHp: 223, element: 'dark', subTypes: ['亡霊'], rank: '雑魚',
-      moves: [{ name: '青い火の粉', atk: 18, heal: 0 }, { name: 'すり抜け', atk: 15, heal: 0 }, { name: '墓石に宿る', atk: 0, heal: 13 }, { name: '冷たい炎', atk: 23, heal: 0 }, { name: 'まとわりつく', atk: 11, heal: 4 }, { name: '燐光の渦', atk: 25, heal: 0 }],
-      skill: { name: '鬼火の群れ', cd: 4, text: '敵前衛全員に、それぞれ15ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 15 }] } },
-    { id: 'b-armor', name: '呪われた黒甲冑', glyph: '鎧', maxHp: 378, element: 'dark', subTypes: ['亡霊', '騎士'], rank: '中ボス',
-      moves: [{ name: '錆びた大剣', atk: 29, heal: 0 }, { name: '鉄靴の蹴り', atk: 23, heal: 0 }, { name: '怨念の修復', atk: 0, heal: 17 }, { name: '黒鉄の槌', atk: 22, heal: 0 }, { name: '盾で押す', atk: 17, heal: 5 }, { name: '処刑の一閃', atk: 41, heal: 0 }],
+    { id: 'b-wisp', name: 'さまよう鬼火', glyph: '燐', maxHp: 263, element: 'dark', subTypes: ['亡霊'], rank: '雑魚',
+      moves: [{ name: '青い火の粉', atk: 21, heal: 0 }, { name: 'すり抜け', atk: 18, heal: 0 }, { name: '墓石に宿る', atk: 0, heal: 13 }, { name: '冷たい炎', atk: 27, heal: 0 }, { name: 'まとわりつく', atk: 13, heal: 4 }, { name: '燐光の渦', atk: 30, heal: 0 }],
+      skill: { name: '鬼火の群れ', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×18のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 18 }] } },
+    { id: 'b-armor', name: '呪われた黒甲冑', glyph: '鎧', maxHp: 446, element: 'dark', subTypes: ['亡霊', '騎士'], rank: '中ボス',
+      moves: [{ name: '錆びた大剣', atk: 34, heal: 0 }, { name: '鉄靴の蹴り', atk: 27, heal: 0 }, { name: '怨念の修復', atk: 0, heal: 17 }, { name: '黒鉄の槌', atk: 26, heal: 0 }, { name: '盾で押す', atk: 20, heal: 5 }, { name: '処刑の一閃', atk: 48, heal: 0 }],
       skill: { name: '呪鎧の構え', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
-    { id: 'b-lich', name: '不死王ネクロス', glyph: '骸', maxHp: 456, element: 'dark', subTypes: ['亡霊', '王族'], rank: '大ボス',
-      moves: [{ name: '死霊の杖', atk: 27, heal: 0 }, { name: '骨の槍', atk: 25, heal: 0 }, { name: '魂を喰らう', atk: 13, heal: 12 }, { name: '冥府の炎', atk: 31, heal: 0 }, { name: '命の吸い取り', atk: 18, heal: 6 }, { name: '永遠の眠り', atk: 43, heal: 0 }],
-      skill: { name: '死者の行進', cd: 4, text: '敵前衛全員に、それぞれ25ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 25, ignoreDefense: true }] } },
+    { id: 'b-lich', name: '不死王ネクロス', glyph: '骸', maxHp: 538, element: 'dark', subTypes: ['亡霊', '王族'], rank: '大ボス',
+      moves: [{ name: '死霊の杖', atk: 32, heal: 0 }, { name: '骨の槍', atk: 30, heal: 0 }, { name: '魂を喰らう', atk: 15, heal: 12 }, { name: '冥府の炎', atk: 37, heal: 0 }, { name: '命の吸い取り', atk: 21, heal: 6 }, { name: '永遠の眠り', atk: 51, heal: 0 }],
+      skill: { name: '死者の行進', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×30のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 30, ignoreDefense: true }] } },
     // 蒼氷の大氷河（2026-11-08）
-    { id: 'b-icicle', name: 'つららの小妖精', glyph: '氷', maxHp: 235, element: 'water', subTypes: ['妖精'], rank: '雑魚',
-      moves: [{ name: '氷のつぶて', atk: 19, heal: 0 }, { name: 'こごえる息', atk: 16, heal: 0 }, { name: '雪にもぐる', atk: 0, heal: 13 }, { name: 'つらら落とし', atk: 24, heal: 0 }, { name: '霜のいたずら', atk: 12, heal: 4 }, { name: '吹雪の舞', atk: 27, heal: 0 }],
-      skill: { name: '細雪の嵐', cd: 4, text: '敵前衛全員に、それぞれ15ダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 15 }] } },
-    { id: 'b-icebear', name: '氷河の大白熊', glyph: '熊', maxHp: 400, element: 'water', subTypes: ['クリーチャー', '剛力'], rank: '中ボス',
-      moves: [{ name: '氷爪の一撃', atk: 30, heal: 0 }, { name: '体当たり氷塊', atk: 24, heal: 0 }, { name: '雪で傷を冷やす', atk: 0, heal: 18 }, { name: '凍てつく咆哮', atk: 23, heal: 0 }, { name: '分厚い毛皮', atk: 18, heal: 5 }, { name: '氷山砕き', atk: 43, heal: 0 }],
+    { id: 'b-icicle', name: 'つららの小妖精', glyph: '氷', maxHp: 276, element: 'water', subTypes: ['妖精'], rank: '雑魚',
+      moves: [{ name: '氷のつぶて', atk: 22, heal: 0 }, { name: 'こごえる息', atk: 19, heal: 0 }, { name: '雪にもぐる', atk: 0, heal: 13 }, { name: 'つらら落とし', atk: 28, heal: 0 }, { name: '霜のいたずら', atk: 14, heal: 4 }, { name: '吹雪の舞', atk: 32, heal: 0 }],
+      skill: { name: '細雪の嵐', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×18のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 18 }] } },
+    { id: 'b-icebear', name: '氷河の大白熊', glyph: '熊', maxHp: 470, element: 'water', subTypes: ['クリーチャー', '剛力'], rank: '中ボス',
+      moves: [{ name: '氷爪の一撃', atk: 35, heal: 0 }, { name: '体当たり氷塊', atk: 28, heal: 0 }, { name: '雪で傷を冷やす', atk: 0, heal: 18 }, { name: '凍てつく咆哮', atk: 27, heal: 0 }, { name: '分厚い毛皮', atk: 21, heal: 5 }, { name: '氷山砕き', atk: 51, heal: 0 }],
       skill: { name: '白銀の毛皮', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
-    { id: 'b-icequeen', name: '氷の女王セルシア', glyph: '雪', maxHp: 480, element: 'water', subTypes: ['王族', '魔術師'], rank: '大ボス',
-      moves: [{ name: '氷晶の剣', atk: 28, heal: 0 }, { name: '霜の槍', atk: 26, heal: 0 }, { name: '氷の玉座', atk: 0, heal: 22 }, { name: '絶対零度', atk: 33, heal: 0 }, { name: '雪華の舞', atk: 19, heal: 6 }, { name: '永久凍土', atk: 45, heal: 0 }],
-      skill: { name: '白き終焉', cd: 4, text: '敵前衛全員に、それぞれ26ダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 26, ignoreDefense: true }] } }
+    { id: 'b-icequeen', name: '氷の女王セルシア', glyph: '雪', maxHp: 564, element: 'water', subTypes: ['王族', '魔術師'], rank: '大ボス',
+      moves: [{ name: '氷晶の剣', atk: 33, heal: 0 }, { name: '霜の槍', atk: 31, heal: 0 }, { name: '氷の玉座', atk: 0, heal: 22 }, { name: '絶対零度', atk: 39, heal: 0 }, { name: '雪華の舞', atk: 22, heal: 6 }, { name: '永久凍土', atk: 53, heal: 0 }],
+      skill: { name: '白き終焉', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×31のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 31, ignoreDefense: true }] } }
   ];
 
   /*

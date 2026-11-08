@@ -14,8 +14,13 @@ const hps = (s, side) => s.teams[side].map(u => u.hp);
 const playerFirst = () => { const seq = [0.99, 0.01]; let k = 0; return () => seq[k++ % seq.length]; };
 
 
+// 仕組みのテストは攻撃力・回復力を1、HPを元の大きさにして行う（10倍の計算は engine・progress のテストで確かめる）
+function oldScale(s) {
+  ['player', 'cpu'].forEach(sd => s.teams[sd].forEach(u => { u.atkPow = 1; u.healPow = 1; u.hp = u.maxHp = E.getChar(u.charId).maxHp; }));
+  return s;
+}
 function battle(pLeader, cLeader, fp = [0, 1, 2], fc = [0, 1, 2], opts) {
-  const s = E.createBattle(P, C, opts);
+  const s = oldScale(E.createBattle(P, C, opts));
   assert.ok(E.chooseFormation(s, 'player', fp, pLeader).ok);
   assert.ok(E.chooseFormation(s, 'cpu', fc, cLeader).ok);
   assert.ok(E.rollInitiative(s, playerFirst()).ok);
@@ -142,7 +147,7 @@ test('再戦（新しい戦闘）ではリーダー・構成・最大HPが初期
   assert.equal(s.teams.player[0].maxHp, 132);
   const n = E.createBattle(P, C);
   assert.deepEqual(n.leader, { player: null, cpu: null });
-  assert.equal(n.teams.player[0].maxHp, 120);
+  assert.equal(n.teams.player[0].maxHp, E.charPower('ryogen', 1).hp);
   assert.deepEqual(n.teams.player[0].loadout, [0, 1, 2, 3, 4, 5]);
 });
 

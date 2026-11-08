@@ -67,8 +67,8 @@
   const levelTag = lv => `<span class="lv-tag">Lv${lv}</span>`;
   function moveEffText(m) {
     const parts = [];
-    if (m.atk > 0) parts.push('攻' + m.atk);
-    if (m.heal > 0) parts.push('回' + m.heal);
+    if (m.atk > 0) parts.push('攻×' + m.atk);   // 技の数字は倍率（攻撃力×数字）
+    if (m.heal > 0) parts.push('回×' + m.heal);
     return parts.length ? parts.join('+') : '—';
   }
   // loadout の順（出目1〜6）で技を並べる
