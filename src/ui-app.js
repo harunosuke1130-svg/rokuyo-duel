@@ -11,7 +11,7 @@
   const BK = window.RikuyouBackend;
   const CPU = window.RikuyouCPU;
   const D = window.RikuyouData;
-  const { E, CONFIG, rng, $, esc, emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, openModal, closeModal, toast, showScreen } = U;
+  const { E, CONFIG, rng, $, esc, emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, levelTag, moveEffText, movesList, leaderBox, traitBox, openModal, closeModal, toast, showScreen } = U;
 
   const app = {
     backend: null,
@@ -329,6 +329,7 @@
       ${movesList(ch, null, lo)}
       <button type="button" class="btn btn-small btn-ghost btn-block btn-edit" data-edit="${esc(id)}">技の入れ替え・並べ替え</button>
       <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
+      ${traitBox(ch)}
       ${leaderBox(ch, lead ? 'リーダー' : '')}
       <div class="modal-actions">
         ${inTeam ? `${lead ? '' : '<button type="button" class="btn btn-primary btn-block" id="btn-tc-leader">リーダーにする</button>'}<button type="button" class="btn btn-ghost btn-block" id="btn-tc-toggle">チームから外す</button>`
@@ -1373,6 +1374,7 @@
       <p class="muted">技力の上限 ${E.loadoutBudget(id, lv)}（Lv${lv}）。「Lv○〜」の技はそのレベルから入れ替えに使えます。</p>
       <ul class="moves">${moves}</ul>
       <div class="effect-box"><b>固有スキル「${esc(ch.skill.name)}」</b> CD${ch.skill.cd}<br><span class="muted">${esc(ch.skill.text)}</span></div>
+      ${traitBox(ch)}
       ${leaderBox(ch)}
       <div class="modal-actions"><button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button></div>`, { kind: 'zukan' });
   }
@@ -1397,7 +1399,9 @@
       <h4>成長</h4>
       <ul class="help-list">
         <li><b>攻撃力・回復力</b>：技の数字は倍率です。ダメージ＝攻撃力×技の攻撃、回復＝回復力×技の回復（固有スキルの数字も同じ）。基準は★で決まり（★1 ${CONFIG.POWER.stars[1]}・★2 ${CONFIG.POWER.stars[2]}・★3 ${CONFIG.POWER.stars[3]}・★4 ${CONFIG.POWER.stars[4]}）、属性の特色が付きます（猛火は攻撃力が高い、水脈は回復力が高い、自然は HP が高い など）。</li>
-        <li><b>技の効果</b>：一部の技には効果が付いています。吸収（与えたダメージの30%を自分が回復）・毒（敵のターンの始めにダメージ。毒では倒れない）・攻撃力↓／回復力↓（2ターン25%ダウン）・3段（結界は最初の1回だけ軽くする）・ピンチ（HP30%以下で攻撃2倍）・¼結界（自分の次の被ダメージを4分の1に）。</li>
+        <li><b>技の効果</b>：一部の技には効果が付いています。吸収（与えたダメージの30%を自分が回復）・毒（敵のターンの始めにダメージ。毒では倒れない）・攻撃力↓／回復力↓（2ターン25%ダウン）・3段（結界は最初の1回だけ軽くする）・反撃（自分がピンチ＝HP3割以下なら攻撃2倍）・¼結界（自分の次の被ダメージを4分の1に）。</li>
+        <li><b>特性</b>：★3以上の多くのキャラが持つ、ずっと効く力です。追撃（相手がピンチならもう1回、2回目は半分）・先手（最初のターンだけ攻撃1.5倍）・根性（1戦に1回、HP1で耐える）・毒に強い（毒にならない）。リーダースキルにも「反撃」があります。</li>
+        <li><b>後衛は伏せる</b>：ダンジョン以外の対戦では、相手の後衛は「？」のカードになり、前衛に出るか、後衛から固有スキルを使うまで分かりません。リーダーは最初から見えます。</li>
         <li><b>レベル</b>：1レベルごとに最大HP+4%（Lv31〜90は+3%、Lv91からは+1%）、攻撃力と回復力も上がります（Lv1 で 10 なら Lv30 で約 29）。30レベルごとに止まり、<b>結晶</b>（ダンジョン・CPU対戦の勝利で手に入る）で<b>限界突破</b>すると、次の30レベルへ進めます。</li>
         <li><b>かけら</b>：ガチャで持っているキャラが出たとき「かけらとして残す」を選ぶと手に入ります。編成のキャラの詳細で、好きなキャラの経験値（1個${D.ECONOMY.kakeraExp}）にできます。</li>
         <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>

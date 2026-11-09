@@ -2597,3 +2597,9 @@ body[data-screen="gacha"] .topbar {
   .fx-poison::before, .fx-poison::after, .fx-drain::before, .fx-drain::after, .fx-weak::before, .fx-weak::after,
   .fx-multi::after, .fx-pinch::before, .fx-pinch::after, .fx-guard::before, .fx-guard::after { animation: fxStill .6s linear !important; }
 }
+
+/* 相手の後衛を伏せる（2026-11-09） */
+.bt-card.veiled .bt-art { display: flex; align-items: center; justify-content: center; background: repeating-linear-gradient(135deg, #2a2433 0 8px, #241f2c 8px 16px); border: 1px dashed rgba(255, 255, 255, .25); }
+.bt-veil { font-family: var(--mincho); font-size: 30px; font-weight: 700; color: rgba(255, 255, 255, .55); text-shadow: 0 0 8px rgba(0, 0, 0, .6); }
+.bt-veil-note { font-size: 10px; color: rgba(255, 255, 255, .6); }
+.trait-box { border-left: 3px solid #7fb8ff; }

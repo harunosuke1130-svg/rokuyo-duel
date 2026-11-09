@@ -14,7 +14,7 @@
   const U = window.RikuyouUI;
   const CPU = window.RikuyouCPU;
   const Dice = window.RikuyouDice;
-  const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, openModal, closeModal, toast } = U;
+  const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, traitBox, openModal, closeModal, toast } = U;
 
   const bt = {
     active: false,
@@ -377,7 +377,7 @@
       const plain = p.move.atk * p.atkPow;
       const b = p.boosted !== plain ? `・強化後${atkNum(p.boosted)}` : '';
       html += `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">攻撃力${p.atkPow}×${p.move.atk}＝${plain}${b}</span></div><div class="chips">` +
-        p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.hits > 1 ? ` <i class="adv">${a.hits}段</i>` : ''}${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ` <i class="adv">${a.barrier === 'quarter' ? '4分の1結界' : '結界で半減'}</i>` : ''}</span>`).join('') + '</div>';
+        p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.hits > 1 ? ` <i class="adv">${a.hits}段</i>` : ''}${a.pursuit ? ` <i class="adv">追撃+${a.pursuit}</i>` : ''}${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ` <i class="adv">${a.barrier === 'quarter' ? '4分の1結界' : '結界で半減'}</i>` : ''}</span>`).join('') + '</div>';
     } else if (p.move.atk > 0) {
       html += '<div class="pv-line muted">攻撃できる敵前衛がいません</div>';
     }
@@ -398,7 +398,7 @@
     if (f.type === 'poison') return `毒：当たった敵はターンの始めに${f.amount}ダメージ×${f.turns}回（毒では倒れない）`;
     if (f.type === 'weaken') return `当たった敵の${f.stat === 'heal' ? '回復力' : '攻撃力'}を${f.percent}%下げる（${f.turns}ターン）`;
     if (f.type === 'multi') return `${f.hits}段攻撃：結界は最初の1回だけを軽くして消える`;
-    if (f.type === 'pinch') return f.active ? `ピンチ：HPが${f.under}%以下なので攻撃${f.mult}倍！` : `ピンチ：HPが${f.under}%以下なら攻撃${f.mult}倍（今は通常）`;
+    if (f.type === 'pinch') return f.active ? `反撃：HPが${f.under}%以下なので攻撃${f.mult}倍！` : `反撃：HPが${f.under}%以下なら攻撃${f.mult}倍（今は通常）`;
     if (f.type === 'guard') return '自分に4分の1結界（次に受ける防げるダメージ1回を4分の1に）';
     return '';
   }
@@ -433,6 +433,13 @@
   function unitCard(side, i, kind) {
     const s = bt.state;
     const u = s.teams[side][i];
+    // 相手の後衛で、まだ確認していないキャラは「？」の伏せたカード（ダンジョン以外。前衛に出る・後衛から固有スキルを使うと分かる）
+    if (side === bt.foe && kind === 'back' && s.phase !== 'formation' && E.isHidden(s, side, i)) {
+      return `<div class="bt-card unit-card back foe veiled" data-side="${side}" data-idx="${i}" data-pos="back" data-veiled="1">
+        <span class="bt-art" role="img" aria-label="相手の後衛（まだ分からない）"><span class="bt-veil" aria-hidden="true">？</span></span>
+        <span class="bt-backline"><span class="bt-veil-note">未確認</span></span>
+      </div>`;
+    }
     const ch = E.unitChar(u);
     const hidden = side === bt.foe && s.phase === 'formation';
     const mine = side === bt.me;
@@ -911,15 +918,16 @@
           floatAt(card, '-' + d, 'dmg multi', -18 + k * 16, actEl);
         }, k * 170));
         releaseAt = parts.length * 170;
-        schedule(() => floatAt(card, `${parts.length}HIT 計${ev.amount}`, 'combo', -46), releaseAt);
+        schedule(() => floatAt(card, ev.pursuit ? `追撃！ 計${ev.amount}` : `${parts.length}HIT 計${ev.amount}`, 'combo', -46), releaseAt);
       } else {
         cardFx(card, 'hit', actEl);
         flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
         floatAt(card, '-' + ev.amount, 'dmg', 0, actEl);
       }
-      // 毒・弱体がかかった
+      if (ev.guts) schedule(() => { cardFx(card, 'guard'); floatAt(card, '根性！', 'guard', -40); }, releaseAt + (quick ? 0 : 120));
+      // 毒・弱体がかかった（毒に強いキャラは効かない）
       if (ev.status) {
-        const label = { poison: '毒', weakAtk: '攻撃力ダウン', weakHeal: '回復力ダウン' }[ev.status];
+        const label = { poison: '毒', weakAtk: '攻撃力ダウン', weakHeal: '回復力ダウン', resist: '毒に強い' }[ev.status];
         schedule(() => {
           cardFx(card, ev.status === 'poison' ? 'poison' : 'weak');
           floatAt(card, label, ev.status === 'poison' ? 'poison' : 'weak', 26);
@@ -967,7 +975,8 @@
       const c = cardOf(actEv.side, actEv.idx);
       if (c) { c.style.setProperty('--act-el', `var(--el-${actEl || 'holy'})`); flash(c, actEv.side === bt.me ? 'act-up' : 'act-down'); }
       // ピンチ：赤い気がふくらむ
-      if (c && actEv.pinch) { cardFx(c, 'pinch'); floatAt(c, 'ピンチ！攻撃×2', 'pinch', -30); }
+      if (c && actEv.pinch) { cardFx(c, 'pinch'); floatAt(c, '反撃！攻撃×2', 'pinch', -30); }
+      if (c && actEv.firstStrike) { cardFx(c, 'pinch'); floatAt(c, '先手！攻撃×1.5', 'pinch', -30); }
     }
     const groups = [];
     events.forEach(ev => {
@@ -1393,6 +1402,7 @@
           ${swapHtml}
           <details class="dt-more sk-more"><summary>通常技（出目1〜6）・リーダースキル</summary>
             ${movesList(ch, mine && myActing(s) && inFront ? s.dice : null, u.loadout)}
+            ${traitBox(ch)}
             ${ch.leaderSkill ? leaderBox(ch, isLeader ? 'このチームのリーダー（発動中）' : '') : '<p class="muted">ダンジョンの敵です（リーダースキルなし）。</p>'}
           </details>
           <div class="modal-actions sk-close"><button type="button" class="btn btn-ghost btn-block" data-close="1">閉じる</button></div>
@@ -1483,6 +1493,7 @@
         return;
       }
       const card = e.target.closest('.bt-card[data-idx]');
+      if (card && card.dataset.veiled) { toast('相手の後衛はまだ分かりません（前衛に出るか、固有スキルを使うと分かります）'); return; }
       if (card) showDetailModal(card.dataset.side, Number(card.dataset.idx));
     };
     ['#ally-front', '#ally-back', '#enemy-front', '#enemy-back'].forEach(sel => $(sel).addEventListener('click', cardClick));

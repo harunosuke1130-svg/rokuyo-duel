@@ -664,7 +664,8 @@ test('技の効果：毒は相手のターンの始めに減り、毒では倒�
   const s = fxBattle([5, 1, 2]);
   E.roll(s, 'player', fixed(5)); // 灼熱の陽射し（毒：攻撃力1×3 を3回）
   E.useMove(s, 'player', 5);
-  const t = s.teams.cpu[0];
+  assert.equal(s.teams.cpu[0].poison, undefined, '翠樹の薬師は「毒に強い」（特性）で毒にならない');
+  const t = s.teams.cpu[1];   // 雷鳴の渡り鳥
   assert.equal(t.poison.turns, 2, '相手のターンの始めに1回減った');
   t.hp = 2;
   cpuMove(s, 1);        // 相手の行動
@@ -691,6 +692,7 @@ test('技の効果：攻撃力ダウンは相手の攻撃を下げ、相手の�
 });
 test('技の効果：3段攻撃は結界を最初の1回だけ軽くして消す', () => {
   const s = fxBattle([1, 0, 2]);
+  s.turnCount.player = 2;   // 紅炎の戦斧士の「先手」（最初のターンだけ1.5倍）を外して確かめる
   s.teams.cpu[0].barrier = true;
   E.roll(s, 'player', fixed(3)); // 炎の薙ぎ払い 22（3段）
   const pv = E.previewMove(s, 'player', 1);
@@ -738,3 +740,62 @@ test('技の効果：効果の分だけ技力に数え、★の決め方（攻�
   E.CHARACTERS.forEach(c => assert.ok(c.moves.filter(x => x.fx).length <= 2, c.name + 'の効果付きの技は2つまで'));
 });
 function D_COST() { return E.CONFIG.MOVE_FX_COST; }
+
+// 特性・反撃（2026-11-09）
+test('特性：追撃は相手がピンチなら、もう1回（1回目の半分）', () => {
+  const s = oldScale(E.createBattle(['ryogen', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'], C));
+  E.chooseFormation(s, 'player', [0, 1, 2], null); E.chooseFormation(s, 'cpu', [0, 1, 2], null); E.rollInitiative(s, playerFirst());
+  s.turnCount.player = 2;
+  s.teams.cpu[1].hp = 30;   // 雷鳴（最大105）はピンチ
+  E.roll(s, 'player', fixed(2)); // 斬り払い 14
+  const pv = E.previewMove(s, 'player', 0);
+  assert.equal(pv.attacks[1].damage, 14 + 7, '14＋追撃7');
+  assert.equal(pv.attacks[1].pursuit, 7);
+  assert.equal(pv.attacks[2].pursuit, undefined, '満タンの相手には追撃なし');
+  const r = E.useMove(s, 'player', 0);
+  assert.equal(s.teams.cpu[1].hp, 30 - 21);
+  assert.deepEqual(r.events.find(e => e.type === 'damage' && e.idx === 1).parts, [14, 7]);
+});
+test('特性：先手は最初のターンだけ1.5倍、根性は1戦に1回 HP1 で耐える', () => {
+  const s = oldScale(E.createBattle(['senpu', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'], ['kohaku', 'raimei', 'mukai', 'suiju', 'gessen', 'ryogen']));
+  E.chooseFormation(s, 'player', [0, 1, 2], null); E.chooseFormation(s, 'cpu', [0, 1, 2], null); E.rollInitiative(s, playerFirst());
+  E.roll(s, 'player', fixed(1)); // 斧振り 22 → 先手で 33
+  s.teams.cpu[0].hp = 20;        // 琥珀の守人（根性）
+  const r = E.useMove(s, 'player', 0);
+  assert.ok(r.events.some(e => e.type === 'move' && e.firstStrike));
+  assert.equal(s.teams.cpu[0].hp, 1, '根性で HP1');
+  assert.equal(s.teams.cpu[2].hp, 130 - 33, '霧海は 22×1.5=33');
+  assert.ok(s.log.some(l => l.text.includes('根性で耐えた')));
+  // 2回目の根性は無い
+  cpuMove(s, 1);
+  E.roll(s, 'player', fixed(1));
+  E.useMove(s, 'player', 0);
+  assert.equal(s.teams.cpu[0].hp, 0, '2回目は倒れる');
+});
+test('リーダースキル：反撃は攻撃するキャラ自身がピンチなら2倍（技の反撃と重ならない）', () => {
+  const s = oldScale(E.createBattle(['kagerou', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'kokuyou'], C));
+  E.chooseFormation(s, 'player', [5, 1, 2], 0); E.chooseFormation(s, 'cpu', [0, 1, 2], null); E.rollInitiative(s, playerFirst());
+  s.turnCount.player = 2;
+  E.roll(s, 'player', fixed(1)); // 黒曜の剣 18
+  assert.equal(E.previewMove(s, 'player', 5).attacks[2].damage, 18, '満タンでは通常');
+  s.teams.player[5].hp = 20;
+  assert.equal(E.previewMove(s, 'player', 5).attacks[2].damage, 36, 'リーダーの反撃で2倍');
+  s.dice = 4; // 夜断ち（技の効果も反撃）でも 4 倍にはならない
+  const m = E.unitMove(s.teams.player[5], 4);
+  assert.equal(E.previewMove(s, 'player', 5).attacks[2].damage, m.atk * 2);
+});
+test('後衛を伏せる：前衛に出る・後衛から固有スキルを使う・リーダーで確認済み。ダンジョンは伏せない', () => {
+  const s = oldScale(E.createBattle(P, C));
+  assert.equal(s.hideBack, true);
+  E.chooseFormation(s, 'player', [0, 1, 2], 4); E.chooseFormation(s, 'cpu', [0, 1, 2], null); E.rollInitiative(s, playerFirst());
+  assert.deepEqual([0, 1, 2, 3, 4, 5].map(i => E.isHidden(s, 'player', i)), [false, false, false, true, false, true], 'リーダー（4）は見える');
+  assert.ok(s.log.some(l => l.text.includes('後衛：3体（相手には伏せている）')), '配置の記録に後衛の名前を出さない');
+  E.roll(s, 'player', fixed(1));
+  assert.ok(E.swap(s, 'player', 0, 3).ok);
+  assert.equal(E.isHidden(s, 'player', 3), false, '前衛に出たら分かる');
+  assert.equal(E.isHidden(s, 'player', 0), false, '一度分かったら後衛に戻っても見える');
+  assert.ok(E.useSkill(s, 'player', 5, fixed(1)).ok);
+  assert.equal(E.isHidden(s, 'player', 5), false, '後衛から固有スキルを使ったら分かる');
+  const d = E.createBattle(P, ['b-goblin'], { enemyKind: 'boss' });
+  assert.equal(d.hideBack, false);
+});

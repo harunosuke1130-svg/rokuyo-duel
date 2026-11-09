@@ -31,7 +31,8 @@
    - `name`（○○の△△ の形が基本）、`glyph`（漢字 1 文字。絵が無いときの紋章）、`maxHp`、`element`（`fire` 猛火 / `water` 水脈 / `nature` 自然 / `holy` 聖光 / `dark` 呪闇）、`subTypes`（副属性 1〜2 個。表示のみ）。
    - `moves`：**9 個**。先頭 6 個が初期の出目 1〜6。7・8・9 個目は Lv3・6・10 で解放される技。各技は `{ name, atk, heal }`（攻撃しない技は `atk: 0`）。技名は重複させない。
    - `skill`：固有スキル `{ name, cd, text, effects }`。`effects` の種類は `data.js` 冒頭のコメント（`atkMultiplier` / `atkBonus` / `heal` / `barrier` / `reroll` / `damage` / `fatigueReset`。`chooseDice` は★4の暁星の占星術師専用）から選ぶ。`text` には対象範囲（「敵前衛全員」「味方前衛全員」など）を必ず書く。
-   - `leaderSkill`：`{ name, text, effects }`。種類は `maxHp` / `atkBonus` / `healBonus` / `skillDamageBonus` / `skillHealBonus` / `startBarrier` / `regen` / `lowDice`（`regen`・`lowDice` は★4専用の効果として作ったもの）。
+   - `leaderSkill`：`{ name, text, effects }`。種類は `maxHp` / `atkBonus` / `healBonus` / `skillDamageBonus` / `skillHealBonus` / `startBarrier` / `regen` / `lowDice`（`regen`・`lowDice` は★4専用の効果として作ったもの）/ `counter`（反撃：攻撃するキャラ自身が HP3割以下なら攻撃2倍）。
+   - `trait`（特性・**★3 以上に 1 つ**。★2 以下は付けない）：`{ name, text, effects }`。種類は `pursuit`（追撃：相手がピンチならもう1回、2回目は1回目の半分）/ `firstStrike`（先手：最初のターンだけ攻撃1.5倍）/ `guts`（根性：1戦に1回 HP1 で耐える）/ `poisonResist`（毒に強い）。形は既存のキャラ（例：燎原の剣士）を見る。
 3. **強さを既存に合わせる**。
    - ランク（★）は自動で決まる：基礎 HP ＋ 初期 6 技の攻撃の平均 ＋ 回復の平均（`E.rankParts`）。`RANKS` の境界（★3 は 130 以上）。
      ★1 は合計 110 未満（目安 90〜107）、★2 は 110〜129（目安 112〜127）、★3 は 130〜194（目安 135〜180）、★4 は 195 以上。境界ぎりぎりは避ける。

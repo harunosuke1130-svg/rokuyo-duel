@@ -85,6 +85,12 @@
   // 生存している後衛
   const backAlive = (state, side) => aliveIndexes(state, side).filter(i => !isFront(state, side, i));
 
+  // 後衛を伏せる：確認済みにする／相手から見て伏せているか（決着後はすべて見せる）
+  function reveal(state, side, idx) { if (state.seen && state.seen[side]) state.seen[side][idx] = true; }
+  function isHidden(state, side, idx) {
+    return !!(state.hideBack && state.phase !== 'over' && state.seen && state.seen[side] && !state.seen[side][idx]);
+  }
+
   /* ---------- 計算 ---------- */
   function hasAdvantage(attackElement, defendElement) {
     const list = ELEMENT_ADVANTAGE[attackElement];
@@ -214,14 +220,35 @@
     return { mult: b.mult, bonus: b.bonus + leaderAtkBonus(state, side, unitChar(unit)) + lowDiceBonus(state, side, 'atk', dice), power: unitAtk(unit) };
   }
   // 技の効果込みの攻撃強化（ピンチ：HP が少ないと倍）
+  // 反撃：使うキャラ自身が HP under% 以下なら攻撃 mult 倍（技の効果 pinch とリーダースキル counter。重ねても1回だけ）
+  // 先手（特性 firstStrike）：自分の陣営の最初のターンだけ攻撃 mult 倍
   function moveBoost(state, side, unit, move, dice) {
     const b = attackBoost(state, side, unit, dice);
     const fx = move && move.fx;
-    if (fx && fx.type === 'pinch' && unit.hp > 0 && unit.hp * 100 <= unit.maxHp * fx.under) { b.mult *= fx.mult; b.pinch = true; }
+    const src = (fx && fx.type === 'pinch') ? fx : leaderEffects(state, side).find(e => e.type === 'counter');
+    if (src && unit.hp > 0 && unit.hp * 100 <= unit.maxHp * src.under) { b.mult *= src.mult; b.pinch = true; }
+    const fs = traitOf(unit, 'firstStrike');
+    if (fs && state.turnCount && state.turnCount[side] === 1) { b.mult *= fs.mult; b.firstStrike = true; }
     return b;
   }
+  // 特性（キャラにずっと付いている効果）
+  function traitOf(unit, type) {
+    const t = unit && unitChar(unit) && unitChar(unit).trait;
+    return t ? (t.effects || []).find(e => e.type === type) || null : null;
+  }
   // 1体への攻撃（連撃は回数に分けて当て、結界は最初の1回だけ）。状態は変えない
-  function attackOn(move, boost, ch, t) {
+  function attackOn(move, boost, ch, t, attacker) {
+    const r = attackHits(move, boost, ch, t);
+    // 追撃（特性 pursuit）：相手がピンチなら、もう1回（1回目の percent%）
+    const pu = traitOf(attacker, 'pursuit');
+    if (pu && r.damage > 0 && t.hp > 0 && t.hp * 100 <= t.maxHp * pu.under) {
+      const extra = Math.round(r.damage * pu.percent / 100);
+      const parts = (r.parts || [r.damage]).concat([extra]);
+      return Object.assign({}, r, { damage: r.damage + extra, parts, pursuit: extra, hits: r.hits || 1 });
+    }
+    return r;
+  }
+  function attackHits(move, boost, ch, t) {
     const hits = move.fx && move.fx.type === 'multi' ? Math.max(1, move.fx.hits | 0) : 1;
     if (hits === 1) return Object.assign({ hits: 1 }, computeAttack(move.atk, boost, ch, t));
     const per = Object.assign({}, boost, { mult: (boost.mult || 1) / hits, bonus: (boost.bonus || 0) / hits });
@@ -389,6 +416,9 @@
       log: [],
       seq: 0
     }, freshTurnFlags());
+    // 後衛を伏せる（ダンジョン以外）：前衛に出る・後衛から固有スキルを使う・リーダーになると「確認済み」
+    st.hideBack = !(opts && (opts.enemyKind === 'boss' || opts.hideBack === false));
+    st.seen = { player: st.teams.player.map(() => false), cpu: st.teams.cpu.map(() => false) };
     const startHp = (opts && opts.startHp) || {};
     SIDES.forEach(side => {
       const hp = startHp[side];
@@ -439,8 +469,14 @@
   function damageUnit(state, ctx, side, idx, damage, consumeBarrier, extra) {
     const unit = state.teams[side][idx];
     if (consumeBarrier && unit.barrier) unit.barrier = false;
+    // 根性（特性 guts）：1戦に1回、倒れるダメージでも HP1 で耐える（HP が2以上のとき）
+    let guts = false;
+    if (damage >= unit.hp && unit.hp > 1 && !unit.gutsUsed && traitOf(unit, 'guts')) {
+      damage = unit.hp - 1; unit.gutsUsed = true; guts = true;
+      addLog(state, ctx, `${team(state, side)}の${unitName(unit)}は根性で耐えた！（HP1）`, 'info');
+    }
     unit.hp = Math.max(0, unit.hp - damage);
-    const ev = Object.assign({ type: 'damage', side, idx, amount: damage }, extra || {});
+    const ev = Object.assign({ type: 'damage', side, idx, amount: damage }, extra || {}, guts ? { guts: true } : {});
     ctx.events.push(ev);
     return ev;
   }
@@ -536,7 +572,10 @@
     state.leader[side] = leaderIdx;
     const names = i => unitName(state.teams[side][i]);
     const back = state.teams[side].map((u, i) => i).filter(i => frontIdxs.indexOf(i) < 0);
-    addLog(state, ctx, `${team(state, side)}の配置　前衛：${frontIdxs.map(names).join('・')}　後衛：${back.map(names).join('・')}`, 'switch');
+    frontIdxs.forEach(i => reveal(state, side, i));
+    if (leaderIdx !== null) reveal(state, side, leaderIdx);
+    const backText = state.hideBack ? `${back.length}体（相手には伏せている）` : back.map(names).join('・');
+    addLog(state, ctx, `${team(state, side)}の配置　前衛：${frontIdxs.map(names).join('・')}　後衛：${backText}`, 'switch');
     if (leaderIdx !== null) {
       const ls = unitChar(state.teams[side][leaderIdx]).leaderSkill;
       addLog(state, ctx, `${team(state, side)}のリーダー：${names(leaderIdx)}「${ls.name}」${ls.text}`, 'skill');
@@ -642,6 +681,7 @@
     const ctx = newCtx();
     const slot = state.front[side].indexOf(frontIdx);
     state.front[side][slot] = backIdx;
+    reveal(state, side, backIdx);
     state.swapUsed = true;
     addLog(state, ctx, `${team(state, side)}の交代：${unitName(f)}が後衛へ下がり、${unitName(b)}が前衛に出た`, 'switch');
     ctx.events.push({ type: 'switch', side, out: frontIdx, in: backIdx });
@@ -677,6 +717,7 @@
     const ctx = newCtx();
     state.skillUsed = true;
     state.skillUsedBy = userIdx;
+    reveal(state, side, userIdx);
     user.cd = skill.cd;
     addLog(state, ctx, `${team(state, side)}の${unitName(user)}が固有スキル「${skill.name}」を使った（CD${skill.cd}）`, 'skill');
     ctx.events.push({ type: 'skill', side, idx: userIdx, name: skill.name });
@@ -757,7 +798,7 @@
     const ctx = newCtx();
     state.moveUsed = true;
     addLog(state, ctx, `${team(state, side)}の${ch.name}の通常技［出目${state.dice}］「${move.name}」`, 'move');
-    ctx.events.push(Object.assign({ type: 'move', side, idx, dice: state.dice, name: move.name }, move.fx ? { fx: move.fx.type } : {}, boost.pinch ? { pinch: true } : {}));
+    ctx.events.push(Object.assign({ type: 'move', side, idx, dice: state.dice, name: move.name }, move.fx ? { fx: move.fx.type } : {}, boost.pinch ? { pinch: true } : {}, boost.firstStrike ? { firstStrike: true } : {}));
 
     const targetSide = opp(side);
     let attacked = false;
@@ -767,20 +808,25 @@
       let total = 0;
       const parts = targets.map(i => {
         const t = state.teams[targetSide][i];
-        const r = attackOn(move, boost, ch, t);
-        const dev = damageUnit(state, ctx, targetSide, i, r.damage, r.barrier, r.hits > 1 ? { parts: r.parts } : null);
+        const r = attackOn(move, boost, ch, t, unit);
+        const dev = damageUnit(state, ctx, targetSide, i, r.damage, r.barrier, r.parts && r.parts.length > 1 ? { parts: r.parts, pursuit: !!r.pursuit } : null);
         total += r.damage;
         const notes = [];
         if (r.hits > 1) notes.push(`${r.hits}段`);
+        if (r.pursuit) notes.push(`追撃+${r.pursuit}`);
+        if (dev.guts) notes.push('根性で耐えた');
         if (r.advantage) notes.push('属性有利');
         if (r.barrier) notes.push(r.barrier === 'quarter' ? '4分の1結界' : '結界で半減');
         // 毒・弱体（当たった敵に）
-        if (t.hp > 0 && fx && fx.type === 'poison') { t.poison = { amount: fx.value * unitAtk(unit), turns: fx.turns }; notes.push('毒'); dev.status = 'poison'; }
+        if (t.hp > 0 && fx && fx.type === 'poison') {
+          if (traitOf(t, 'poisonResist')) { notes.push('毒に強い'); dev.status = 'resist'; }
+          else { t.poison = { amount: fx.value * unitAtk(unit), turns: fx.turns }; notes.push('毒'); dev.status = 'poison'; }
+        }
         if (t.hp > 0 && fx && fx.type === 'weaken') { t[fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'] = { percent: fx.percent, turns: fx.turns }; notes.push(fx.stat === 'heal' ? '回復力ダウン' : '攻撃力ダウン'); dev.status = fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'; }
         return `${unitName(t)} ${r.damage}${notes.length ? '（' + notes.join('・') + '）' : ''}（HP ${t.hp}/${t.maxHp}）`;
       });
       const boostNote = (boost.mult !== 1 || boost.bonus) ? `・強化後×${move.atk * boost.mult + boost.bonus}` : '';
-      addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}${boost.pinch ? '・ピンチで2倍' : ''}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
+      addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}${boost.pinch ? '・反撃で2倍' : ''}${boost.firstStrike ? '・先手で1.5倍' : ''}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
       attacked = targets.length > 0;
       // 吸収：与えたダメージの一部で自分を回復
       if (fx && fx.type === 'drain' && total > 0 && unit.hp > 0) {
@@ -813,6 +859,7 @@
     if (isFront(state, side, idx)) return fail('そのキャラはすでに前衛です');
     const ctx = newCtx();
     state.front[side].push(idx);
+    reveal(state, side, idx);
     state.pendingReplace.need--;
     addLog(state, ctx, `${team(state, side)}の前衛補充：${unitName(unit)}が前衛に出た`, 'switch');
     ctx.events.push({ type: 'switch', side, in: idx });
@@ -836,7 +883,7 @@
     const boost = moveBoost(state, side, unit, move, d);
     const attacks = move.atk > 0 ? frontAlive(state, targetSide).map(i => {
       const t = state.teams[targetSide][i];
-      return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, attackOn(move, boost, ch, t));
+      return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, attackOn(move, boost, ch, t, unit));
     }) : [];
     const round = Math.max(1, fatigueRound(state, side));
     const healBase = moveHealBase(state, side, move, d, unit);
@@ -888,7 +935,7 @@
     createRng, rollDie, normalizeThrow, throwOffset, throwDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, fatigueRound, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
-    rankParts, starsOf, movePower, fxCost, moveBoost, attackOn, unitAtk, unitHeal, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
+    rankParts, starsOf, movePower, fxCost, traitOf, reveal, isHidden, moveBoost, attackOn, unitAtk, unitHeal, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, lowDiceBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus, levelGrowth, basePower, baseMaxHp, charPower,

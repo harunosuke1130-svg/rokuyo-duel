@@ -437,8 +437,15 @@ test('mobile: 戦闘画面（サイコロで数字・カードの絵で詳細・
   await H.formation(page, [0, 1, 2], 0);
   await H.waitMyRoll(page);
   // カードに★と属性枠（属性ごとの色×ランクの濃さ）
-  const cards = await page.$$eval('#screen-battle .bt-card[data-idx]', cs => cs.map(c => ({ el: c.dataset.el, st: c.dataset.stars, stars: (c.querySelector('.stars') || {}).textContent || '', border: getComputedStyle(c).borderTopColor })));
+  const cards = await page.$$eval('#screen-battle .bt-card[data-idx]:not(.veiled)', cs => cs.map(c => ({ el: c.dataset.el, st: c.dataset.stars, stars: (c.querySelector('.stars') || {}).textContent || '', border: getComputedStyle(c).borderTopColor })));
   assert.ok(cards.length >= 6 && cards.every(c => c.el && /^[1-4]$/.test(c.st) && c.stars === '★'.repeat(Number(c.st))));
+  // 相手の後衛は伏せる（リーダー以外の、まだ前衛に出ていないキャラは「？」）。味方の後衛は見える
+  const sv = await H.state(page);
+  const hiddenIdx = [0, 1, 2, 3, 4, 5].filter(i => sv.front.cpu.indexOf(i) < 0 && sv.leader.cpu !== i && !sv.seen.cpu[i]);
+  assert.equal(await page.$$eval('#enemy-back .bt-card.veiled', c => c.length), hiddenIdx.length);
+  assert.ok(hiddenIdx.length >= 2);
+  assert.equal(await page.$$eval('#ally-back .bt-card.veiled', c => c.length), 0);
+  assert.ok(!(await page.textContent('#enemy-back')).includes(E.getChar(sv.teams.cpu[hiddenIdx[0]].charId).name), '伏せたキャラの名前は出ない');
   const s0 = await H.state(page);
   const ids = s0.teams.player.map(u => u.charId);
   const exp = Object.fromEntries(E.CHARACTERS.map(c => [c.id, E.starsOf(c.id)]));

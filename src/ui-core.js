@@ -66,7 +66,7 @@
   }
   const levelTag = lv => `<span class="lv-tag">Lv${lv}</span>`;
   // 技の効果の短い名前（技の一覧に出す）
-  const FX_LABEL = { drain: '吸収', poison: '毒', weaken: '弱体', multi: '3段', pinch: 'ピンチ', guard: '¼結界' };
+  const FX_LABEL = { drain: '吸収', poison: '毒', weaken: '弱体', multi: '3段', pinch: '反撃', guard: '¼結界' };
   function moveEffText(m) {
     const parts = [];
     if (m.atk > 0) parts.push('攻×' + m.atk);   // 技の数字は倍率（攻撃力×数字）
@@ -82,6 +82,11 @@
       const m = ch.moves[k];
       return `<li class="${hitDice === d + 1 ? 'hit' : ''}"><span class="num">${d + 1}</span><span>${esc(m.name)}</span><span class="eff">${moveEffText(m)}</span></li>`;
     }).join('') + '</ul>';
+  }
+  // 特性（キャラにずっと付いている効果。★3以上の多く）
+  function traitBox(ch) {
+    const t = ch && ch.trait;
+    return t ? `<div class="effect-box trait-box"><b>特性「${esc(t.name)}」</b><br><span class="muted">${esc(t.text)}</span></div>` : '';
   }
   function leaderBox(ch, note) {
     const ls = ch.leaderSkill;
@@ -285,7 +290,7 @@
 
   window.RikuyouUI = {
     E, CONFIG, FAST, DELAY, rng, $, esc, reducedMotion,
-    emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox,
+    emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox, traitBox,
     ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen, cardDrag
   };
 })();
