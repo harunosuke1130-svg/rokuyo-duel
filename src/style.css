@@ -2544,15 +2544,15 @@ body[data-screen="gacha"] .topbar {
 /* ---- dungeon-art: glacier ここまで ---- */
 
 /* 技の効果による状態（毒・弱体）2026-11-09 */
-.bt-tag.fx-poison { background: rgba(110, 40, 140, .85); color: #f3e6ff; }
-.bt-tag.fx-weak { background: rgba(60, 70, 110, .85); color: #e6ecff; }
-.badge.fx-poison { background: #6e2a8c; color: #fff; }
-.badge.fx-weak { background: #3c466e; color: #fff; }
+.bt-tag.st-poison { background: rgba(110, 40, 140, .85); color: #f3e6ff; }
+.bt-tag.st-weak { background: rgba(60, 70, 110, .85); color: #e6ecff; }
+.badge.st-poison { background: #6e2a8c; color: #fff; }
+.badge.st-weak { background: #3c466e; color: #fff; }
 .pv-range.fx { background: #6b5a2e; color: #fff6dc; }
 
 /* ---------- 技の効果の演出（2026-11-09）：表示だけ。結果は Engine が決めたもの ---------- */
 /* 毒：紫の泡がぶくぶく立ちのぼり、毒々しい色がにじむ */
-.fx-poison::before { background: radial-gradient(circle at 50% 70%, rgba(170, 60, 210, .55) 0, rgba(110, 30, 150, .25) 40%, transparent 70%); animation: fxBurst .7s ease-out; }
+.fx-poison::before { background: radial-gradient(closest-side at 50% 60%, rgba(170, 60, 210, .55) 0, rgba(110, 30, 150, .25) 55%, transparent 100%); animation: fxBurst .7s ease-out; }
 .fx-poison::after {
   background:
     radial-gradient(circle, rgba(220, 140, 255, .95) 0 4px, transparent 5px) 22% 80% / 14px 14px no-repeat,
@@ -2564,25 +2564,22 @@ body[data-screen="gacha"] .topbar {
 }
 @keyframes fxBubbles { 0% { opacity: 0; transform: translateY(15%); } 25% { opacity: 1; } 100% { opacity: 0; transform: translateY(-55%); } }
 /* 吸収：赤い渦が内側へ吸い込まれる */
-.fx-drain::before { background: radial-gradient(circle, rgba(255, 70, 110, .55) 0, rgba(180, 20, 60, .25) 35%, transparent 65%); animation: fxBurst .6s ease-out reverse; }
+.fx-drain::before { background: radial-gradient(closest-side, rgba(255, 70, 110, .55) 0, rgba(180, 20, 60, .25) 50%, transparent 100%); animation: fxBurst .6s ease-out reverse; }
 .fx-drain::after { inset: 10%; border-radius: 50%; background: conic-gradient(from 0deg, transparent, rgba(255, 80, 120, .9), transparent 35%, rgba(255, 150, 170, .9), transparent 70%); animation: fxSuck .6s ease-in; }
 @keyframes fxSuck { 0% { opacity: 0; transform: rotate(0) scale(1.4); } 30% { opacity: 1; } 100% { opacity: 0; transform: rotate(-260deg) scale(.3); } }
 .fx-mote.drain { --fx: #ff4f7a; width: 10px; height: 10px; }
 /* 弱体：青い下向きの矢印が沈んでいく */
-.fx-weak::before { background: linear-gradient(180deg, rgba(90, 120, 220, .0), rgba(70, 100, 200, .45)); animation: fxBurst .6s ease-out; }
+.fx-weak::before { background: radial-gradient(closest-side at 50% 50%, rgba(25, 40, 130, .62) 0, rgba(30, 50, 150, .32) 55%, transparent 100%); animation: fxBurst .7s ease-out; }
 .fx-weak::after {
-  background:
-    linear-gradient(135deg, transparent 45%, rgba(150, 180, 255, .95) 45% 55%, transparent 55%) 25% 30% / 22px 22px no-repeat,
-    linear-gradient(225deg, transparent 45%, rgba(150, 180, 255, .95) 45% 55%, transparent 55%) 25% 30% / 22px 22px no-repeat,
-    linear-gradient(135deg, transparent 45%, rgba(170, 200, 255, .95) 45% 55%, transparent 55%) 60% 20% / 26px 26px no-repeat,
-    linear-gradient(225deg, transparent 45%, rgba(170, 200, 255, .95) 45% 55%, transparent 55%) 60% 20% / 26px 26px no-repeat;
+  content: "▼ ▼ ▼"; display: flex; justify-content: center; padding-top: 14%; letter-spacing: .3em;
+  font-size: 28px; line-height: 1; color: rgba(185, 210, 255, .95); text-shadow: 0 0 8px #3550d0, 0 1px 2px #000;
   animation: fxSink .7s ease-in;
 }
 @keyframes fxSink { 0% { opacity: 0; transform: translateY(-20%); } 30% { opacity: 1; } 100% { opacity: 0; transform: translateY(45%); } }
 /* 3段攻撃：当たるたびに白い斬り筋が走る（向きを変えて3本） */
 .fx-multi::after { background: linear-gradient(var(--ang, 35deg), transparent 46%, rgba(255, 255, 255, .95) 49%, rgba(255, 230, 190, .9) 51%, transparent 54%); animation: fxSlash .28s ease-out; }
 /* ピンチ：赤い気が燃え上がる */
-.fx-pinch::before { inset: -6%; background: radial-gradient(ellipse at 50% 60%, rgba(255, 60, 40, .6) 0, rgba(255, 120, 40, .3) 40%, transparent 70%); animation: fxPinch .75s ease-out; }
+.fx-pinch::before { inset: -6%; background: radial-gradient(closest-side at 50% 55%, rgba(255, 60, 40, .6) 0, rgba(255, 120, 40, .3) 55%, transparent 100%); animation: fxPinch .75s ease-out; }
 .fx-pinch::after { border: 3px solid rgba(255, 90, 60, .9); border-radius: 8px; box-shadow: 0 0 18px rgba(255, 70, 40, .9), inset 0 0 14px rgba(255, 90, 40, .6); animation: fxShield .75s ease-out; }
 @keyframes fxPinch { 0% { opacity: 0; transform: scale(.8); } 35% { opacity: 1; transform: scale(1.08); } 100% { opacity: 0; transform: scale(1.2); } }
 /* 4分の1結界：厚い金の六角の盾が二重に張られる */

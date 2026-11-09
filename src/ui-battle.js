@@ -361,9 +361,9 @@
     else if (E.isFront(state, side, i)) b.push('<span class="badge front">前衛</span>');
     else if (state.phase !== 'formation') b.push('<span class="badge bench">後衛</span>');
     if (u.barrier) b.push(`<span class="badge barrier">${u.barrier === 'quarter' ? '4分の1結界' : '結界'}</span>`);
-    if (u.hp > 0 && u.poison) b.push(`<span class="badge fx-poison">毒 残${u.poison.turns}</span>`);
-    if (u.hp > 0 && u.weakAtk) b.push(`<span class="badge fx-weak">攻撃力↓ 残${u.weakAtk.turns}</span>`);
-    if (u.hp > 0 && u.weakHeal) b.push(`<span class="badge fx-weak">回復力↓ 残${u.weakHeal.turns}</span>`);
+    if (u.hp > 0 && u.poison) b.push(`<span class="badge st-poison">毒 残${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) b.push(`<span class="badge st-weak">攻撃力↓ 残${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) b.push(`<span class="badge st-weak">回復力↓ 残${u.weakHeal.turns}</span>`);
     if (u.hp > 0) b.push(u.cd > 0 ? `<span class="badge cd">CD残${u.cd}</span>` : '<span class="badge ready">スキル可</span>');
     return b.join('');
   }
@@ -450,9 +450,9 @@
     const shield = u.hp > 0 && ((u.barrier && !(key in bt.barrierWait)) || key in bt.barrierHold);
     if (shield) tags.push(u.barrier === 'quarter' ? '<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">◈¼結界</span>' : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
     // 技の効果による状態（毒・攻撃力ダウン・回復力ダウン）。数字は残りの回数
-    if (u.hp > 0 && u.poison) tags.push(`<span class="bt-tag fx-poison" title="毒：ターンの始めに${u.poison.amount}ダメージ（あと${u.poison.turns}回・毒では倒れない）">☠${u.poison.turns}</span>`);
-    if (u.hp > 0 && u.weakAtk) tags.push(`<span class="bt-tag fx-weak" title="攻撃力${u.weakAtk.percent}%ダウン（あと${u.weakAtk.turns}ターン）">攻↓${u.weakAtk.turns}</span>`);
-    if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag fx-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">回↓${u.weakHeal.turns}</span>`);
+    if (u.hp > 0 && u.poison) tags.push(`<span class="bt-tag st-poison" title="毒：ターンの始めに${u.poison.amount}ダメージ（あと${u.poison.turns}回・毒では倒れない）">☠${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) tags.push(`<span class="bt-tag st-weak" title="攻撃力${u.weakAtk.percent}%ダウン（あと${u.weakAtk.turns}ターン）">攻↓${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag st-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">回↓${u.weakHeal.turns}</span>`);
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
     const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${hpState(u) === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
@@ -919,7 +919,7 @@
       }
       // 毒・弱体がかかった
       if (ev.status) {
-        const label = { poison: '毒', weakAtk: '攻撃力↓', weakHeal: '回復力↓' }[ev.status];
+        const label = { poison: '毒', weakAtk: '攻撃力ダウン', weakHeal: '回復力ダウン' }[ev.status];
         schedule(() => {
           cardFx(card, ev.status === 'poison' ? 'poison' : 'weak');
           floatAt(card, label, ev.status === 'poison' ? 'poison' : 'weak', 26);
@@ -1026,8 +1026,10 @@
       const lead = actEv && !U.FAST ? 200 : 0;
       fatigue.length && schedule(showFatigue, lead);
       const gapM = U.FAST ? 0 : 340;
-      groups.forEach((g, k) => schedule(() => playGroup(g), lead + k * gapM));
-      end = lead + groups.length * gapM;
+      // ターンの始めの毒は、技の当たり・「毒」の表示と重ならないよう少し遅らせる
+      const extra = g => (g.sub === 'poison' && !U.FAST ? 520 : 0);
+      groups.forEach((g, k) => schedule(() => playGroup(g), lead + k * gapM + extra(g)));
+      end = lead + groups.length * gapM + Math.max(0, ...groups.map(extra));
     }
     // 念のため：保持したHP・結界の膜・強化前の数字は最後に必ず戻す（演出が途中で切れても表示が正しい値になる）
     schedule(() => {
