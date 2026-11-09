@@ -563,7 +563,7 @@
       id: 'hakugin', name: '白銀の聖騎士', glyph: '銀', maxHp: 135, element: 'holy',
       subTypes: ['騎士', '守護者'],
       leaderSkill: { name: '聖騎士団の旗', text: '聖光属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 5 }] },
-      trait: { name: '聖騎士の誓い', text: '根性：1戦に1回、倒れるダメージを受けても HP1 で耐える（HP が2以上のとき）。', effects: [{ type: 'guts' }] },
+      trait: { name: '白銀の不屈', text: '根性：1戦に1回、倒れるダメージを受けても HP1 で耐える（HP が2以上のとき）。', effects: [{ type: 'guts' }] },
       moves: [
         { name: '銀の剣', atk: 18, heal: 0 },
         { name: '聖なる突き', atk: 24, heal: 0 },
@@ -1376,7 +1376,17 @@
       skill: { name: '白銀の毛皮', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
     { id: 'b-icequeen', name: '氷の女王セルシア', glyph: '雪', maxHp: 564, element: 'water', subTypes: ['王族', '魔術師'], rank: '大ボス',
       moves: [{ name: '氷晶の剣', atk: 33, heal: 0 }, { name: '霜の槍', atk: 31, heal: 0 }, { name: '氷の玉座', atk: 0, heal: 22 }, { name: '絶対零度', atk: 39, heal: 0 }, { name: '雪華の舞', atk: 22, heal: 6 }, { name: '永久凍土', atk: 53, heal: 0 }],
-      skill: { name: '白き終焉', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×31のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 31, ignoreDefense: true }] } }
+      skill: { name: '白き終焉', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×31のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 31, ignoreDefense: true }] } },
+    // 毒霧の大湿原（2026-11-09）
+    { id: 'b-bogfrog', name: 'ぬかるみの大蛙', glyph: '蛙', maxHp: 265, element: 'nature', subTypes: ['クリーチャー'], rank: '雑魚',
+      moves: [{ name: '舌の一撃', atk: 21, heal: 0 }, { name: '泥はね', atk: 17, heal: 0 }, { name: '沼にひたる', atk: 0, heal: 14 }, { name: '毒の唾', atk: 18, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } }, { name: 'のしかかり跳び', atk: 14, heal: 4 }, { name: '大跳躍', atk: 30, heal: 0 }],
+      skill: { name: '毒沼の泡', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×16のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 16 }] } },
+    { id: 'b-mantis', name: '翠刃の大蟷螂', glyph: '鎌', maxHp: 447, element: 'nature', subTypes: ['クリーチャー', '剣士'], rank: '中ボス',
+      moves: [{ name: '大鎌の一閃', atk: 33, heal: 0 }, { name: '鎌の連撃', atk: 27, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '葉陰に潜む', atk: 0, heal: 18 }, { name: '刈り取り', atk: 26, heal: 0 }, { name: '構え直し', atk: 19, heal: 5 }, { name: '断ち切りの鎌', atk: 48, heal: 0 }],
+      skill: { name: '翠刃の構え', cd: 4, text: 'このターンに使う通常技の攻撃を1.5倍にする。', effects: [{ type: 'atkMultiplier', value: 1.5 }] } },
+    { id: 'b-hydra', name: '沼の主ヒュドラ', glyph: '蛇', maxHp: 539, element: 'nature', subTypes: ['竜', '王族'], rank: '大ボス',
+      moves: [{ name: '三つ首の噛みつき', atk: 31, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '毒霧の息', atk: 27, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } }, { name: '首の再生', atk: 0, heal: 24 }, { name: '尾の薙ぎ払い', atk: 37, heal: 0 }, { name: '沼の生命', atk: 21, heal: 6, fx: { type: 'drain', percent: 30 } }, { name: '大湿原の怒り', atk: 50, heal: 0 }],
+      skill: { name: '腐蝕の大毒霧', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } }
   ];
 
   /*
@@ -1403,7 +1413,9 @@
     { id: 'ghostkeep', name: '亡霊の古城', text: '霧の谷に沈む、死者たちの城。', recommend: 'Lv16〜', requires: 'volcano', firstClearStones: 700, clearStones: 100,
       floors: [{ boss: 'b-wisp', level: 15, exp: 300 }, { boss: 'b-armor', level: 16, exp: 420 }, { boss: 'b-lich', level: 17, exp: 580 }] },
     { id: 'glacier', name: '蒼氷の大氷河', text: '分かれ道の先で一つになる、凍てつく氷の大地。', recommend: 'Lv20〜', requires: ['skytemple', 'ghostkeep'], firstClearStones: 800, clearStones: 110,
-      floors: [{ boss: 'b-icicle', level: 19, exp: 340 }, { boss: 'b-icebear', level: 20, exp: 480 }, { boss: 'b-icequeen', level: 21, exp: 660 }] }
+      floors: [{ boss: 'b-icicle', level: 19, exp: 340 }, { boss: 'b-icebear', level: 20, exp: 480 }, { boss: 'b-icequeen', level: 21, exp: 660 }] },
+    { id: 'marsh', name: '毒霧の大湿原', text: '毒の霧が立ちこめる、底なしの沼地。', recommend: 'Lv24〜', requires: 'glacier', firstClearStones: 900, clearStones: 120,
+      floors: [{ boss: 'b-bogfrog', level: 23, exp: 380 }, { boss: 'b-mantis', level: 24, exp: 530 }, { boss: 'b-hydra', level: 25, exp: 730 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
