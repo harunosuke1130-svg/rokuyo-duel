@@ -2546,6 +2546,13 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-icequeen"] { --cx: 40%; --cy: 5%; --ex: 40%; --ey: 5%; --es: 240%; }
 /* ---- dungeon-art: glacier ここまで ---- */
 
+/* 技の効果による状態（毒・弱体）2026-11-09 */
+.bt-tag.fx-poison { background: rgba(110, 40, 140, .85); color: #f3e6ff; }
+.bt-tag.fx-weak { background: rgba(60, 70, 110, .85); color: #e6ecff; }
+.badge.fx-poison { background: #6e2a8c; color: #fff; }
+.badge.fx-weak { background: #3c466e; color: #fff; }
+.pv-range.fx { background: #6b5a2e; color: #fff6dc; }
+
 /* ---- src/img/chara・element・battle から自動生成 ---- */
 [data-char="akatsuki"] { --img: url("data:image/webp;base64,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"); }
 .portrait[data-char="akatsuki"] { background-color: #efe6d2; background-image: var(--img); }
@@ -3183,6 +3190,15 @@ body[data-screen="gacha"] .topbar {
         holy:   { atk: 0,  heal: 1,  hp: 5 }
       }
     },
+    // 技の効果（2026-11-09〜）：技に fx: { type, ... } を1つだけ付けられる。効果の分だけ技力（攻撃＋回復）に cost を足す
+    //   drain   吸収：与えたダメージの合計の percent% だけ、使ったキャラが回復する（回復疲労の影響なし）
+    //   poison  毒：当たった敵に、その陣営のターンの始めごとに「使った人の攻撃力×value」のダメージを turns 回（毒では倒れない。HP1で止まる）
+    //   weaken  弱体：当たった敵の攻撃力（stat:'atk'）か回復力（stat:'heal'）を percent% 下げる。その敵の陣営のターン turns 回ぶん
+    //   multi   連撃：hits 回に分けて当てる（合計はほぼ同じ。結界は最初の1回だけを軽くして消える）
+    //   pinch   ピンチ：使ったキャラの HP が最大の under% 以下なら、攻撃が mult 倍
+    //   guard   守り：使ったキャラに「4分の1結界」（次に受ける防げるダメージ1回を QUARTER_BARRIER 倍）
+    MOVE_FX_COST: { drain: 4, poison: 5, weaken: 5, multi: 2, pinch: 3, guard: 6 },
+    QUARTER_BARRIER: 0.25,
     ADVANTAGE_MULTIPLIER: 1.05, // 属性有利の倍率（ここ1か所で変更）
     BARRIER_MULTIPLIER: 0.5,   // 琥珀の結界の被ダメージ倍率
     FATIGUE: {
@@ -3261,7 +3277,7 @@ body[data-screen="gacha"] .topbar {
         { name: '紅蓮の一閃', atk: 32, heal: 0 },
         { name: '息を整える', atk: 0, heal: 20 },
         { name: '炎の輪', atk: 22, heal: 0 },
-        { name: '燃え尽きる刃', atk: 38, heal: 0 },
+        { name: '燃え尽きる刃', atk: 35, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } },
         { name: '焔の構え', atk: 18, heal: 6 },
         { name: '灰燼の突き', atk: 26, heal: 0 },
         { name: '残り火', atk: 4, heal: 8 }
@@ -3323,7 +3339,7 @@ body[data-screen="gacha"] .topbar {
         { name: '琥珀の槍', atk: 18, heal: 0 },
         { name: '大地の鼓動', atk: 18, heal: 0 },
         { name: '石の刃', atk: 18, heal: 0 },
-        { name: '守人の息吹', atk: 10, heal: 20 },
+        { name: '守人の息吹', atk: 4, heal: 20, fx: { type: 'guard' } },
         { name: '地鳴り', atk: 18, heal: 0 },
         { name: '岩壁の構え', atk: 0, heal: 22 },
         { name: '琥珀砕き', atk: 26, heal: 0 },
@@ -3362,7 +3378,7 @@ body[data-screen="gacha"] .topbar {
       leaderSkill: { name: '森の恵み', text: '味方の固有スキルの回復の数字+6（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 6 }] },
       moves: [
         { name: '若葉の薬', atk: 0, heal: 23 },
-        { name: '棘の種', atk: 16, heal: 0 },
+        { name: '棘の種', atk: 11, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
         { name: '生命の実', atk: 0, heal: 46 },
         { name: '癒しの蔓', atk: 12, heal: 16 },
         { name: '森の目覚め', atk: 26, heal: 10 },
@@ -3405,7 +3421,7 @@ body[data-screen="gacha"] .topbar {
       moves: [
         { name: '潮の剣', atk: 22, heal: 0 },
         { name: '霧の休息', atk: 0, heal: 31 },
-        { name: '波の刃', atk: 20, heal: 0 },
+        { name: '波の刃', atk: 15, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '返し波', atk: 16, heal: 10 },
         { name: '深海の渦', atk: 34, heal: 0 },
         { name: '凪の呼吸', atk: 10, heal: 23 },
@@ -3429,7 +3445,7 @@ body[data-screen="gacha"] .topbar {
         { name: 'さざ波の杖', atk: 12, heal: 16 },
         { name: '清めの雫', atk: 0, heal: 24 },
         { name: '蒼の波紋', atk: 16, heal: 14 },
-        { name: '泉の祈り', atk: 0, heal: 28 },
+        { name: '泉の祈り', atk: 0, heal: 28, fx: { type: 'guard' } },
         { name: '水鏡の一閃', atk: 24, heal: 6 },
         { name: '潮騒の裁き', atk: 20, heal: 8 },
         { name: '霧雨の恵み', atk: 0, heal: 30 },
@@ -3448,7 +3464,7 @@ body[data-screen="gacha"] .topbar {
       subTypes: ['占星術師', '術士'],
       leaderSkill: { name: '小さき星の加護', text: '出目が1か2のとき、味方の通常技の攻撃の数字+6・回復+6（攻撃0・回復0の技は除く）。', effects: [{ type: 'lowDice', dice: [1, 2], atk: 6, heal: 6 }] },
       moves: [
-        { name: '星屑の矢', atk: 20, heal: 10 },
+        { name: '星屑の矢', atk: 20, heal: 10, fx: { type: 'multi', hits: 3 } },
         { name: '星明かりの祈り', atk: 12, heal: 20 },
         { name: '流星', atk: 24, heal: 4 },
         { name: '星図の導き', atk: 16, heal: 16 },
@@ -3470,7 +3486,7 @@ body[data-screen="gacha"] .topbar {
       subTypes: ['鍛冶師', '戦士'],
       leaderSkill: { name: '鍛冶場の熱気', text: '猛火属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
       moves: [
-        { name: '火打ちの槌', atk: 12, heal: 0 },
+        { name: '火打ちの槌', atk: 10, heal: 0, fx: { type: 'multi', hits: 3 } },
         { name: '赤熱の一撃', atk: 20, heal: 0 },
         { name: '鍛え抜いた刃', atk: 28, heal: 0 },
         { name: '炉端の休息', atk: 0, heal: 18 },
@@ -3494,7 +3510,7 @@ body[data-screen="gacha"] .topbar {
         { name: '黒曜の剣', atk: 18, heal: 0 },
         { name: '影踏み', atk: 24, heal: 0 },
         { name: '盾打ち', atk: 10, heal: 8 },
-        { name: '夜断ち', atk: 32, heal: 0 },
+        { name: '夜断ち', atk: 29, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } },
         { name: '静寂の祈り', atk: 0, heal: 24 },
         { name: '闇の突進', atk: 22, heal: 0 },
         { name: '黒曜の盾', atk: 0, heal: 26 },
@@ -3533,7 +3549,7 @@ body[data-screen="gacha"] .topbar {
       subTypes: ['暗殺者', '影使い'],
       leaderSkill: { name: '暗殺者の心得', text: '味方の固有スキルのダメージの数字+3（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 3 }] },
       moves: [
-        { name: '暗器投げ', atk: 16, heal: 0 },
+        { name: '暗器投げ', atk: 11, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
         { name: '影走り', atk: 22, heal: 0 },
         { name: '身を潜める', atk: 12, heal: 6 },
         { name: '背後の一刺し', atk: 28, heal: 0 },
@@ -3683,7 +3699,7 @@ body[data-screen="gacha"] .topbar {
       moves: [
         { name: '銀の剣', atk: 18, heal: 0 },
         { name: '聖なる突き', atk: 24, heal: 0 },
-        { name: '祝福の盾', atk: 8, heal: 10 },
+        { name: '祝福の盾', atk: 2, heal: 10, fx: { type: 'guard' } },
         { name: '白銀の斬撃', atk: 28, heal: 0 },
         { name: '癒しの祈り', atk: 0, heal: 20 },
         { name: '銀光の一閃', atk: 22, heal: 0 },
@@ -3704,7 +3720,7 @@ body[data-screen="gacha"] .topbar {
       moves: [
         { name: '熊の爪', atk: 16, heal: 0 },
         { name: '樫の一撃', atk: 22, heal: 0 },
-        { name: '大地の咆哮', atk: 26, heal: 0 },
+        { name: '大地の咆哮', atk: 23, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } },
         { name: '木の実を食む', atk: 0, heal: 18 },
         { name: 'のしかかり', atk: 30, heal: 0 },
         { name: '森の眠り', atk: 0, heal: 12 },
@@ -3809,7 +3825,7 @@ body[data-screen="gacha"] .topbar {
       leaderSkill: { name: '潮騎士の号令', text: '水脈属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 5 }] },
       moves: [
         { name: '潮槍の突き', atk: 20, heal: 0 },
-        { name: '渦の薙ぎ', atk: 24, heal: 0 },
+        { name: '渦の薙ぎ', atk: 19, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '深海の構え', atk: 0, heal: 18 },
         { name: '激流の一撃', atk: 28, heal: 0 },
         { name: '波の盾', atk: 8, heal: 10 },
@@ -3829,7 +3845,7 @@ body[data-screen="gacha"] .topbar {
       subTypes: ['裁定者', '術士'],
       leaderSkill: { name: '天秤の加護', text: '味方全員の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 2 }] },
       moves: [
-        { name: '裁きの光', atk: 16, heal: 0 },
+        { name: '裁きの光', atk: 11, heal: 0, fx: { type: 'weaken', stat: 'heal', percent: 25, turns: 2 } },
         { name: '均衡の祈り', atk: 0, heal: 22 },
         { name: '天秤の一撃', atk: 24, heal: 0 },
         { name: '光の鎖', atk: 10, heal: 8 },
@@ -3936,7 +3952,7 @@ body[data-screen="gacha"] .topbar {
       leaderSkill: { name: '炎天の号令', text: '猛火属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
       moves: [
         { name: '陽炎斬り', atk: 22, heal: 0 },
-        { name: '熱砂の舞', atk: 18, heal: 0 },
+        { name: '熱砂の舞', atk: 16, heal: 0, fx: { type: 'multi', hits: 3 } },
         { name: '揺らめく守り', atk: 6, heal: 12 },
         { name: '灼熱の突き', atk: 26, heal: 0 },
         { name: '蜃気楼', atk: 0, heal: 16 },
@@ -3960,7 +3976,7 @@ body[data-screen="gacha"] .topbar {
         { name: '魂送りの歌', atk: 0, heal: 18 },
         { name: '冥き水底', atk: 24, heal: 0 },
         { name: '渡し賃', atk: 8, heal: 8 },
-        { name: '霊火', atk: 18, heal: 0 },
+        { name: '霊火', atk: 14, heal: 0, fx: { type: 'drain', percent: 30 } },
         { name: '黄泉の霧', atk: 10, heal: 6 },
         { name: '冥府の大渦', atk: 32, heal: 0 },
         { name: '鎮魂の調べ', atk: 0, heal: 26 },
@@ -4066,7 +4082,7 @@ body[data-screen="gacha"] .topbar {
         { name: '苔の癒し', atk: 0, heal: 16 },
         { name: '岩落とし', atk: 22, heal: 0 },
         { name: '根の守り', atk: 6, heal: 10 },
-        { name: '大地の震え', atk: 20, heal: 0 },
+        { name: '大地の震え', atk: 15, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '静かな瞑想', atk: 0, heal: 12 },
         { name: '巨岩崩し', atk: 32, heal: 0 },
         { name: '古苔の息吹', atk: 0, heal: 26 },
@@ -4083,7 +4099,7 @@ body[data-screen="gacha"] .topbar {
       subTypes: ['王族', '魔物'],
       leaderSkill: { name: '紅き夜会', text: '呪闇属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
       moves: [
-        { name: '吸血の牙', atk: 22, heal: 0 },
+        { name: '吸血の牙', atk: 18, heal: 0, fx: { type: 'drain', percent: 30 } },
         { name: '血の契り', atk: 6, heal: 10 },
         { name: '夜霧の爪', atk: 24, heal: 0 },
         { name: '蝙蝠の群れ', atk: 18, heal: 0 },
@@ -4191,7 +4207,7 @@ body[data-screen="gacha"] .topbar {
       moves: [
         { name: '氷の槍', atk: 22, heal: 0 },
         { name: '雪解け水', atk: 0, heal: 14 },
-        { name: '吹雪の矢', atk: 24, heal: 0 },
+        { name: '吹雪の矢', atk: 19, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '氷の盾', atk: 8, heal: 8 },
         { name: '凍てつく一撃', atk: 26, heal: 0 },
         { name: '白い息', atk: 0, heal: 12 },
@@ -4212,7 +4228,7 @@ body[data-screen="gacha"] .topbar {
       moves: [
         { name: '斧振り', atk: 22, heal: 0 },
         { name: '戦士の休息', atk: 0, heal: 14 },
-        { name: '炎の薙ぎ払い', atk: 24, heal: 0 },
+        { name: '炎の薙ぎ払い', atk: 22, heal: 0, fx: { type: 'multi', hits: 3 } },
         { name: '鉄の構え', atk: 6, heal: 10 },
         { name: '火炎斬', atk: 20, heal: 0 },
         { name: '雄叫び', atk: 10, heal: 0 },
@@ -4295,7 +4311,7 @@ body[data-screen="gacha"] .topbar {
       subTypes: ['盗賊'],
       leaderSkill: { name: '盗賊団の掟', text: '呪闇属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
       moves: [
-        { name: '短剣の一閃', atk: 16, heal: 0 },
+        { name: '短剣の一閃', atk: 12, heal: 0, fx: { type: 'drain', percent: 30 } },
         { name: '盗み食い', atk: 0, heal: 10 },
         { name: '背後からの突き', atk: 18, heal: 0 },
         { name: '煙玉', atk: 4, heal: 6 },
@@ -4319,7 +4335,7 @@ body[data-screen="gacha"] .topbar {
         { name: '角の突進', atk: 22, heal: 0 },
         { name: '若芽の癒し', atk: 0, heal: 16 },
         { name: '蹄の一撃', atk: 20, heal: 0 },
-        { name: '樹皮の鎧', atk: 6, heal: 10 },
+        { name: '樹皮の鎧', atk: 0, heal: 10, fx: { type: 'guard' } },
         { name: '角払い', atk: 24, heal: 0 },
         { name: '森の静寂', atk: 0, heal: 12 },
         { name: '大角の怒り', atk: 32, heal: 0 },
@@ -4341,7 +4357,7 @@ body[data-screen="gacha"] .topbar {
         { name: 'オアシスの水', atk: 0, heal: 14 },
         { name: '熱砂の刃', atk: 24, heal: 0 },
         { name: '王の威厳', atk: 8, heal: 8 },
-        { name: '灼熱の陽射し', atk: 22, heal: 0 },
+        { name: '灼熱の陽射し', atk: 17, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
         { name: '日除けの天幕', atk: 0, heal: 10 },
         { name: '砂漠の大嵐', atk: 34, heal: 0 },
         { name: '王家の秘薬', atk: 0, heal: 24 },
@@ -4616,7 +4632,7 @@ body[data-screen="gacha"] .topbar {
   const SCALE = 10000;
   function finalizeDamage(amount, advantage, barrier) {
     const adv = advantage ? Math.round(CONFIG.ADVANTAGE_MULTIPLIER * SCALE) : SCALE;
-    const def = barrier ? Math.round(CONFIG.BARRIER_MULTIPLIER * SCALE) : SCALE;
+    const def = barrier ? Math.round((barrier === 'quarter' ? CONFIG.QUARTER_BARRIER : CONFIG.BARRIER_MULTIPLIER) * SCALE) : SCALE;
     const num = Math.round(amount * SCALE) * adv * def;
     const den = SCALE * SCALE * SCALE;
     return Math.floor((2 * num + den) / (2 * den));
@@ -4646,13 +4662,13 @@ body[data-screen="gacha"] .topbar {
     const power = boost && boost.power ? boost.power : 1;
     const boosted = (base * mult + bonus) * power;   // 技の数字（倍率）×攻撃力
     const advantage = hasAdvantage(attackerChar.element, unitChar(defenderUnit).element);
-    const barrier = !!defenderUnit.barrier;
+    const barrier = defenderUnit.barrier || false;   // true（半減）か 'quarter'（4分の1）
     return { base, boosted, advantage, barrier, damage: finalizeDamage(boosted, advantage, barrier) };
   }
 
   // スキルの直接ダメージ：属性倍率なし。防御無視なら結界も無視（消費しない）。
   function computeSkillDamage(amount, ignoreDefense, defenderUnit) {
-    const barrier = !ignoreDefense && !!defenderUnit.barrier;
+    const barrier = !ignoreDefense && (defenderUnit.barrier || false);
     return { base: amount, barrier, damage: finalizeDamage(amount, false, barrier) };
   }
 
@@ -4676,7 +4692,8 @@ body[data-screen="gacha"] .topbar {
 
   /* ---------- 技の構成（出目1〜6に割り当てる6技） ---------- */
   // loadout は技の候補（ch.moves）の番号を出目1〜6の順に並べた配列
-  const movePower = m => m.atk + m.heal;
+  const fxCost = m => (m && m.fx ? ((CONFIG.MOVE_FX_COST || {})[m.fx.type] || 0) : 0);
+  const movePower = m => m.atk + m.heal + fxCost(m);   // 技の効果の分も技力に数える
   function defaultLoadout(charId) {
     return getChar(charId).moves.slice(0, CONFIG.LOADOUT_SIZE).map((m, i) => i);
   }
@@ -4732,6 +4749,27 @@ body[data-screen="gacha"] .topbar {
   function attackBoost(state, side, unit, dice) {
     const b = (state.turnSide === side && state.phase === 'action') ? state.boost : { mult: 1, bonus: 0 };
     return { mult: b.mult, bonus: b.bonus + leaderAtkBonus(state, side, unitChar(unit)) + lowDiceBonus(state, side, 'atk', dice), power: unitAtk(unit) };
+  }
+  // 技の効果込みの攻撃強化（ピンチ：HP が少ないと倍）
+  function moveBoost(state, side, unit, move, dice) {
+    const b = attackBoost(state, side, unit, dice);
+    const fx = move && move.fx;
+    if (fx && fx.type === 'pinch' && unit.hp > 0 && unit.hp * 100 <= unit.maxHp * fx.under) { b.mult *= fx.mult; b.pinch = true; }
+    return b;
+  }
+  // 1体への攻撃（連撃は回数に分けて当て、結界は最初の1回だけ）。状態は変えない
+  function attackOn(move, boost, ch, t) {
+    const hits = move.fx && move.fx.type === 'multi' ? Math.max(1, move.fx.hits | 0) : 1;
+    if (hits === 1) return Object.assign({ hits: 1 }, computeAttack(move.atk, boost, ch, t));
+    const per = Object.assign({}, boost, { mult: (boost.mult || 1) / hits, bonus: (boost.bonus || 0) / hits });
+    let damage = 0, used = false, first = null;
+    for (let h = 0; h < hits; h++) {
+      const r = computeAttack(move.atk, per, ch, used ? Object.assign({}, t, { barrier: false }) : t);
+      if (!first) first = r;
+      if (r.barrier) used = r.barrier;
+      damage += r.damage;
+    }
+    return { base: move.atk, boosted: first.boosted * hits, advantage: first.advantage, barrier: used, damage, hits };
   }
   // リーダースキル lowDice：出目が指定の数字（例 1・2）のとき、通常技の攻撃・回復に加算（攻撃0・回復0の技は除く）
   function lowDiceBonus(state, side, key, dice) {
@@ -4795,8 +4833,10 @@ body[data-screen="gacha"] .topbar {
     return { atk: Math.round(b.atk * g), heal: Math.round(b.heal * g), hp: levelMaxHp(baseMaxHp(charId), lv) };
   }
   // ユニットの攻撃力・回復力（古い状態などで無ければ計算し直す）
-  const unitAtk = unit => (unit.atkPow || charPower(unit.charId, unit.level || 1).atk);
-  const unitHeal = unit => (unit.healPow || charPower(unit.charId, unit.level || 1).heal);
+  // 弱体（weaken）中は下がった値
+  const weakened = (v, w) => (w && w.turns > 0 ? Math.max(1, Math.round(v * (100 - w.percent) / 100)) : v);
+  const unitAtk = unit => weakened(unit.atkPow || charPower(unit.charId, unit.level || 1).atk, unit.weakAtk);
+  const unitHeal = unit => weakened(unit.healPow || charPower(unit.charId, unit.level || 1).heal, unit.weakHeal);
 
   /* ---------- 状態の生成 ---------- */
   function makeUnit(charId, index, loadout, level) {
@@ -4962,6 +5002,18 @@ body[data-screen="gacha"] .topbar {
     state.phase = 'roll';
     addLog(state, ctx, `― 第${state.round}巡　${who(state, side)}のターン ―`, 'turn');
     ctx.events.push({ type: 'turn', side });
+    // 毒：ターンの始めにダメージ（毒では倒れない）
+    state.teams[side].forEach((u, i) => {
+      if (!u.poison || u.poison.turns <= 0) return;
+      if (u.hp > 0) {
+        const dmg = Math.max(0, Math.min(u.poison.amount, u.hp - 1));
+        u.hp -= dmg;
+        if (dmg > 0) ctx.events.push({ type: 'damage', side, idx: i, amount: dmg, poison: true });
+        addLog(state, ctx, `${team(state, side)}の${unitName(u)}は毒で${dmg}ダメージ（HP ${u.hp}/${u.maxHp}・あと${u.poison.turns - 1}回）`, 'damage');
+      }
+      u.poison.turns--;
+      if (u.poison.turns <= 0) delete u.poison;
+    });
     // リーダースキル regen：自分のターンの開始時に前衛全員を少し回復（全員満タンなら何もしない）
     const regen = leaderSum(state, side, 'regen');
     if (regen > 0 && frontAlive(state, side).some(i => state.teams[side][i].hp < state.teams[side][i].maxHp)) {
@@ -4971,6 +5023,10 @@ body[data-screen="gacha"] .topbar {
   }
 
   function endTurn(state, ctx) {
+    // 弱体は、かかった陣営のターンが終わるごとに1回ぶん減る
+    state.teams[state.turnSide].forEach(u => {
+      ['weakAtk', 'weakHeal'].forEach(k => { if (u[k]) { u[k].turns--; if (u[k].turns <= 0) delete u[k]; } });
+    });
     startTurn(state, ctx, opp(state.turnSide));
   }
 
@@ -5231,7 +5287,7 @@ body[data-screen="gacha"] .topbar {
     const unit = state.teams[side][idx];
     const ch = unitChar(unit);
     const move = unitMove(unit, state.dice);
-    const boost = attackBoost(state, side, unit);
+    const boost = moveBoost(state, side, unit, move);
     const ctx = newCtx();
     state.moveUsed = true;
     addLog(state, ctx, `${team(state, side)}の${ch.name}の通常技［出目${state.dice}］「${move.name}」`, 'move');
@@ -5239,20 +5295,40 @@ body[data-screen="gacha"] .topbar {
 
     const targetSide = opp(side);
     let attacked = false;
+    const fx = move.fx || null;
     if (move.atk > 0) {
       const targets = frontAlive(state, targetSide); // 攻撃開始時の敵前衛に一度だけ
+      let total = 0;
       const parts = targets.map(i => {
         const t = state.teams[targetSide][i];
-        const r = computeAttack(move.atk, boost, ch, t);
+        const r = attackOn(move, boost, ch, t);
         damageUnit(state, ctx, targetSide, i, r.damage, r.barrier);
+        total += r.damage;
         const notes = [];
+        if (r.hits > 1) notes.push(`${r.hits}段`);
         if (r.advantage) notes.push('属性有利');
-        if (r.barrier) notes.push('結界で半減');
+        if (r.barrier) notes.push(r.barrier === 'quarter' ? '4分の1結界' : '結界で半減');
+        // 毒・弱体（当たった敵に）
+        if (t.hp > 0 && fx && fx.type === 'poison') { t.poison = { amount: fx.value * unitAtk(unit), turns: fx.turns }; notes.push('毒'); }
+        if (t.hp > 0 && fx && fx.type === 'weaken') { t[fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'] = { percent: fx.percent, turns: fx.turns }; notes.push(fx.stat === 'heal' ? '回復力ダウン' : '攻撃力ダウン'); }
         return `${unitName(t)} ${r.damage}${notes.length ? '（' + notes.join('・') + '）' : ''}（HP ${t.hp}/${t.maxHp}）`;
       });
       const boostNote = (boost.mult !== 1 || boost.bonus) ? `・強化後×${move.atk * boost.mult + boost.bonus}` : '';
-      addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
+      addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}${boost.pinch ? '・ピンチで2倍' : ''}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
       attacked = targets.length > 0;
+      // 吸収：与えたダメージの一部で自分を回復
+      if (fx && fx.type === 'drain' && total > 0 && unit.hp > 0) {
+        const got = Math.min(Math.floor(total * fx.percent / 100), unit.maxHp - unit.hp);
+        unit.hp += got;
+        if (got > 0) ctx.events.push({ type: 'heal', side, idx, amount: got });
+        addLog(state, ctx, `［吸収］${unitName(unit)}は${got}回復（HP ${unit.hp}/${unit.maxHp}）`, 'heal');
+      }
+    }
+    // 守り：自分に4分の1結界
+    if (fx && fx.type === 'guard' && unit.hp > 0) {
+      unit.barrier = 'quarter';
+      ctx.events.push({ type: 'barrier', side, idx });
+      addLog(state, ctx, `${team(state, side)}の${unitName(unit)}に4分の1結界（次に受ける防げるダメージ1回を4分の1に）`, 'barrier');
     }
     if (move.heal > 0) healFront(state, ctx, side, moveHealBase(state, side, move, null, unit), move.name);
     if (move.atk <= 0 && move.heal <= 0) addLog(state, ctx, '何も起こらなかった', 'info');
@@ -5291,10 +5367,10 @@ body[data-screen="gacha"] .topbar {
     const ch = unitChar(unit);
     const move = unitMove(unit, d);
     const targetSide = opp(side);
-    const boost = attackBoost(state, side, unit, d);
+    const boost = moveBoost(state, side, unit, move, d);
     const attacks = move.atk > 0 ? frontAlive(state, targetSide).map(i => {
       const t = state.teams[targetSide][i];
-      return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, computeAttack(move.atk, boost, ch, t));
+      return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, attackOn(move, boost, ch, t));
     }) : [];
     const round = Math.max(1, fatigueRound(state, side));
     const healBase = moveHealBase(state, side, move, d, unit);
@@ -5303,7 +5379,10 @@ body[data-screen="gacha"] .topbar {
       const t = state.teams[side][i];
       return { idx: i, name: unitName(t), amount, effective: Math.min(amount, t.maxHp - t.hp) };
     }) : [];
-    return { dice: d, move, user: idx, attacks, heals, healBase, healPercent: healPercent(round), atkPow: unitAtk(unit), healPow: unitHeal(unit),
+    const fx = move.fx ? Object.assign({}, move.fx, move.fx.type === 'poison' ? { amount: move.fx.value * unitAtk(unit) } : {},
+      move.fx.type === 'drain' ? { amount: Math.min(Math.floor(attacks.reduce((a, x) => a + x.damage, 0) * move.fx.percent / 100), unit.maxHp - unit.hp) } : {},
+      move.fx.type === 'pinch' ? { active: !!boost.pinch } : {}) : null;
+    return { dice: d, move, user: idx, attacks, heals, healBase, healPercent: healPercent(round), atkPow: unitAtk(unit), healPow: unitHeal(unit), fx,
       boosted: attacks.length ? attacks[0].boosted : (move.atk * boost.mult + boost.bonus) * boost.power };
   }
 
@@ -5343,7 +5422,7 @@ body[data-screen="gacha"] .topbar {
     createRng, rollDie, normalizeThrow, throwOffset, throwDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, fatigueRound, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
-    rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
+    rankParts, starsOf, movePower, fxCost, moveBoost, attackOn, unitAtk, unitHeal, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, lowDiceBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus, levelGrowth, basePower, baseMaxHp, charPower,
@@ -5390,6 +5469,7 @@ body[data-screen="gacha"] .topbar {
     lowFrontPenalty: 16,
     cdPenalty: 2.2,     // 自分のCD1あたりの減点（スキルの無駄撃ち防止）
     win: 100000,
+    weak: 4,            // 攻撃力ダウン1ターンあたりの減点
     hpScale: (Engine.CONFIG.POWER && Engine.CONFIG.POWER.hpScale) || 1   // HP は 10 倍になったので、評価では元の大きさに戻す
   };
 
@@ -5400,7 +5480,11 @@ body[data-screen="gacha"] .topbar {
       state.teams[s].forEach((u, i) => {
         if (!isAlive(u)) return;
         let v = u.hp / W.hpScale + W.alive;
-        if (u.barrier) v += Engine.isFront(state, s, i) ? W.barrier : W.barrierBack;
+        // 技の効果：残っている毒のダメージ・弱体は、その分だけ価値を下げる
+        if (u.poison) v -= Math.min(u.hp - 1, u.poison.amount * u.poison.turns) / W.hpScale;
+        if (u.weakAtk) v -= W.weak * u.weakAtk.turns;
+        if (u.weakHeal) v -= W.weak * u.weakHeal.turns * 0.5;
+        if (u.barrier) v += (Engine.isFront(state, s, i) ? W.barrier : W.barrierBack) * (u.barrier === 'quarter' ? 1.5 : 1);
         score += sign * v;
       });
     };
@@ -6385,10 +6469,14 @@ body[data-screen="gacha"] .topbar {
     return `<span class="hptext">HP <b>${unit.hp}</b> / ${unit.maxHp}</span>`;
   }
   const levelTag = lv => `<span class="lv-tag">Lv${lv}</span>`;
+  // 技の効果の短い名前（技の一覧に出す）
+  const FX_LABEL = { drain: '吸収', poison: '毒', weaken: '弱体', multi: '3段', pinch: 'ピンチ', guard: '¼結界' };
   function moveEffText(m) {
     const parts = [];
     if (m.atk > 0) parts.push('攻×' + m.atk);   // 技の数字は倍率（攻撃力×数字）
     if (m.heal > 0) parts.push('回×' + m.heal);
+    const fx = m.fx ? (m.fx.type === 'weaken' ? (m.fx.stat === 'heal' ? '回復力↓' : '攻撃力↓') : m.fx.type === 'multi' ? `${m.fx.hits}段` : FX_LABEL[m.fx.type]) : '';
+    if (fx) parts.push(fx);
     return parts.length ? parts.join('+') : '—';
   }
   // loadout の順（出目1〜6）で技を並べる
@@ -7631,7 +7719,10 @@ body[data-screen="gacha"] .topbar {
     if (u.hp <= 0) b.push('<span class="badge ko">戦闘不能</span>');
     else if (E.isFront(state, side, i)) b.push('<span class="badge front">前衛</span>');
     else if (state.phase !== 'formation') b.push('<span class="badge bench">後衛</span>');
-    if (u.barrier) b.push('<span class="badge barrier">結界</span>');
+    if (u.barrier) b.push(`<span class="badge barrier">${u.barrier === 'quarter' ? '4分の1結界' : '結界'}</span>`);
+    if (u.hp > 0 && u.poison) b.push(`<span class="badge fx-poison">毒 残${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) b.push(`<span class="badge fx-weak">攻撃力↓ 残${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) b.push(`<span class="badge fx-weak">回復力↓ 残${u.weakHeal.turns}</span>`);
     if (u.hp > 0) b.push(u.cd > 0 ? `<span class="badge cd">CD残${u.cd}</span>` : '<span class="badge ready">スキル可</span>');
     return b.join('');
   }
@@ -7645,7 +7736,7 @@ body[data-screen="gacha"] .topbar {
       const plain = p.move.atk * p.atkPow;
       const b = p.boosted !== plain ? `・強化後${atkNum(p.boosted)}` : '';
       html += `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">攻撃力${p.atkPow}×${p.move.atk}＝${plain}${b}</span></div><div class="chips">` +
-        p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('') + '</div>';
+        p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.hits > 1 ? ` <i class="adv">${a.hits}段</i>` : ''}${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ` <i class="adv">${a.barrier === 'quarter' ? '4分の1結界' : '結界で半減'}</i>` : ''}</span>`).join('') + '</div>';
     } else if (p.move.atk > 0) {
       html += '<div class="pv-line muted">攻撃できる敵前衛がいません</div>';
     }
@@ -7654,10 +7745,22 @@ body[data-screen="gacha"] .topbar {
       html += `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">回復力${p.healPow}×${p.move.heal}＝${p.healPow * p.move.heal}${p.healBase !== p.healPow * p.move.heal ? `・強化後${p.healBase}` : ''}${f}</span></div><div class="chips">` +
         p.heals.map(h => `<span class="chip heal">${esc(h.name)} <b>+${h.effective}</b></span>`).join('') + '</div>';
     }
-    if (!p.move.atk && !p.move.heal) html += '<div class="pv-line muted">何も起こらない</div>';
+    if (p.fx) html += `<div class="pv-line"><span class="pv-range fx">技の効果</span><span class="pv-base">${esc(fxPreviewText(p))}</span></div>`;
+    if (!p.move.atk && !p.move.heal && !p.fx) html += '<div class="pv-line muted">何も起こらない</div>';
     return html;
   }
 
+  // 技の効果の予測（Engine.previewMove の fx）
+  function fxPreviewText(p) {
+    const f = p.fx;
+    if (f.type === 'drain') return `吸収：与えたダメージの${f.percent}%（${f.amount}）を自分が回復`;
+    if (f.type === 'poison') return `毒：当たった敵はターンの始めに${f.amount}ダメージ×${f.turns}回（毒では倒れない）`;
+    if (f.type === 'weaken') return `当たった敵の${f.stat === 'heal' ? '回復力' : '攻撃力'}を${f.percent}%下げる（${f.turns}ターン）`;
+    if (f.type === 'multi') return `${f.hits}段攻撃：結界は最初の1回だけを軽くして消える`;
+    if (f.type === 'pinch') return f.active ? `ピンチ：HPが${f.under}%以下なので攻撃${f.mult}倍！` : `ピンチ：HPが${f.under}%以下なら攻撃${f.mult}倍（今は通常）`;
+    if (f.type === 'guard') return '自分に4分の1結界（次に受ける防げるダメージ1回を4分の1に）';
+    return '';
+  }
   // 強化後の攻撃の表示（1.4倍などで出る 16.799999… のような端数の誤差を消す。計算には使わない）
   const atkNum = v => Math.round(v * 100) / 100;
 
@@ -7704,7 +7807,11 @@ body[data-screen="gacha"] .topbar {
     if (E.isBoss(u.charId)) tags.push(`<span class="bt-tag boss">${esc(ch.rank || 'ボス')}</span>`);
     // 結界：膜が届く瞬間までは出さず、被弾で消えたときは当たる瞬間まで残す（どちらも表示だけ）
     const shield = u.hp > 0 && ((u.barrier && !(key in bt.barrierWait)) || key in bt.barrierHold);
-    if (shield) tags.push('<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+    if (shield) tags.push(u.barrier === 'quarter' ? '<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">◈¼結界</span>' : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+    // 技の効果による状態（毒・攻撃力ダウン・回復力ダウン）。数字は残りの回数
+    if (u.hp > 0 && u.poison) tags.push(`<span class="bt-tag fx-poison" title="毒：ターンの始めに${u.poison.amount}ダメージ（あと${u.poison.turns}回・毒では倒れない）">☠${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) tags.push(`<span class="bt-tag fx-weak" title="攻撃力${u.weakAtk.percent}%ダウン（あと${u.weakAtk.turns}ターン）">攻↓${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag fx-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">回↓${u.weakHeal.turns}</span>`);
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
     const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${hpState(u) === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
@@ -10108,6 +10215,7 @@ body[data-screen="gacha"] .topbar {
       <h4>成長</h4>
       <ul class="help-list">
         <li><b>攻撃力・回復力</b>：技の数字は倍率です。ダメージ＝攻撃力×技の攻撃、回復＝回復力×技の回復（固有スキルの数字も同じ）。基準は★で決まり（★1 ${CONFIG.POWER.stars[1]}・★2 ${CONFIG.POWER.stars[2]}・★3 ${CONFIG.POWER.stars[3]}・★4 ${CONFIG.POWER.stars[4]}）、属性の特色が付きます（猛火は攻撃力が高い、水脈は回復力が高い、自然は HP が高い など）。</li>
+        <li><b>技の効果</b>：一部の技には効果が付いています。吸収（与えたダメージの30%を自分が回復）・毒（敵のターンの始めにダメージ。毒では倒れない）・攻撃力↓／回復力↓（2ターン25%ダウン）・3段（結界は最初の1回だけ軽くする）・ピンチ（HP30%以下で攻撃2倍）・¼結界（自分の次の被ダメージを4分の1に）。</li>
         <li><b>レベル</b>：1レベルごとに最大HP+4%（Lv31〜90は+3%、Lv91からは+1%）、攻撃力と回復力も上がります（Lv1 で 10 なら Lv30 で約 29）。30レベルごとに止まり、<b>結晶</b>（ダンジョン・CPU対戦の勝利で手に入る）で<b>限界突破</b>すると、次の30レベルへ進めます。</li>
         <li><b>かけら</b>：ガチャで持っているキャラが出たとき「かけらとして残す」を選ぶと手に入ります。編成のキャラの詳細で、好きなキャラの経験値（1個${D.ECONOMY.kakeraExp}）にできます。</li>
         <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>

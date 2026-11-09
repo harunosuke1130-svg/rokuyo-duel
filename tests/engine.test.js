@@ -239,11 +239,11 @@ test('複数体が同時に倒れたら補充し、補充キャラは直前の�
   const s = battle();
   s.teams.cpu[0].hp = 5;
   s.teams.cpu[2].hp = 10;
-  E.roll(s, 'player', fixed(6)); // 燎原 6 燃え尽きる刃 38
+  E.roll(s, 'player', fixed(6)); // 燎原 6 燃え尽きる刃 35（HP満タンなのでピンチの2倍はなし）
   E.useMove(s, 'player', 0);
   assert.equal(s.teams.cpu[0].hp, 0);
   assert.equal(s.teams.cpu[2].hp, 0);
-  assert.equal(s.teams.cpu[1].hp, 105 - 38);
+  assert.equal(s.teams.cpu[1].hp, 105 - 35);
   assert.equal(s.phase, 'replace');
   assert.deepEqual(s.pendingReplace, { side: 'cpu', resume: 'endTurn', need: 2 });
   assert.deepEqual(s.front.cpu, [1]);
@@ -374,12 +374,13 @@ test('振り直しスキルだけが数字を変える', () => {
 test('翠樹の活力：前衛全員回復＋攻撃+10（攻撃0の技は加算なし）', () => {
   const s = battle([0, 1, 2], [0, 1, 2], ['suiju', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'mukai'], ['ryogen', 'raimei', 'kohaku', 'suiju', 'gessen', 'mukai']);
   s.teams.player.forEach(u => { u.hp = 50; });
-  E.roll(s, 'player', fixed(2)); // 棘の種 16
+  E.roll(s, 'player', fixed(2)); // 棘の種 11（毒つき）
   E.useSkill(s, 'player', 0);
   assert.deepEqual(hps(s, 'player'), [70, 70, 70, 50, 50, 50]);
   const b = hps(s, 'cpu');
-  E.useMove(s, 'player', 0); // (16+10)=26：燎原（火）等倍26、雷鳴26、琥珀26
-  assert.deepEqual(b.map((h, i) => h - s.teams.cpu[i].hp), [26, 26, 26, 0, 0, 0]);
+  E.useMove(s, 'player', 0); // (11+10)=21：燎原（火）等倍21、雷鳴21、琥珀21。続く相手のターンの始めに毒 3（攻撃力1×3）
+  assert.deepEqual(b.map((h, i) => h - s.teams.cpu[i].hp), [24, 24, 24, 0, 0, 0]);
+  assert.equal(s.teams.cpu[0].poison.turns, 2, '毒はあと2回');
 });
 
 test('回復疲労：16巡目90%、以降10ポイントずつ減り最低25%・切り捨て', () => {
@@ -635,3 +636,98 @@ test('暁星の占星術師：出目を選ぶ（1〜6の検証・1回だけ・CP
   const res = CPU.act(c, 'cpu', () => 0.5);
   assert.ok(res.ok);
 });
+
+// 技の効果（2026-11-09）：吸収・毒・弱体・連撃・ピンチ・4分の1結界
+const FXT = ['kyuuketsu', 'senpu', 'kokuyou', 'kohaku', 'mukai', 'sabakuou'];
+function fxBattle(front) {
+  const s = oldScale(E.createBattle(FXT, C));
+  assert.ok(E.chooseFormation(s, 'player', front, null).ok);
+  assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
+  assert.ok(E.rollInitiative(s, playerFirst()).ok);
+  return s;
+}
+test('技の効果：吸収は与えたダメージの合計の30%を自分が回復', () => {
+  const s = fxBattle([0, 1, 2]);
+  s.teams.player[0].hp = 50;
+  E.roll(s, 'player', fixed(1)); // 吸血の牙 18（吸収）
+  const pv = E.previewMove(s, 'player', 0);
+  assert.equal(pv.fx.type, 'drain');
+  const b = hps(s, 'cpu');
+  E.useMove(s, 'player', 0);
+  const total = b.reduce((a, h, i) => a + h - s.teams.cpu[i].hp, 0);
+  assert.equal(s.teams.player[0].hp, 50 + Math.floor(total * 30 / 100));
+  assert.equal(pv.fx.amount, Math.floor(total * 30 / 100), '予測と同じ');
+});
+test('技の効果：毒は相手のターンの始めに減り、毒では倒れない。回数が終われば消える', () => {
+  const s = fxBattle([5, 1, 2]);
+  E.roll(s, 'player', fixed(5)); // 灼熱の陽射し（毒：攻撃力1×3 を3回）
+  E.useMove(s, 'player', 5);
+  const t = s.teams.cpu[0];
+  assert.equal(t.poison.turns, 2, '相手のターンの始めに1回減った');
+  t.hp = 2;
+  cpuMove(s, 1);        // 相手の行動
+  playerMove(s, 1, 1);  // 自分の行動 → 相手のターンの始めに毒
+  assert.equal(t.hp, 1, '毒では倒れない（HP1で止まる）');
+  cpuMove(s, 1);
+  playerMove(s, 1, 1);
+  assert.equal(t.poison, undefined, '3回で消える');
+});
+test('技の効果：攻撃力ダウンは相手の攻撃を下げ、相手のターン2回で戻る', () => {
+  const s = fxBattle([4, 1, 2]);
+  E.roll(s, 'player', fixed(3)); // 波の刃（攻撃力25%ダウン）
+  E.useMove(s, 'player', 4);
+  const t = s.teams.cpu[0];
+  assert.deepEqual(t.weakAtk, { percent: 25, turns: 2 });
+  t.atkPow = 10;
+  assert.equal(E.unitAtk(t), 8, '10の25%ダウン→7.5→8');
+  cpuMove(s, 1, 0);
+  assert.equal(t.weakAtk.turns, 1, '相手のターンが終わると1減る');
+  playerMove(s, 1, 1);
+  cpuMove(s, 1, 0);
+  assert.equal(t.weakAtk, undefined);
+  assert.equal(E.unitAtk(t), 10);
+});
+test('技の効果：3段攻撃は結界を最初の1回だけ軽くして消す', () => {
+  const s = fxBattle([1, 0, 2]);
+  s.teams.cpu[0].barrier = true;
+  E.roll(s, 'player', fixed(3)); // 炎の薙ぎ払い 22（3段）
+  const pv = E.previewMove(s, 'player', 1);
+  const b = hps(s, 'cpu');
+  E.useMove(s, 'player', 1);
+  const dmg = b.map((h, i) => h - s.teams.cpu[i].hp);
+  // 結界の相手（翠樹・自然＝猛火の有利×1.05）：22/3 を3回（1回目だけ半分）
+  assert.equal(dmg[0], Math.round(22 / 3 * 1.05 / 2) + 2 * Math.round(22 / 3 * 1.05));
+  assert.equal(s.teams.cpu[0].barrier, false, '結界は消える');
+  assert.deepEqual(pv.attacks.map(a => a.damage), dmg.slice(0, 3), '予測と同じ');
+  assert.equal(pv.attacks[0].hits, 3);
+});
+test('技の効果：ピンチ（HP30%以下）で攻撃2倍', () => {
+  const s = fxBattle([2, 0, 1]);
+  E.roll(s, 'player', fixed(4)); // 夜断ち 29（ピンチ）
+  assert.equal(E.previewMove(s, 'player', 2).attacks[2].damage, 29, '満タンでは通常（霧海は等倍）');
+  s.teams.player[2].hp = Math.floor(s.teams.player[2].maxHp * 0.3);
+  const pv = E.previewMove(s, 'player', 2);
+  assert.equal(pv.fx.active, true);
+  assert.equal(pv.attacks[2].damage, 58, '2倍');
+});
+test('技の効果：4分の1結界は次に受ける攻撃1回を4分の1にする', () => {
+  const s = fxBattle([3, 0, 1]);
+  E.roll(s, 'player', fixed(5)); // 守人の息吹（4分の1結界）
+  E.useMove(s, 'player', 3);
+  assert.equal(s.teams.player[3].barrier, 'quarter');
+  const before = s.teams.player[3].hp;
+  assert.ok(E.roll(s, 'cpu', fixed(5)).ok);
+  const mv = E.unitMove(s.teams.cpu[0], 5);
+  E.useMove(s, 'cpu', 0);
+  if (mv.atk > 0) {
+    assert.equal(before - s.teams.player[3].hp, Math.round(mv.atk * 0.25 * (E.hasAdvantage('nature', 'nature') ? 1.05 : 1)));
+    assert.equal(s.teams.player[3].barrier, false);
+  }
+});
+test('技の効果：効果の分だけ技力に数え、★の決め方（攻撃・回復の平均）には入れない', () => {
+  const m = E.getChar('kyuuketsu').moves[0];
+  assert.equal(E.movePower(m), m.atk + m.heal + D_COST().drain);
+  E.CHARACTERS.forEach(c => assert.equal(E.loadoutError(c.id, E.defaultLoadout(c.id)), null, c.name));
+  E.CHARACTERS.forEach(c => assert.ok(c.moves.filter(x => x.fx).length <= 2, c.name + 'の効果付きの技は2つまで'));
+});
+function D_COST() { return E.CONFIG.MOVE_FX_COST; }

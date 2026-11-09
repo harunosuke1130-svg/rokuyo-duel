@@ -360,7 +360,10 @@
     if (u.hp <= 0) b.push('<span class="badge ko">戦闘不能</span>');
     else if (E.isFront(state, side, i)) b.push('<span class="badge front">前衛</span>');
     else if (state.phase !== 'formation') b.push('<span class="badge bench">後衛</span>');
-    if (u.barrier) b.push('<span class="badge barrier">結界</span>');
+    if (u.barrier) b.push(`<span class="badge barrier">${u.barrier === 'quarter' ? '4分の1結界' : '結界'}</span>`);
+    if (u.hp > 0 && u.poison) b.push(`<span class="badge fx-poison">毒 残${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) b.push(`<span class="badge fx-weak">攻撃力↓ 残${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) b.push(`<span class="badge fx-weak">回復力↓ 残${u.weakHeal.turns}</span>`);
     if (u.hp > 0) b.push(u.cd > 0 ? `<span class="badge cd">CD残${u.cd}</span>` : '<span class="badge ready">スキル可</span>');
     return b.join('');
   }
@@ -374,7 +377,7 @@
       const plain = p.move.atk * p.atkPow;
       const b = p.boosted !== plain ? `・強化後${atkNum(p.boosted)}` : '';
       html += `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">攻撃力${p.atkPow}×${p.move.atk}＝${plain}${b}</span></div><div class="chips">` +
-        p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('') + '</div>';
+        p.attacks.map(a => `<span class="chip dmg">${esc(a.name)} <b>-${a.damage}</b>${a.hits > 1 ? ` <i class="adv">${a.hits}段</i>` : ''}${a.advantage ? ` <i class="adv">属性有利 ×${CONFIG.ADVANTAGE_MULTIPLIER}</i>` : ''}${a.barrier ? ` <i class="adv">${a.barrier === 'quarter' ? '4分の1結界' : '結界で半減'}</i>` : ''}</span>`).join('') + '</div>';
     } else if (p.move.atk > 0) {
       html += '<div class="pv-line muted">攻撃できる敵前衛がいません</div>';
     }
@@ -383,10 +386,22 @@
       html += `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">回復力${p.healPow}×${p.move.heal}＝${p.healPow * p.move.heal}${p.healBase !== p.healPow * p.move.heal ? `・強化後${p.healBase}` : ''}${f}</span></div><div class="chips">` +
         p.heals.map(h => `<span class="chip heal">${esc(h.name)} <b>+${h.effective}</b></span>`).join('') + '</div>';
     }
-    if (!p.move.atk && !p.move.heal) html += '<div class="pv-line muted">何も起こらない</div>';
+    if (p.fx) html += `<div class="pv-line"><span class="pv-range fx">技の効果</span><span class="pv-base">${esc(fxPreviewText(p))}</span></div>`;
+    if (!p.move.atk && !p.move.heal && !p.fx) html += '<div class="pv-line muted">何も起こらない</div>';
     return html;
   }
 
+  // 技の効果の予測（Engine.previewMove の fx）
+  function fxPreviewText(p) {
+    const f = p.fx;
+    if (f.type === 'drain') return `吸収：与えたダメージの${f.percent}%（${f.amount}）を自分が回復`;
+    if (f.type === 'poison') return `毒：当たった敵はターンの始めに${f.amount}ダメージ×${f.turns}回（毒では倒れない）`;
+    if (f.type === 'weaken') return `当たった敵の${f.stat === 'heal' ? '回復力' : '攻撃力'}を${f.percent}%下げる（${f.turns}ターン）`;
+    if (f.type === 'multi') return `${f.hits}段攻撃：結界は最初の1回だけを軽くして消える`;
+    if (f.type === 'pinch') return f.active ? `ピンチ：HPが${f.under}%以下なので攻撃${f.mult}倍！` : `ピンチ：HPが${f.under}%以下なら攻撃${f.mult}倍（今は通常）`;
+    if (f.type === 'guard') return '自分に4分の1結界（次に受ける防げるダメージ1回を4分の1に）';
+    return '';
+  }
   // 強化後の攻撃の表示（1.4倍などで出る 16.799999… のような端数の誤差を消す。計算には使わない）
   const atkNum = v => Math.round(v * 100) / 100;
 
@@ -433,7 +448,11 @@
     if (E.isBoss(u.charId)) tags.push(`<span class="bt-tag boss">${esc(ch.rank || 'ボス')}</span>`);
     // 結界：膜が届く瞬間までは出さず、被弾で消えたときは当たる瞬間まで残す（どちらも表示だけ）
     const shield = u.hp > 0 && ((u.barrier && !(key in bt.barrierWait)) || key in bt.barrierHold);
-    if (shield) tags.push('<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+    if (shield) tags.push(u.barrier === 'quarter' ? '<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">◈¼結界</span>' : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+    // 技の効果による状態（毒・攻撃力ダウン・回復力ダウン）。数字は残りの回数
+    if (u.hp > 0 && u.poison) tags.push(`<span class="bt-tag fx-poison" title="毒：ターンの始めに${u.poison.amount}ダメージ（あと${u.poison.turns}回・毒では倒れない）">☠${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) tags.push(`<span class="bt-tag fx-weak" title="攻撃力${u.weakAtk.percent}%ダウン（あと${u.weakAtk.turns}ターン）">攻↓${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag fx-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">回↓${u.weakHeal.turns}</span>`);
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
     const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${hpState(u) === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;

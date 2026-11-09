@@ -43,6 +43,15 @@
         holy:   { atk: 0,  heal: 1,  hp: 5 }
       }
     },
+    // 技の効果（2026-11-09〜）：技に fx: { type, ... } を1つだけ付けられる。効果の分だけ技力（攻撃＋回復）に cost を足す
+    //   drain   吸収：与えたダメージの合計の percent% だけ、使ったキャラが回復する（回復疲労の影響なし）
+    //   poison  毒：当たった敵に、その陣営のターンの始めごとに「使った人の攻撃力×value」のダメージを turns 回（毒では倒れない。HP1で止まる）
+    //   weaken  弱体：当たった敵の攻撃力（stat:'atk'）か回復力（stat:'heal'）を percent% 下げる。その敵の陣営のターン turns 回ぶん
+    //   multi   連撃：hits 回に分けて当てる（合計はほぼ同じ。結界は最初の1回だけを軽くして消える）
+    //   pinch   ピンチ：使ったキャラの HP が最大の under% 以下なら、攻撃が mult 倍
+    //   guard   守り：使ったキャラに「4分の1結界」（次に受ける防げるダメージ1回を QUARTER_BARRIER 倍）
+    MOVE_FX_COST: { drain: 4, poison: 5, weaken: 5, multi: 2, pinch: 3, guard: 6 },
+    QUARTER_BARRIER: 0.25,
     ADVANTAGE_MULTIPLIER: 1.05, // 属性有利の倍率（ここ1か所で変更）
     BARRIER_MULTIPLIER: 0.5,   // 琥珀の結界の被ダメージ倍率
     FATIGUE: {
@@ -121,7 +130,7 @@
         { name: '紅蓮の一閃', atk: 32, heal: 0 },
         { name: '息を整える', atk: 0, heal: 20 },
         { name: '炎の輪', atk: 22, heal: 0 },
-        { name: '燃え尽きる刃', atk: 38, heal: 0 },
+        { name: '燃え尽きる刃', atk: 35, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } },
         { name: '焔の構え', atk: 18, heal: 6 },
         { name: '灰燼の突き', atk: 26, heal: 0 },
         { name: '残り火', atk: 4, heal: 8 }
@@ -183,7 +192,7 @@
         { name: '琥珀の槍', atk: 18, heal: 0 },
         { name: '大地の鼓動', atk: 18, heal: 0 },
         { name: '石の刃', atk: 18, heal: 0 },
-        { name: '守人の息吹', atk: 10, heal: 20 },
+        { name: '守人の息吹', atk: 4, heal: 20, fx: { type: 'guard' } },
         { name: '地鳴り', atk: 18, heal: 0 },
         { name: '岩壁の構え', atk: 0, heal: 22 },
         { name: '琥珀砕き', atk: 26, heal: 0 },
@@ -222,7 +231,7 @@
       leaderSkill: { name: '森の恵み', text: '味方の固有スキルの回復の数字+6（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 6 }] },
       moves: [
         { name: '若葉の薬', atk: 0, heal: 23 },
-        { name: '棘の種', atk: 16, heal: 0 },
+        { name: '棘の種', atk: 11, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
         { name: '生命の実', atk: 0, heal: 46 },
         { name: '癒しの蔓', atk: 12, heal: 16 },
         { name: '森の目覚め', atk: 26, heal: 10 },
@@ -265,7 +274,7 @@
       moves: [
         { name: '潮の剣', atk: 22, heal: 0 },
         { name: '霧の休息', atk: 0, heal: 31 },
-        { name: '波の刃', atk: 20, heal: 0 },
+        { name: '波の刃', atk: 15, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '返し波', atk: 16, heal: 10 },
         { name: '深海の渦', atk: 34, heal: 0 },
         { name: '凪の呼吸', atk: 10, heal: 23 },
@@ -289,7 +298,7 @@
         { name: 'さざ波の杖', atk: 12, heal: 16 },
         { name: '清めの雫', atk: 0, heal: 24 },
         { name: '蒼の波紋', atk: 16, heal: 14 },
-        { name: '泉の祈り', atk: 0, heal: 28 },
+        { name: '泉の祈り', atk: 0, heal: 28, fx: { type: 'guard' } },
         { name: '水鏡の一閃', atk: 24, heal: 6 },
         { name: '潮騒の裁き', atk: 20, heal: 8 },
         { name: '霧雨の恵み', atk: 0, heal: 30 },
@@ -308,7 +317,7 @@
       subTypes: ['占星術師', '術士'],
       leaderSkill: { name: '小さき星の加護', text: '出目が1か2のとき、味方の通常技の攻撃の数字+6・回復+6（攻撃0・回復0の技は除く）。', effects: [{ type: 'lowDice', dice: [1, 2], atk: 6, heal: 6 }] },
       moves: [
-        { name: '星屑の矢', atk: 20, heal: 10 },
+        { name: '星屑の矢', atk: 20, heal: 10, fx: { type: 'multi', hits: 3 } },
         { name: '星明かりの祈り', atk: 12, heal: 20 },
         { name: '流星', atk: 24, heal: 4 },
         { name: '星図の導き', atk: 16, heal: 16 },
@@ -330,7 +339,7 @@
       subTypes: ['鍛冶師', '戦士'],
       leaderSkill: { name: '鍛冶場の熱気', text: '猛火属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
       moves: [
-        { name: '火打ちの槌', atk: 12, heal: 0 },
+        { name: '火打ちの槌', atk: 10, heal: 0, fx: { type: 'multi', hits: 3 } },
         { name: '赤熱の一撃', atk: 20, heal: 0 },
         { name: '鍛え抜いた刃', atk: 28, heal: 0 },
         { name: '炉端の休息', atk: 0, heal: 18 },
@@ -354,7 +363,7 @@
         { name: '黒曜の剣', atk: 18, heal: 0 },
         { name: '影踏み', atk: 24, heal: 0 },
         { name: '盾打ち', atk: 10, heal: 8 },
-        { name: '夜断ち', atk: 32, heal: 0 },
+        { name: '夜断ち', atk: 29, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } },
         { name: '静寂の祈り', atk: 0, heal: 24 },
         { name: '闇の突進', atk: 22, heal: 0 },
         { name: '黒曜の盾', atk: 0, heal: 26 },
@@ -393,7 +402,7 @@
       subTypes: ['暗殺者', '影使い'],
       leaderSkill: { name: '暗殺者の心得', text: '味方の固有スキルのダメージの数字+3（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 3 }] },
       moves: [
-        { name: '暗器投げ', atk: 16, heal: 0 },
+        { name: '暗器投げ', atk: 11, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
         { name: '影走り', atk: 22, heal: 0 },
         { name: '身を潜める', atk: 12, heal: 6 },
         { name: '背後の一刺し', atk: 28, heal: 0 },
@@ -543,7 +552,7 @@
       moves: [
         { name: '銀の剣', atk: 18, heal: 0 },
         { name: '聖なる突き', atk: 24, heal: 0 },
-        { name: '祝福の盾', atk: 8, heal: 10 },
+        { name: '祝福の盾', atk: 2, heal: 10, fx: { type: 'guard' } },
         { name: '白銀の斬撃', atk: 28, heal: 0 },
         { name: '癒しの祈り', atk: 0, heal: 20 },
         { name: '銀光の一閃', atk: 22, heal: 0 },
@@ -564,7 +573,7 @@
       moves: [
         { name: '熊の爪', atk: 16, heal: 0 },
         { name: '樫の一撃', atk: 22, heal: 0 },
-        { name: '大地の咆哮', atk: 26, heal: 0 },
+        { name: '大地の咆哮', atk: 23, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } },
         { name: '木の実を食む', atk: 0, heal: 18 },
         { name: 'のしかかり', atk: 30, heal: 0 },
         { name: '森の眠り', atk: 0, heal: 12 },
@@ -669,7 +678,7 @@
       leaderSkill: { name: '潮騎士の号令', text: '水脈属性の味方の通常技の攻撃の数字+5（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 5 }] },
       moves: [
         { name: '潮槍の突き', atk: 20, heal: 0 },
-        { name: '渦の薙ぎ', atk: 24, heal: 0 },
+        { name: '渦の薙ぎ', atk: 19, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '深海の構え', atk: 0, heal: 18 },
         { name: '激流の一撃', atk: 28, heal: 0 },
         { name: '波の盾', atk: 8, heal: 10 },
@@ -689,7 +698,7 @@
       subTypes: ['裁定者', '術士'],
       leaderSkill: { name: '天秤の加護', text: '味方全員の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 2 }] },
       moves: [
-        { name: '裁きの光', atk: 16, heal: 0 },
+        { name: '裁きの光', atk: 11, heal: 0, fx: { type: 'weaken', stat: 'heal', percent: 25, turns: 2 } },
         { name: '均衡の祈り', atk: 0, heal: 22 },
         { name: '天秤の一撃', atk: 24, heal: 0 },
         { name: '光の鎖', atk: 10, heal: 8 },
@@ -796,7 +805,7 @@
       leaderSkill: { name: '炎天の号令', text: '猛火属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
       moves: [
         { name: '陽炎斬り', atk: 22, heal: 0 },
-        { name: '熱砂の舞', atk: 18, heal: 0 },
+        { name: '熱砂の舞', atk: 16, heal: 0, fx: { type: 'multi', hits: 3 } },
         { name: '揺らめく守り', atk: 6, heal: 12 },
         { name: '灼熱の突き', atk: 26, heal: 0 },
         { name: '蜃気楼', atk: 0, heal: 16 },
@@ -820,7 +829,7 @@
         { name: '魂送りの歌', atk: 0, heal: 18 },
         { name: '冥き水底', atk: 24, heal: 0 },
         { name: '渡し賃', atk: 8, heal: 8 },
-        { name: '霊火', atk: 18, heal: 0 },
+        { name: '霊火', atk: 14, heal: 0, fx: { type: 'drain', percent: 30 } },
         { name: '黄泉の霧', atk: 10, heal: 6 },
         { name: '冥府の大渦', atk: 32, heal: 0 },
         { name: '鎮魂の調べ', atk: 0, heal: 26 },
@@ -926,7 +935,7 @@
         { name: '苔の癒し', atk: 0, heal: 16 },
         { name: '岩落とし', atk: 22, heal: 0 },
         { name: '根の守り', atk: 6, heal: 10 },
-        { name: '大地の震え', atk: 20, heal: 0 },
+        { name: '大地の震え', atk: 15, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '静かな瞑想', atk: 0, heal: 12 },
         { name: '巨岩崩し', atk: 32, heal: 0 },
         { name: '古苔の息吹', atk: 0, heal: 26 },
@@ -943,7 +952,7 @@
       subTypes: ['王族', '魔物'],
       leaderSkill: { name: '紅き夜会', text: '呪闇属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
       moves: [
-        { name: '吸血の牙', atk: 22, heal: 0 },
+        { name: '吸血の牙', atk: 18, heal: 0, fx: { type: 'drain', percent: 30 } },
         { name: '血の契り', atk: 6, heal: 10 },
         { name: '夜霧の爪', atk: 24, heal: 0 },
         { name: '蝙蝠の群れ', atk: 18, heal: 0 },
@@ -1051,7 +1060,7 @@
       moves: [
         { name: '氷の槍', atk: 22, heal: 0 },
         { name: '雪解け水', atk: 0, heal: 14 },
-        { name: '吹雪の矢', atk: 24, heal: 0 },
+        { name: '吹雪の矢', atk: 19, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
         { name: '氷の盾', atk: 8, heal: 8 },
         { name: '凍てつく一撃', atk: 26, heal: 0 },
         { name: '白い息', atk: 0, heal: 12 },
@@ -1072,7 +1081,7 @@
       moves: [
         { name: '斧振り', atk: 22, heal: 0 },
         { name: '戦士の休息', atk: 0, heal: 14 },
-        { name: '炎の薙ぎ払い', atk: 24, heal: 0 },
+        { name: '炎の薙ぎ払い', atk: 22, heal: 0, fx: { type: 'multi', hits: 3 } },
         { name: '鉄の構え', atk: 6, heal: 10 },
         { name: '火炎斬', atk: 20, heal: 0 },
         { name: '雄叫び', atk: 10, heal: 0 },
@@ -1155,7 +1164,7 @@
       subTypes: ['盗賊'],
       leaderSkill: { name: '盗賊団の掟', text: '呪闇属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
       moves: [
-        { name: '短剣の一閃', atk: 16, heal: 0 },
+        { name: '短剣の一閃', atk: 12, heal: 0, fx: { type: 'drain', percent: 30 } },
         { name: '盗み食い', atk: 0, heal: 10 },
         { name: '背後からの突き', atk: 18, heal: 0 },
         { name: '煙玉', atk: 4, heal: 6 },
@@ -1179,7 +1188,7 @@
         { name: '角の突進', atk: 22, heal: 0 },
         { name: '若芽の癒し', atk: 0, heal: 16 },
         { name: '蹄の一撃', atk: 20, heal: 0 },
-        { name: '樹皮の鎧', atk: 6, heal: 10 },
+        { name: '樹皮の鎧', atk: 0, heal: 10, fx: { type: 'guard' } },
         { name: '角払い', atk: 24, heal: 0 },
         { name: '森の静寂', atk: 0, heal: 12 },
         { name: '大角の怒り', atk: 32, heal: 0 },
@@ -1201,7 +1210,7 @@
         { name: 'オアシスの水', atk: 0, heal: 14 },
         { name: '熱砂の刃', atk: 24, heal: 0 },
         { name: '王の威厳', atk: 8, heal: 8 },
-        { name: '灼熱の陽射し', atk: 22, heal: 0 },
+        { name: '灼熱の陽射し', atk: 17, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
         { name: '日除けの天幕', atk: 0, heal: 10 },
         { name: '砂漠の大嵐', atk: 34, heal: 0 },
         { name: '王家の秘薬', atk: 0, heal: 24 },

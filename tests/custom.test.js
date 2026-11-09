@@ -64,8 +64,8 @@ test('並べ替えた構成で、出目と技の対応が変わる（CPUは初�
   assert.equal(E.unitMove(s.teams.cpu[5], 1).name, '火花');
   E.roll(s, 'player', fixed(1));
   const before = hps(s, 'cpu');
-  E.useMove(s, 'player', 0); // 出目1 → 燃え尽きる刃38：翠樹（自然）は有利 39.9→40、雷鳴・霧海 38
-  assert.deepEqual(before.map((h, i) => h - s.teams.cpu[i].hp), [40, 38, 38, 0, 0, 0]);
+  E.useMove(s, 'player', 0); // 出目1 → 燃え尽きる刃35（ピンチではない）：翠樹（自然）は有利 36.75→37、雷鳴・霧海 35
+  assert.deepEqual(before.map((h, i) => h - s.teams.cpu[i].hp), [37, 35, 35, 0, 0, 0]);
   assert.ok(s.log.some(l => l.text.includes('［出目1］「燃え尽きる刃」')));
   assert.deepEqual(s.teams.player[0].loadout, [5, 4, 3, 2, 1, 0]);
 });
@@ -166,10 +166,10 @@ test('出撃準備の初期配置：前回の配置を優先し、無効な分�
 });
 
 test('ランク（★）：基礎HP＋初期構成の攻撃の平均＋回復の平均で決まり、レベル・技の付け替えでは変わらない', () => {
-  // 燎原：HP120・初期6技の攻撃 8+14+32+0+22+38=114 → 平均19、回復 20 → 平均3.33
+  // 燎原：HP120・初期6技の攻撃 8+14+32+0+22+35=111 → 平均18.5、回復 20 → 平均3.33（燃え尽きる刃はピンチの効果の分だけ 38→35）
   const r = E.rankParts('ryogen');
   assert.equal(r.hp, 120);
-  assert.equal(r.atk, 19);
+  assert.equal(r.atk, 18.5);
   assert.ok(Math.abs(r.heal - 20 / 6) < 1e-9);
   const stars = Object.fromEntries(['ryogen', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'suiju', 'raimei', 'mukai'].map(id => [id, E.starsOf(id)]));
   assert.deepEqual(stars, { ryogen: 3, gessen: 2, gyakufu: 2, kohaku: 3, yoiyami: 2, suiju: 3, raimei: 2, mukai: 3 });

@@ -65,10 +65,14 @@
     return `<span class="hptext">HP <b>${unit.hp}</b> / ${unit.maxHp}</span>`;
   }
   const levelTag = lv => `<span class="lv-tag">Lv${lv}</span>`;
+  // 技の効果の短い名前（技の一覧に出す）
+  const FX_LABEL = { drain: '吸収', poison: '毒', weaken: '弱体', multi: '3段', pinch: 'ピンチ', guard: '¼結界' };
   function moveEffText(m) {
     const parts = [];
     if (m.atk > 0) parts.push('攻×' + m.atk);   // 技の数字は倍率（攻撃力×数字）
     if (m.heal > 0) parts.push('回×' + m.heal);
+    const fx = m.fx ? (m.fx.type === 'weaken' ? (m.fx.stat === 'heal' ? '回復力↓' : '攻撃力↓') : m.fx.type === 'multi' ? `${m.fx.hits}段` : FX_LABEL[m.fx.type]) : '';
+    if (fx) parts.push(fx);
     return parts.length ? parts.join('+') : '—';
   }
   // loadout の順（出目1〜6）で技を並べる

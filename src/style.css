@@ -2542,3 +2542,10 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-icebear"] { --cx: 52%; --cy: 2%; --ex: 52%; --ey: 2%; --es: 240%; }
 [data-char="b-icequeen"] { --cx: 40%; --cy: 5%; --ex: 40%; --ey: 5%; --es: 240%; }
 /* ---- dungeon-art: glacier ここまで ---- */
+
+/* 技の効果による状態（毒・弱体）2026-11-09 */
+.bt-tag.fx-poison { background: rgba(110, 40, 140, .85); color: #f3e6ff; }
+.bt-tag.fx-weak { background: rgba(60, 70, 110, .85); color: #e6ecff; }
+.badge.fx-poison { background: #6e2a8c; color: #fff; }
+.badge.fx-weak { background: #3c466e; color: #fff; }
+.pv-range.fx { background: #6b5a2e; color: #fff6dc; }

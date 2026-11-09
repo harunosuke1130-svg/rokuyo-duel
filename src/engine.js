@@ -95,7 +95,7 @@
   const SCALE = 10000;
   function finalizeDamage(amount, advantage, barrier) {
     const adv = advantage ? Math.round(CONFIG.ADVANTAGE_MULTIPLIER * SCALE) : SCALE;
-    const def = barrier ? Math.round(CONFIG.BARRIER_MULTIPLIER * SCALE) : SCALE;
+    const def = barrier ? Math.round((barrier === 'quarter' ? CONFIG.QUARTER_BARRIER : CONFIG.BARRIER_MULTIPLIER) * SCALE) : SCALE;
     const num = Math.round(amount * SCALE) * adv * def;
     const den = SCALE * SCALE * SCALE;
     return Math.floor((2 * num + den) / (2 * den));
@@ -125,13 +125,13 @@
     const power = boost && boost.power ? boost.power : 1;
     const boosted = (base * mult + bonus) * power;   // 技の数字（倍率）×攻撃力
     const advantage = hasAdvantage(attackerChar.element, unitChar(defenderUnit).element);
-    const barrier = !!defenderUnit.barrier;
+    const barrier = defenderUnit.barrier || false;   // true（半減）か 'quarter'（4分の1）
     return { base, boosted, advantage, barrier, damage: finalizeDamage(boosted, advantage, barrier) };
   }
 
   // スキルの直接ダメージ：属性倍率なし。防御無視なら結界も無視（消費しない）。
   function computeSkillDamage(amount, ignoreDefense, defenderUnit) {
-    const barrier = !ignoreDefense && !!defenderUnit.barrier;
+    const barrier = !ignoreDefense && (defenderUnit.barrier || false);
     return { base: amount, barrier, damage: finalizeDamage(amount, false, barrier) };
   }
 
@@ -155,7 +155,8 @@
 
   /* ---------- 技の構成（出目1〜6に割り当てる6技） ---------- */
   // loadout は技の候補（ch.moves）の番号を出目1〜6の順に並べた配列
-  const movePower = m => m.atk + m.heal;
+  const fxCost = m => (m && m.fx ? ((CONFIG.MOVE_FX_COST || {})[m.fx.type] || 0) : 0);
+  const movePower = m => m.atk + m.heal + fxCost(m);   // 技の効果の分も技力に数える
   function defaultLoadout(charId) {
     return getChar(charId).moves.slice(0, CONFIG.LOADOUT_SIZE).map((m, i) => i);
   }
@@ -211,6 +212,27 @@
   function attackBoost(state, side, unit, dice) {
     const b = (state.turnSide === side && state.phase === 'action') ? state.boost : { mult: 1, bonus: 0 };
     return { mult: b.mult, bonus: b.bonus + leaderAtkBonus(state, side, unitChar(unit)) + lowDiceBonus(state, side, 'atk', dice), power: unitAtk(unit) };
+  }
+  // 技の効果込みの攻撃強化（ピンチ：HP が少ないと倍）
+  function moveBoost(state, side, unit, move, dice) {
+    const b = attackBoost(state, side, unit, dice);
+    const fx = move && move.fx;
+    if (fx && fx.type === 'pinch' && unit.hp > 0 && unit.hp * 100 <= unit.maxHp * fx.under) { b.mult *= fx.mult; b.pinch = true; }
+    return b;
+  }
+  // 1体への攻撃（連撃は回数に分けて当て、結界は最初の1回だけ）。状態は変えない
+  function attackOn(move, boost, ch, t) {
+    const hits = move.fx && move.fx.type === 'multi' ? Math.max(1, move.fx.hits | 0) : 1;
+    if (hits === 1) return Object.assign({ hits: 1 }, computeAttack(move.atk, boost, ch, t));
+    const per = Object.assign({}, boost, { mult: (boost.mult || 1) / hits, bonus: (boost.bonus || 0) / hits });
+    let damage = 0, used = false, first = null;
+    for (let h = 0; h < hits; h++) {
+      const r = computeAttack(move.atk, per, ch, used ? Object.assign({}, t, { barrier: false }) : t);
+      if (!first) first = r;
+      if (r.barrier) used = r.barrier;
+      damage += r.damage;
+    }
+    return { base: move.atk, boosted: first.boosted * hits, advantage: first.advantage, barrier: used, damage, hits };
   }
   // リーダースキル lowDice：出目が指定の数字（例 1・2）のとき、通常技の攻撃・回復に加算（攻撃0・回復0の技は除く）
   function lowDiceBonus(state, side, key, dice) {
@@ -274,8 +296,10 @@
     return { atk: Math.round(b.atk * g), heal: Math.round(b.heal * g), hp: levelMaxHp(baseMaxHp(charId), lv) };
   }
   // ユニットの攻撃力・回復力（古い状態などで無ければ計算し直す）
-  const unitAtk = unit => (unit.atkPow || charPower(unit.charId, unit.level || 1).atk);
-  const unitHeal = unit => (unit.healPow || charPower(unit.charId, unit.level || 1).heal);
+  // 弱体（weaken）中は下がった値
+  const weakened = (v, w) => (w && w.turns > 0 ? Math.max(1, Math.round(v * (100 - w.percent) / 100)) : v);
+  const unitAtk = unit => weakened(unit.atkPow || charPower(unit.charId, unit.level || 1).atk, unit.weakAtk);
+  const unitHeal = unit => weakened(unit.healPow || charPower(unit.charId, unit.level || 1).heal, unit.weakHeal);
 
   /* ---------- 状態の生成 ---------- */
   function makeUnit(charId, index, loadout, level) {
@@ -441,6 +465,18 @@
     state.phase = 'roll';
     addLog(state, ctx, `― 第${state.round}巡　${who(state, side)}のターン ―`, 'turn');
     ctx.events.push({ type: 'turn', side });
+    // 毒：ターンの始めにダメージ（毒では倒れない）
+    state.teams[side].forEach((u, i) => {
+      if (!u.poison || u.poison.turns <= 0) return;
+      if (u.hp > 0) {
+        const dmg = Math.max(0, Math.min(u.poison.amount, u.hp - 1));
+        u.hp -= dmg;
+        if (dmg > 0) ctx.events.push({ type: 'damage', side, idx: i, amount: dmg, poison: true });
+        addLog(state, ctx, `${team(state, side)}の${unitName(u)}は毒で${dmg}ダメージ（HP ${u.hp}/${u.maxHp}・あと${u.poison.turns - 1}回）`, 'damage');
+      }
+      u.poison.turns--;
+      if (u.poison.turns <= 0) delete u.poison;
+    });
     // リーダースキル regen：自分のターンの開始時に前衛全員を少し回復（全員満タンなら何もしない）
     const regen = leaderSum(state, side, 'regen');
     if (regen > 0 && frontAlive(state, side).some(i => state.teams[side][i].hp < state.teams[side][i].maxHp)) {
@@ -450,6 +486,10 @@
   }
 
   function endTurn(state, ctx) {
+    // 弱体は、かかった陣営のターンが終わるごとに1回ぶん減る
+    state.teams[state.turnSide].forEach(u => {
+      ['weakAtk', 'weakHeal'].forEach(k => { if (u[k]) { u[k].turns--; if (u[k].turns <= 0) delete u[k]; } });
+    });
     startTurn(state, ctx, opp(state.turnSide));
   }
 
@@ -710,7 +750,7 @@
     const unit = state.teams[side][idx];
     const ch = unitChar(unit);
     const move = unitMove(unit, state.dice);
-    const boost = attackBoost(state, side, unit);
+    const boost = moveBoost(state, side, unit, move);
     const ctx = newCtx();
     state.moveUsed = true;
     addLog(state, ctx, `${team(state, side)}の${ch.name}の通常技［出目${state.dice}］「${move.name}」`, 'move');
@@ -718,20 +758,40 @@
 
     const targetSide = opp(side);
     let attacked = false;
+    const fx = move.fx || null;
     if (move.atk > 0) {
       const targets = frontAlive(state, targetSide); // 攻撃開始時の敵前衛に一度だけ
+      let total = 0;
       const parts = targets.map(i => {
         const t = state.teams[targetSide][i];
-        const r = computeAttack(move.atk, boost, ch, t);
+        const r = attackOn(move, boost, ch, t);
         damageUnit(state, ctx, targetSide, i, r.damage, r.barrier);
+        total += r.damage;
         const notes = [];
+        if (r.hits > 1) notes.push(`${r.hits}段`);
         if (r.advantage) notes.push('属性有利');
-        if (r.barrier) notes.push('結界で半減');
+        if (r.barrier) notes.push(r.barrier === 'quarter' ? '4分の1結界' : '結界で半減');
+        // 毒・弱体（当たった敵に）
+        if (t.hp > 0 && fx && fx.type === 'poison') { t.poison = { amount: fx.value * unitAtk(unit), turns: fx.turns }; notes.push('毒'); }
+        if (t.hp > 0 && fx && fx.type === 'weaken') { t[fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'] = { percent: fx.percent, turns: fx.turns }; notes.push(fx.stat === 'heal' ? '回復力ダウン' : '攻撃力ダウン'); }
         return `${unitName(t)} ${r.damage}${notes.length ? '（' + notes.join('・') + '）' : ''}（HP ${t.hp}/${t.maxHp}）`;
       });
       const boostNote = (boost.mult !== 1 || boost.bonus) ? `・強化後×${move.atk * boost.mult + boost.bonus}` : '';
-      addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
+      addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}${boost.pinch ? '・ピンチで2倍' : ''}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
       attacked = targets.length > 0;
+      // 吸収：与えたダメージの一部で自分を回復
+      if (fx && fx.type === 'drain' && total > 0 && unit.hp > 0) {
+        const got = Math.min(Math.floor(total * fx.percent / 100), unit.maxHp - unit.hp);
+        unit.hp += got;
+        if (got > 0) ctx.events.push({ type: 'heal', side, idx, amount: got });
+        addLog(state, ctx, `［吸収］${unitName(unit)}は${got}回復（HP ${unit.hp}/${unit.maxHp}）`, 'heal');
+      }
+    }
+    // 守り：自分に4分の1結界
+    if (fx && fx.type === 'guard' && unit.hp > 0) {
+      unit.barrier = 'quarter';
+      ctx.events.push({ type: 'barrier', side, idx });
+      addLog(state, ctx, `${team(state, side)}の${unitName(unit)}に4分の1結界（次に受ける防げるダメージ1回を4分の1に）`, 'barrier');
     }
     if (move.heal > 0) healFront(state, ctx, side, moveHealBase(state, side, move, null, unit), move.name);
     if (move.atk <= 0 && move.heal <= 0) addLog(state, ctx, '何も起こらなかった', 'info');
@@ -770,10 +830,10 @@
     const ch = unitChar(unit);
     const move = unitMove(unit, d);
     const targetSide = opp(side);
-    const boost = attackBoost(state, side, unit, d);
+    const boost = moveBoost(state, side, unit, move, d);
     const attacks = move.atk > 0 ? frontAlive(state, targetSide).map(i => {
       const t = state.teams[targetSide][i];
-      return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, computeAttack(move.atk, boost, ch, t));
+      return Object.assign({ idx: i, name: unitName(t), hp: t.hp }, attackOn(move, boost, ch, t));
     }) : [];
     const round = Math.max(1, fatigueRound(state, side));
     const healBase = moveHealBase(state, side, move, d, unit);
@@ -782,7 +842,10 @@
       const t = state.teams[side][i];
       return { idx: i, name: unitName(t), amount, effective: Math.min(amount, t.maxHp - t.hp) };
     }) : [];
-    return { dice: d, move, user: idx, attacks, heals, healBase, healPercent: healPercent(round), atkPow: unitAtk(unit), healPow: unitHeal(unit),
+    const fx = move.fx ? Object.assign({}, move.fx, move.fx.type === 'poison' ? { amount: move.fx.value * unitAtk(unit) } : {},
+      move.fx.type === 'drain' ? { amount: Math.min(Math.floor(attacks.reduce((a, x) => a + x.damage, 0) * move.fx.percent / 100), unit.maxHp - unit.hp) } : {},
+      move.fx.type === 'pinch' ? { active: !!boost.pinch } : {}) : null;
+    return { dice: d, move, user: idx, attacks, heals, healBase, healPercent: healPercent(round), atkPow: unitAtk(unit), healPow: unitHeal(unit), fx,
       boosted: attacks.length ? attacks[0].boosted : (move.atk * boost.mult + boost.bonus) * boost.power };
   }
 
@@ -822,7 +885,7 @@
     createRng, rollDie, normalizeThrow, throwOffset, throwDie, opp, getChar, unitChar, isAlive, aliveIndexes, allDown, isFront, frontAlive, backAlive, clone,
     hasAdvantage, finalizeDamage, healPercent, fatiguedHeal, fatigueRound, computeAttack, computeSkillDamage,
     validateTeam, randomTeam, createBattle, frontRequired, suggestFormation, isBoss, BOSSES,
-    rankParts, starsOf, movePower, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
+    rankParts, starsOf, movePower, fxCost, moveBoost, attackOn, unitAtk, unitHeal, defaultLoadout, loadoutPower, loadoutBudget, moveUnlockLevel, loadoutError, unitMove,
     leaderEffects, leaderAtkBonus, lowDiceBonus, attackBoost, moveHealBase,
     chooseFormation, rollInitiative, surrender, roll, swap, useSkill, useMove, chooseReplacement,
     clampLevel, levelMaxHp, levelAtkBonus, levelGrowth, basePower, baseMaxHp, charPower,

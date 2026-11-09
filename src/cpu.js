@@ -31,6 +31,7 @@
     lowFrontPenalty: 16,
     cdPenalty: 2.2,     // 自分のCD1あたりの減点（スキルの無駄撃ち防止）
     win: 100000,
+    weak: 4,            // 攻撃力ダウン1ターンあたりの減点
     hpScale: (Engine.CONFIG.POWER && Engine.CONFIG.POWER.hpScale) || 1   // HP は 10 倍になったので、評価では元の大きさに戻す
   };
 
@@ -41,7 +42,11 @@
       state.teams[s].forEach((u, i) => {
         if (!isAlive(u)) return;
         let v = u.hp / W.hpScale + W.alive;
-        if (u.barrier) v += Engine.isFront(state, s, i) ? W.barrier : W.barrierBack;
+        // 技の効果：残っている毒のダメージ・弱体は、その分だけ価値を下げる
+        if (u.poison) v -= Math.min(u.hp - 1, u.poison.amount * u.poison.turns) / W.hpScale;
+        if (u.weakAtk) v -= W.weak * u.weakAtk.turns;
+        if (u.weakHeal) v -= W.weak * u.weakHeal.turns * 0.5;
+        if (u.barrier) v += (Engine.isFront(state, s, i) ? W.barrier : W.barrierBack) * (u.barrier === 'quarter' ? 1.5 : 1);
         score += sign * v;
       });
     };
