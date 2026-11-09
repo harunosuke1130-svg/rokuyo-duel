@@ -17,9 +17,9 @@
     "b-mantis": {
       "describe": "a towering emerald praying mantis warrior taller than a man, armored jade-green carapace with leaf-like edges, two huge scythe forearms gleaming like polished blades, sharp triangular head with cold compound eyes, wings half spread like torn leaves, poised to strike among tall reeds and hanging vines",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 55,
+        "ey": 10,
+        "es": 220
       },
       "focus": [
         0.5,
@@ -30,7 +30,7 @@
       "describe": "a colossal three-headed swamp hydra rising from the bog, long serpentine necks covered in dark moss-green scales and dripping slime, each head with glowing violet eyes and fangs exhaling purple poison mist, a crest of jagged fins, massive coiled body half submerged in black water, ancient and terrifying, looming over sunken stone ruins",
       "emblem": {
         "ex": 50,
-        "ey": 25,
+        "ey": 8,
         "es": 220
       },
       "focus": [

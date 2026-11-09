@@ -2638,3 +2638,8 @@ body[data-screen="gacha"] .topbar {
   background: rgba(20, 14, 6, .78); color: #fff4d8; font-variant-numeric: tabular-nums; }
 .tm-sortval[data-k="atk"] { color: #ffc2b5; }
 .tm-sortval[data-k="heal"] { color: #b9f3c8; }
+/* ---- dungeon-art: marsh（scripts/dungeon-art.js が書く。顔の位置は art/marsh/art.json の emblem で直す） ---- */
+[data-char="b-bogfrog"] { --cx: 50%; --cy: 25%; --ex: 50%; --ey: 25%; --es: 200%; }
+[data-char="b-mantis"] { --cx: 55%; --cy: 10%; --ex: 55%; --ey: 10%; --es: 220%; }
+[data-char="b-hydra"] { --cx: 50%; --cy: 8%; --ex: 50%; --ey: 8%; --es: 220%; }
+/* ---- dungeon-art: marsh ここまで ---- */
