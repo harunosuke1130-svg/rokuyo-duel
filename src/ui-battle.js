@@ -617,9 +617,12 @@
     n.className = 'fx-num ' + cls;
     if (elem) n.dataset.el = elem;
     n.textContent = text;
-    n.style.left = Math.min(window.innerWidth - 30, Math.max(30, r.left + r.width / 2)) + 'px';
     n.style.top = Math.min(window.innerHeight - 20, Math.max(20, r.top + r.height * 0.5 + (offset || 0))) + 'px';
+    n.style.left = (r.left + r.width / 2) + 'px';
     $('#fx-layer').appendChild(n);
+    // 長い文字（「ピンチ！攻撃×2」など）が画面の端で切れないように、幅を見て内側に寄せる
+    const half = (n.offsetWidth || 60) * 0.6 + 8;   // 弾む動き（少し拡大）の分も見込む
+    n.style.left = Math.min(window.innerWidth - half, Math.max(half, r.left + r.width / 2)) + 'px';
     setTimeout(() => n.remove(), 1300);
   }
   function flash(el, cls) {
@@ -879,36 +882,79 @@
   }
 
   // 1体への当たり・回復・結界（数字とHPバーは、その瞬間に動かす）
+  // 技の効果：3段は3回に分けて当たる・毒は紫の泡・吸収は相手から命が流れ込む・弱体は下向きの矢印・¼結界は厚い金の盾
   function hitOne(ev, actEl) {
     const card = cardOf(ev.side, ev.idx);
     const key = ev.side + ':' + ev.idx;
-    if (ev.type === 'damage') {
-      // 結界があった：膜が反応して砕ける（被ダメージは Engine が半減済み）
+    const quick = U.FAST || bt.fxQuick || reduced();
+    let releaseAt = 0;
+    if (ev.type === 'damage' && ev.poison) {
+      // 毒のダメージ（ターンの始め）：紫の泡が立ちのぼる
+      cardFx(card, 'poison');
+      flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
+      floatAt(card, '毒 -' + ev.amount, 'poison', 0);
+    } else if (ev.type === 'damage') {
+      // 結界があった：膜が反応して砕ける（被ダメージは Engine が軽くした後）
       if (key in bt.barrierHold) {
         delete bt.barrierHold[key];
         if (card) { card.classList.remove('has-barrier'); const t = card.querySelector('.bt-tag.barrier'); if (t) t.remove(); }
         cardFx(card, 'shatter');
       }
-      cardFx(card, 'hit', actEl);
-      flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
-      floatAt(card, '-' + ev.amount, 'dmg', 0, actEl);
+      const parts = ev.parts && ev.parts.length > 1 ? ev.parts : null;
+      if (parts && !quick) {
+        // 3段攻撃：少しずつずらして3回当て、数字も1回ずつ出す。最後に合計
+        parts.forEach((d, k) => schedule(() => {
+          cardFx(card, 'hit', actEl);
+          cardFx(card, 'multi');
+          const sl = card && card.querySelector('.fx-multi:last-child'); if (sl) sl.style.setProperty('--ang', ['35deg', '145deg', '90deg'][k % 3]);
+          flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
+          floatAt(card, '-' + d, 'dmg multi', -18 + k * 16, actEl);
+        }, k * 170));
+        releaseAt = parts.length * 170;
+        schedule(() => floatAt(card, `${parts.length}HIT 計${ev.amount}`, 'combo', -46), releaseAt);
+      } else {
+        cardFx(card, 'hit', actEl);
+        flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
+        floatAt(card, '-' + ev.amount, 'dmg', 0, actEl);
+      }
+      // 毒・弱体がかかった
+      if (ev.status) {
+        const label = { poison: '毒', weakAtk: '攻撃力↓', weakHeal: '回復力↓' }[ev.status];
+        schedule(() => {
+          cardFx(card, ev.status === 'poison' ? 'poison' : 'weak');
+          floatAt(card, label, ev.status === 'poison' ? 'poison' : 'weak', 26);
+        }, releaseAt + (quick ? 0 : 160));
+      }
+    } else if (ev.type === 'heal' && ev.drain) {
+      // 吸収：当たった敵から、赤い命の粒が使ったキャラへ流れ込む
+      const ms = quick ? 0 : 420;
+      if (!quick) (ev.from || []).forEach(i => trail(cardOf(E.opp(ev.side), i), card, '', ms, 'drain'));
+      schedule(() => {
+        cardFx(card, 'drain');
+        flash(card, 'glow-heal');
+        floatAt(card, '吸収 +' + ev.amount, 'drain', 14);
+        releaseHp(ev.side, ev.idx);
+      }, ms);
+      return;
     } else if (ev.type === 'heal') {
       cardFx(card, 'heal');
       flash(card, 'glow-heal');
       if (ev.amount > 0) floatAt(card, '+' + ev.amount, 'heal', 14); // 満タンで回復0のときは数字を出さない
     } else if (ev.type === 'barrier') {
+      const tagHtml = ev.quarter ? '<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">◈¼結界</span>' : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>';
       if (key in bt.barrierWait) {
         delete bt.barrierWait[key];
         if (card && !card.classList.contains('has-barrier')) {
           card.classList.add('has-barrier');
           const tags = card.querySelector('.bt-tags');
-          if (tags) tags.insertAdjacentHTML('beforeend', '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+          if (tags) tags.insertAdjacentHTML('beforeend', tagHtml);
         }
       }
-      cardFx(card, 'barrier');
-      floatAt(card, '結界', 'info', -10);
+      cardFx(card, ev.quarter ? 'guard' : 'barrier');
+      floatAt(card, ev.quarter ? '¼結界' : '結界', ev.quarter ? 'guard' : 'info', -10);
     }
-    releaseHp(ev.side, ev.idx);
+    if (releaseAt) schedule(() => releaseHp(ev.side, ev.idx), releaseAt);
+    else releaseHp(ev.side, ev.idx);
   }
 
   // 行動 → 当たり。行動したキャラを短く強調し、その後で対象に当たり（全体なら同時）と数字を出す
@@ -920,13 +966,16 @@
     if (actEv && actEv.type === 'move') {
       const c = cardOf(actEv.side, actEv.idx);
       if (c) { c.style.setProperty('--act-el', `var(--el-${actEl || 'holy'})`); flash(c, actEv.side === bt.me ? 'act-up' : 'act-down'); }
+      // ピンチ：赤い気がふくらむ
+      if (c && actEv.pinch) { cardFx(c, 'pinch'); floatAt(c, 'ピンチ！攻撃×2', 'pinch', -30); }
     }
     const groups = [];
     events.forEach(ev => {
       if (ev.type !== 'damage' && ev.type !== 'heal' && ev.type !== 'barrier') return;
       const last = groups[groups.length - 1];
-      if (last && last.type === ev.type && last.side === ev.side) last.list.push(ev);
-      else groups.push({ type: ev.type, side: ev.side, list: [ev] });
+      const sub = ev.poison ? 'poison' : ev.drain ? 'drain' : '';
+      if (last && last.type === ev.type && last.side === ev.side && last.sub === sub) last.list.push(ev);
+      else groups.push({ type: ev.type, side: ev.side, sub, list: [ev] });
     });
     // 回復疲労がなくなった：その陣営の前衛に短く表示
     const fatigue = events.filter(e => e.type === 'fatigueReset');
@@ -936,7 +985,7 @@
       row.querySelectorAll('.unit-card').forEach(c => cardFx(c, 'heal'));
     });
     const playGroup = g => {
-      if (g.list.length >= 2 && g.type !== 'barrier') rowSweep(g.side, g.type, g.type === 'heal' ? 'heal' : actEl);
+      if (g.list.length >= 2 && g.type !== 'barrier' && !g.sub) rowSweep(g.side, g.type, g.type === 'heal' ? 'heal' : actEl);
       g.list.forEach(ev => hitOne(ev, actEl));
     };
     let end = 0;

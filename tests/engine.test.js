@@ -653,8 +653,10 @@ test('技の効果：吸収は与えたダメージの合計の30%を自分が�
   const pv = E.previewMove(s, 'player', 0);
   assert.equal(pv.fx.type, 'drain');
   const b = hps(s, 'cpu');
-  E.useMove(s, 'player', 0);
+  const res = E.useMove(s, 'player', 0);
   const total = b.reduce((a, h, i) => a + h - s.teams.cpu[i].hp, 0);
+  const hv = res.events.find(e => e.type === 'heal' && e.drain);
+  assert.ok(hv && hv.from.length >= 1, '演出用：吸収の回復には、吸い取った相手が入る');
   assert.equal(s.teams.player[0].hp, 50 + Math.floor(total * 30 / 100));
   assert.equal(pv.fx.amount, Math.floor(total * 30 / 100), '予測と同じ');
 });
@@ -693,8 +695,13 @@ test('技の効果：3段攻撃は結界を最初の1回だけ軽くして消す
   E.roll(s, 'player', fixed(3)); // 炎の薙ぎ払い 22（3段）
   const pv = E.previewMove(s, 'player', 1);
   const b = hps(s, 'cpu');
-  E.useMove(s, 'player', 1);
+  const res = E.useMove(s, 'player', 1);
   const dmg = b.map((h, i) => h - s.teams.cpu[i].hp);
+  // 演出用：技の効果の種類と、1回ずつのダメージ（合計と一致）
+  assert.equal(res.events.find(e => e.type === 'move').fx, 'multi');
+  const d0 = res.events.find(e => e.type === 'damage' && e.idx === 0);
+  assert.equal(d0.parts.length, 3);
+  assert.equal(d0.parts.reduce((x, y) => x + y, 0), d0.amount);
   // 結界の相手（翠樹・自然＝猛火の有利×1.05）：22/3 を3回（1回目だけ半分）
   assert.equal(dmg[0], Math.round(22 / 3 * 1.05 / 2) + 2 * Math.round(22 / 3 * 1.05));
   assert.equal(s.teams.cpu[0].barrier, false, '結界は消える');

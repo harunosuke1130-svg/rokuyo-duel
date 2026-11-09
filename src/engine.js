@@ -226,13 +226,15 @@
     if (hits === 1) return Object.assign({ hits: 1 }, computeAttack(move.atk, boost, ch, t));
     const per = Object.assign({}, boost, { mult: (boost.mult || 1) / hits, bonus: (boost.bonus || 0) / hits });
     let damage = 0, used = false, first = null;
+    const parts = [];
     for (let h = 0; h < hits; h++) {
       const r = computeAttack(move.atk, per, ch, used ? Object.assign({}, t, { barrier: false }) : t);
       if (!first) first = r;
       if (r.barrier) used = r.barrier;
       damage += r.damage;
+      parts.push(r.damage);
     }
-    return { base: move.atk, boosted: first.boosted * hits, advantage: first.advantage, barrier: used, damage, hits };
+    return { base: move.atk, boosted: first.boosted * hits, advantage: first.advantage, barrier: used, damage, hits, parts };
   }
   // リーダースキル lowDice：出目が指定の数字（例 1・2）のとき、通常技の攻撃・回復に加算（攻撃0・回復0の技は除く）
   function lowDiceBonus(state, side, key, dice) {
@@ -434,12 +436,13 @@
   }
 
   // 1体にダメージ（戦闘不能の判定は呼び出し側で一連の処理後に行う）
-  function damageUnit(state, ctx, side, idx, damage, consumeBarrier) {
+  function damageUnit(state, ctx, side, idx, damage, consumeBarrier, extra) {
     const unit = state.teams[side][idx];
     if (consumeBarrier && unit.barrier) unit.barrier = false;
     unit.hp = Math.max(0, unit.hp - damage);
-    ctx.events.push({ type: 'damage', side, idx, amount: damage });
-    return unit;
+    const ev = Object.assign({ type: 'damage', side, idx, amount: damage }, extra || {});
+    ctx.events.push(ev);
+    return ev;
   }
 
   // 一連の処理の後に戦闘不能を確定し、前衛枠から外す
@@ -754,7 +757,7 @@
     const ctx = newCtx();
     state.moveUsed = true;
     addLog(state, ctx, `${team(state, side)}の${ch.name}の通常技［出目${state.dice}］「${move.name}」`, 'move');
-    ctx.events.push({ type: 'move', side, idx, dice: state.dice, name: move.name });
+    ctx.events.push(Object.assign({ type: 'move', side, idx, dice: state.dice, name: move.name }, move.fx ? { fx: move.fx.type } : {}, boost.pinch ? { pinch: true } : {}));
 
     const targetSide = opp(side);
     let attacked = false;
@@ -765,15 +768,15 @@
       const parts = targets.map(i => {
         const t = state.teams[targetSide][i];
         const r = attackOn(move, boost, ch, t);
-        damageUnit(state, ctx, targetSide, i, r.damage, r.barrier);
+        const dev = damageUnit(state, ctx, targetSide, i, r.damage, r.barrier, r.hits > 1 ? { parts: r.parts } : null);
         total += r.damage;
         const notes = [];
         if (r.hits > 1) notes.push(`${r.hits}段`);
         if (r.advantage) notes.push('属性有利');
         if (r.barrier) notes.push(r.barrier === 'quarter' ? '4分の1結界' : '結界で半減');
         // 毒・弱体（当たった敵に）
-        if (t.hp > 0 && fx && fx.type === 'poison') { t.poison = { amount: fx.value * unitAtk(unit), turns: fx.turns }; notes.push('毒'); }
-        if (t.hp > 0 && fx && fx.type === 'weaken') { t[fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'] = { percent: fx.percent, turns: fx.turns }; notes.push(fx.stat === 'heal' ? '回復力ダウン' : '攻撃力ダウン'); }
+        if (t.hp > 0 && fx && fx.type === 'poison') { t.poison = { amount: fx.value * unitAtk(unit), turns: fx.turns }; notes.push('毒'); dev.status = 'poison'; }
+        if (t.hp > 0 && fx && fx.type === 'weaken') { t[fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'] = { percent: fx.percent, turns: fx.turns }; notes.push(fx.stat === 'heal' ? '回復力ダウン' : '攻撃力ダウン'); dev.status = fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'; }
         return `${unitName(t)} ${r.damage}${notes.length ? '（' + notes.join('・') + '）' : ''}（HP ${t.hp}/${t.maxHp}）`;
       });
       const boostNote = (boost.mult !== 1 || boost.bonus) ? `・強化後×${move.atk * boost.mult + boost.bonus}` : '';
@@ -783,14 +786,14 @@
       if (fx && fx.type === 'drain' && total > 0 && unit.hp > 0) {
         const got = Math.min(Math.floor(total * fx.percent / 100), unit.maxHp - unit.hp);
         unit.hp += got;
-        if (got > 0) ctx.events.push({ type: 'heal', side, idx, amount: got });
+        if (got > 0) ctx.events.push({ type: 'heal', side, idx, amount: got, drain: true, from: targets.slice() });
         addLog(state, ctx, `［吸収］${unitName(unit)}は${got}回復（HP ${unit.hp}/${unit.maxHp}）`, 'heal');
       }
     }
     // 守り：自分に4分の1結界
     if (fx && fx.type === 'guard' && unit.hp > 0) {
       unit.barrier = 'quarter';
-      ctx.events.push({ type: 'barrier', side, idx });
+      ctx.events.push({ type: 'barrier', side, idx, quarter: true });
       addLog(state, ctx, `${team(state, side)}の${unitName(unit)}に4分の1結界（次に受ける防げるダメージ1回を4分の1に）`, 'barrier');
     }
     if (move.heal > 0) healFront(state, ctx, side, moveHealBase(state, side, move, null, unit), move.name);
