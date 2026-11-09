@@ -2259,7 +2259,9 @@ body[data-screen="match"] .topbar {
    マウスの PC では、ブラウザの吸い付きを使わずプログラムだけで中央に合わせる。
    開いている間は前後の札をずらすため、PC の Chrome が別の位置へ吸い付けようとして、大きな札の開く・閉じるをくり返していた */
 .mt-scroll.mt-moving { scroll-snap-type: none; }
-@media (hover: hover) and (pointer: fine) { .mt-scroll { scroll-snap-type: none; } }
+/* スマホでもブラウザの吸い付きは使わない（2026-11-09）。iPhone で、ブラウザの吸い付き先とプログラムの中央合わせが数ピクセルずれて、
+   大きな札が開く・閉じるをくり返していた（チカチカ）。止まったらプログラムだけで中央に合わせる */
+.mt-scroll { scroll-snap-type: none; }
 .mt-scroll::-webkit-scrollbar { display: none; }
 .mt-scroll:focus-visible { box-shadow: inset 0 0 0 3px rgba(255, 224, 138, .8); }
 /* 小さな札（横長）：名前・小さな絵・敵Lv・状態 */
@@ -2626,3 +2628,13 @@ body[data-screen="gacha"] .topbar {
 .mo-btn .mo-fx .fx-ic { width: 18px; height: 18px; vertical-align: -4px; }
 .bt-tag .fx-ic, .badge .fx-ic { width: 14px; height: 14px; vertical-align: -3px; }
 .pv-range .fx-ic { width: 15px; height: 15px; vertical-align: -3px; }
+
+/* 編成：所持キャラの並べ替え（2026-11-09） */
+.tm-sort { display: flex; flex-wrap: wrap; align-items: center; gap: 5px; margin: -4px 0 10px; }
+.tm-sort-label { font-size: 11.5px; color: #6b5536; margin-right: 2px; }
+.ts-btn { padding: 3px 9px; border-radius: 999px; border: 1px solid #b89a62; background: rgba(255, 250, 236, .7); color: #4a3820; font-size: 12px; line-height: 1.5; cursor: pointer; }
+.ts-btn[aria-pressed="true"] { background: #34508a; border-color: #23396a; color: #fff; font-weight: 700; }
+.tm-sortval { position: absolute; left: 3px; bottom: 3px; z-index: 3; padding: 0 5px; border-radius: 3px; font-size: 11px; font-weight: 700; line-height: 1.5;
+  background: rgba(20, 14, 6, .78); color: #fff4d8; font-variant-numeric: tabular-nums; }
+.tm-sortval[data-k="atk"] { color: #ffc2b5; }
+.tm-sortval[data-k="heal"] { color: #b9f3c8; }

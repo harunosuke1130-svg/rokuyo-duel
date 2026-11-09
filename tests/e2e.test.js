@@ -1591,3 +1591,28 @@ test('mobile: ボタンを押すと音が鳴る（画面を開く・始める・
   assert.deepEqual(errors, []);
   await ctx.close();
 });
+
+test('mobile: 編成の並べ替え（★・攻撃力・回復力・HP・属性・レベル）と、選んだ順を覚える', async () => {
+  const { ctx, page, errors } = await open('mobile');
+  await H.startLocal(page, '並べ替え', { claim: false });
+  await page.evaluate(() => { const p = window.RikuyouApp.getProfile(); const t = JSON.parse(JSON.stringify(p.chars[p.team[0]]));
+    ['kohaku', 'aoizumi', 'ryogen', 'suiju'].forEach((id, i) => { p.chars[id] = Object.assign({}, t, { level: 1 + i * 5, exp: 0 }); }); });
+  await page.click('#tabbar [data-tab="team"]');
+  await page.waitForSelector('#team-sort [data-sort="atk"]');
+  const p = await H.profile(page);
+  const ids = async () => page.$$eval('#team-grid [data-pick]', n => n.map(x => x.dataset.pick));
+  for (const key of ['atk', 'heal', 'hp', 'stars', 'level']) {
+    await page.click(`#team-sort [data-sort="${key}"]`);
+    const list = await ids();
+    const v = id => key === 'stars' ? E.starsOf(id) : key === 'level' ? p.chars[id].level : E.charPower(id, p.chars[id].level)[key];
+    for (let i = 1; i < list.length; i++) assert.ok(v(list[i - 1]) >= v(list[i]), `${key}：多い順`);
+    assert.equal(await page.getAttribute(`#team-sort [data-sort="${key}"]`, 'aria-pressed'), 'true');
+  }
+  await page.click('#team-sort [data-sort="element"]');
+  const els = (await ids()).map(id => E.getChar(id).element);
+  const order = Object.keys(require('../src/data.js').ELEMENTS);
+  for (let i = 1; i < els.length; i++) assert.ok(order.indexOf(els[i - 1]) <= order.indexOf(els[i]), '属性ごと');
+  assert.equal(await page.evaluate(() => localStorage.getItem('rikuyou.teamSort')), 'element', '選んだ順を覚える');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});

@@ -202,7 +202,30 @@
   /* ---------- 編成（前衛3体・後衛3体・所持キャラ） ----------
    * 上の6枠（0〜2が前衛、3〜5が後衛）はドラッグで入れ替え、タップで詳細（技・レベル・リーダー）。
    * 所持キャラはタップでチームに出し入れ。保存するとチームの並びと「前回の配置」（前衛・リーダー）に入る。 */
-  const teamUI = { slots: [], leader: null, filter: 'all', dragger: null };
+  // 並べ替え（編成の所持キャラ）：この端末に覚えておく（見るだけの好み）
+  const SORT_KEY = 'rikuyou.teamSort';
+  const TEAM_SORTS = [['default', '標準'], ['stars', '★順'], ['atk', '攻撃力順'], ['heal', '回復力順'], ['hp', 'HP順'], ['element', '属性順'], ['level', 'レベル順']];
+  const savedSort = (() => { try { const v = localStorage.getItem(SORT_KEY); return TEAM_SORTS.some(t => t[0] === v) ? v : 'default'; } catch (e) { return 'default'; } })();
+  const teamUI = { slots: [], leader: null, filter: 'all', sort: savedSort, dragger: null };
+  // 今のレベルの強さで並べる。同じなら★の多い順 → 元の順
+  function sortTeamList(list, p, key) {
+    const idx = id => E.CHARACTERS.findIndex(c => c.id === id);
+    const elOrder = Object.keys(D.ELEMENTS);
+    const pw = ch => E.charPower(ch.id, P.levelOf(p, ch.id));
+    const val = {
+      stars: ch => E.starsOf(ch.id), atk: ch => pw(ch).atk, heal: ch => pw(ch).heal, hp: ch => pw(ch).hp,
+      level: ch => P.levelOf(p, ch.id), element: ch => -elOrder.indexOf(ch.element)
+    }[key];
+    if (!val) return list;
+    return list.slice().sort((a, b) => (val(b) - val(a)) || (E.starsOf(b.id) - E.starsOf(a.id)) || (idx(a.id) - idx(b.id)));
+  }
+  // 並べ替えた値をカードに小さく出す（攻撃力・回復力・HP の順のとき）
+  function sortBadge(ch, p, key) {
+    if (key !== 'atk' && key !== 'heal' && key !== 'hp') return '';
+    const pw = E.charPower(ch.id, P.levelOf(p, ch.id));
+    const label = { atk: '攻', heal: '回', hp: 'HP' }[key];
+    return `<span class="tm-sortval" data-k="${key}">${label}${pw[key]}</span>`;
+  }
   const CROWN_SVG = '<svg viewBox="0 0 24 18" aria-hidden="true"><path d="M2 15L1 4l6 5 5-8 5 8 6-5-1 11z" fill="currentColor"/><rect x="2" y="15" width="20" height="2.4" rx="1" fill="currentColor"/></svg>';
   // 属性で絞り込むボタン（編成・図鑑で共通）
   function elFilterHtml(sel) {
@@ -241,13 +264,14 @@
     $('#team-front').innerHTML = s.slice(0, CONFIG.FRONT_SIZE).map((id, i) => teamSlotCard(id, i)).join('');
     $('#team-back').innerHTML = s.slice(CONFIG.FRONT_SIZE).map((id, i) => teamSlotCard(id, i + CONFIG.FRONT_SIZE)).join('');
     $('#team-filter').innerHTML = elFilterHtml(teamUI.filter);
-    const list = E.CHARACTERS.filter(ch => P.owns(p, ch.id) && (teamUI.filter === 'all' || ch.element === teamUI.filter));
+    $('#team-sort').innerHTML = '<span class="tm-sort-label">並べ替え</span>' + TEAM_SORTS.map(([k, label]) => `<button type="button" class="ts-btn" data-sort="${k}" aria-pressed="${k === teamUI.sort}">${label}</button>`).join('');
+    const list = sortTeamList(E.CHARACTERS.filter(ch => P.owns(p, ch.id) && (teamUI.filter === 'all' || ch.element === teamUI.filter)), p, teamUI.sort);
     $('#team-grid').innerHTML = list.map(ch => {
       const inTeam = s.indexOf(ch.id) >= 0;
       const lv = P.levelOf(p, ch.id);
       return `<div class="tm-mini el-frame${inTeam ? ' picked' : ''}" ${frameAttrs(ch)}>
         <button type="button" class="tm-mini-btn" data-pick="${esc(ch.id)}" aria-pressed="${inTeam}" aria-label="${esc(ch.name)} Lv${lv}（${inTeam ? 'チームから外す' : 'チームに入れる'}）">
-          <span class="tm-art">${portrait(ch, { zoom: true })}${inTeam ? '<span class="tm-check" aria-hidden="true">✓</span>' : ''}</span>
+          <span class="tm-art">${portrait(ch, { zoom: true })}${inTeam ? '<span class="tm-check" aria-hidden="true">✓</span>' : ''}${sortBadge(ch, p, teamUI.sort)}</span>
           <span class="tm-mini-foot">${elMark(ch)}<span class="tm-lv">Lv.${lv}</span>${starsHtml(ch)}</span>
         </button>
         <button type="button" class="tm-info" data-info="${esc(ch.id)}" aria-label="${esc(ch.name)}の詳細">i</button>
@@ -790,6 +814,10 @@
     open.style.top = (selIt.offsetTop + selIt.offsetHeight / 2).toFixed(1) + 'px';
     clearTimeout(open._hideT);
     open.classList.remove('hidden', 'closing');
+    // 念のため：人の操作なしに短い間に何度も開き直したら、動きを付けない（チカチカを止める）
+    const now = Date.now();
+    mw.opens = (mw.opens || []).filter(t => now - t < 2000).concat([now]);
+    if (mw.opens.length > 3 && now - mw.inputAt > 1500) animate = false;
     if (animate && !U.reducedMotion()) {
       // バン：小さな札の大きさから、少し大きくなりすぎてから落ち着く
       const S = slotH() - 8, Eh = open.offsetHeight || 400;
@@ -823,8 +851,10 @@
       }
       // 選んでいる札の位置からほぼ動いていない（画面の大きさの変更などでブラウザが位置を直しただけ）なら、操作と数えない
       if (mw.open && !mw.touching && Math.abs(sc.scrollTop - matchTop(mw.sel)) < MT_NEAR) return;
-      // 開いている間に、人が何も操作していないのに起きた小さな位置の直し（吸い付き・拡大率の端数）は閉じる理由にしない
-      if (mw.open && !mw.touching && Date.now() - mw.inputAt > 700 && matchIndexAt() === mw.sel) return;
+      // 開いている間に、人が何も操作していないのに起きた位置の直し（吸い付き・拡大率の端数・画面の大きさ）は閉じる理由にしない
+      if (mw.open && !mw.touching && Date.now() - mw.inputAt > 700) {
+        if (matchIndexAt() !== mw.sel && Math.abs(sc.scrollTop - matchTop(mw.sel)) > slotH() / 2) { /* 大きく動いた：下へ */ } else return;
+      }
       mw.lastUser = Date.now();
       if (mw.open) matchCollapse();
       clearTimeout(mw.idleT);
@@ -873,9 +903,15 @@
       matchGo(to, true);
     });
     // 画面の回転・大きさの変更：落ち着いてから、選んでいる相手を中央に開き直す
-    let rT = 0;
+    let rT = 0, lastW = window.innerWidth, lastH = window.innerHeight;
     window.addEventListener('resize', () => {
       if (document.body.dataset.screen !== 'match') return;
+      // iPhone などで、スクロールのたびにアドレスバーが伸び縮みして起きる「高さだけの小さな変化」は無視する
+      // （一覧の高さは画面の小さい方の高さで決めているので変わらない。開き直すと大きな札がチカチカした）
+      const w = window.innerWidth, h = window.innerHeight;
+      const toolbarOnly = w === lastW && Math.abs(h - lastH) < 160;
+      lastW = w; lastH = h;
+      if (toolbarOnly) return;
       if (!mw.resizing) mw.resizeK = mw.pending !== null && mw.pending !== undefined ? mw.pending : mw.sel;
       mw.resizing = true;
       clearTimeout(mw.idleT); clearTimeout(mw.snapT); mw.target = null;
@@ -1468,6 +1504,13 @@
     $('#team-filter').addEventListener('click', e => {
       const b = e.target.closest('[data-filter]');
       if (b) { teamUI.filter = b.dataset.filter; renderTeam(); }
+    });
+    $('#team-sort').addEventListener('click', e => {
+      const b = e.target.closest('[data-sort]');
+      if (!b) return;
+      teamUI.sort = b.dataset.sort;
+      try { localStorage.setItem(SORT_KEY, teamUI.sort); } catch (err) { /* 覚えられなくても並べ替えはできる */ }
+      renderTeam();
     });
     $('#zukan-filter').addEventListener('click', e => {
       const b = e.target.closest('[data-filter]');
