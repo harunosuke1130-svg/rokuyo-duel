@@ -65,15 +65,27 @@
     return `<span class="hptext">HP <b>${unit.hp}</b> / ${unit.maxHp}</span>`;
   }
   const levelTag = lv => `<span class="lv-tag">Lv${lv}</span>`;
-  // 技の効果の短い名前（技の一覧に出す）
-  const FX_LABEL = { drain: '吸収', poison: '毒', weaken: '弱体', multi: '3段', pinch: '反撃', guard: '¼結界' };
+  // 技の効果のマーク（src/img/fx/<key>.webp・利用者の絵）と短い名前
+  const FX_TEXT = { multi: '3段', poison: '毒', guard: '¼結界', weakAtk: '攻撃↓', weakHeal: '回復↓', counter: '反撃', drain: '吸収' };
+  function fxKey(fx) {
+    if (!fx) return '';
+    if (fx.type === 'weaken') return fx.stat === 'heal' ? 'weakHeal' : 'weakAtk';
+    if (fx.type === 'pinch') return 'counter';
+    return fx.type;
+  }
+  const fxIcon = key => (key ? `<i class="fx-ic" data-fx="${key}" aria-hidden="true"></i>` : '');
+  function fxTag(fx) {
+    const k = fxKey(fx);
+    if (!k) return '';
+    const t = fx.type === 'multi' ? `${fx.hits}段` : FX_TEXT[k];
+    return `<span class="fx-tag" data-fx="${k}">${fxIcon(k)}${t}</span>`;
+  }
   function moveEffText(m) {
     const parts = [];
     if (m.atk > 0) parts.push('攻×' + m.atk);   // 技の数字は倍率（攻撃力×数字）
     if (m.heal > 0) parts.push('回×' + m.heal);
-    const fx = m.fx ? (m.fx.type === 'weaken' ? (m.fx.stat === 'heal' ? '回復力↓' : '攻撃力↓') : m.fx.type === 'multi' ? `${m.fx.hits}段` : FX_LABEL[m.fx.type]) : '';
-    if (fx) parts.push(fx);
-    return parts.length ? parts.join('+') : '—';
+    const txt = parts.length ? parts.join('+') : (m.fx ? '' : '—');
+    return txt + (m.fx ? (txt ? ' ' : '') + fxTag(m.fx) : '');
   }
   // loadout の順（出目1〜6）で技を並べる
   function movesList(ch, hitDice, loadout) {
@@ -290,7 +302,7 @@
 
   window.RikuyouUI = {
     E, CONFIG, FAST, DELAY, rng, $, esc, reducedMotion,
-    emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox, traitBox,
+    emblem, elMark, portrait, gemIcon, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, moveEffText, movesList, leaderBox, traitBox, fxKey, fxIcon, fxTag, FX_TEXT,
     ui, openModal, closeModal, tapGuarded, toast, bindModalBasics, showScreen, cardDrag
   };
 })();

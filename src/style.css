@@ -2603,3 +2603,26 @@ body[data-screen="gacha"] .topbar {
 .bt-veil { font-family: var(--mincho); font-size: 30px; font-weight: 700; color: rgba(255, 255, 255, .55); text-shadow: 0 0 8px rgba(0, 0, 0, .6); }
 .bt-veil-note { font-size: 10px; color: rgba(255, 255, 255, .6); }
 .trait-box { border-left: 3px solid #7fb8ff; }
+
+/* 技の効果のマーク（利用者の絵・src/img/fx）2026-11-09 */
+.fx-ic { display: inline-block; width: 1.25em; height: 1.25em; flex: none; vertical-align: -.28em; margin-right: .12em; background: center / contain no-repeat; filter: drop-shadow(0 1px 1px rgba(0, 0, 0, .45)); }
+.fx-ic[data-fx="multi"] { background-image: url("img/fx/multi.webp"); }
+.fx-ic[data-fx="poison"] { background-image: url("img/fx/poison.webp"); }
+.fx-ic[data-fx="guard"] { background-image: url("img/fx/guard.webp"); }
+.fx-ic[data-fx="weakAtk"] { background-image: url("img/fx/weakAtk.webp"); }
+.fx-ic[data-fx="weakHeal"] { background-image: url("img/fx/weakHeal.webp"); }
+.fx-ic[data-fx="counter"] { background-image: url("img/fx/counter.webp"); }
+.fx-ic[data-fx="drain"] { background-image: url("img/fx/drain.webp"); }
+.fx-tag { display: inline-flex; align-items: center; gap: 1px; padding: 0 6px 0 3px; border-radius: 999px; font-weight: 700; font-size: .92em; line-height: 1.5; white-space: nowrap;
+  background: rgba(255, 246, 222, .92); color: #3a2a14; border: 1px solid rgba(160, 120, 60, .55); }
+.fx-tag[data-fx="poison"] { background: #efe2f6; color: #4c1d63; border-color: #a771c4; }
+.fx-tag[data-fx="drain"] { background: #fbe4e8; color: #6a1730; border-color: #d88; }
+.fx-tag[data-fx="guard"] { background: #e3edfa; color: #183a66; border-color: #7aa0d8; }
+.fx-tag[data-fx="weakAtk"], .fx-tag[data-fx="weakHeal"] { background: #f7e3dc; color: #6a2a14; border-color: #d39a7a; }
+.fx-tag[data-fx="counter"] { background: #e6eef8; color: #20365a; border-color: #8aa6cc; }
+/* 技のボタンの下に、効果のマークと名前の帯 */
+.mo-btn .mo-fx { display: block; margin-top: 3px; font-size: 12px; }
+.mo-btn .mo-fx .fx-tag { font-size: 12px; padding: 1px 8px 1px 4px; }
+.mo-btn .mo-fx .fx-ic { width: 18px; height: 18px; vertical-align: -4px; }
+.bt-tag .fx-ic, .badge .fx-ic { width: 14px; height: 14px; vertical-align: -3px; }
+.pv-range .fx-ic { width: 15px; height: 15px; vertical-align: -3px; }

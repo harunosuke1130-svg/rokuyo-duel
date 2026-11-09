@@ -14,7 +14,7 @@
   const U = window.RikuyouUI;
   const CPU = window.RikuyouCPU;
   const Dice = window.RikuyouDice;
-  const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, traitBox, openModal, closeModal, toast } = U;
+  const { E, CONFIG, DELAY, rng, $, esc, emblem, elMark, portrait, starsHtml, frameAttrs, elementTag, subTags, hpBar, hpText, levelTag, movesList, leaderBox, traitBox, fxKey, fxIcon, fxTag, openModal, closeModal, toast } = U;
 
   const bt = {
     active: false,
@@ -360,10 +360,10 @@
     if (u.hp <= 0) b.push('<span class="badge ko">戦闘不能</span>');
     else if (E.isFront(state, side, i)) b.push('<span class="badge front">前衛</span>');
     else if (state.phase !== 'formation') b.push('<span class="badge bench">後衛</span>');
-    if (u.barrier) b.push(`<span class="badge barrier">${u.barrier === 'quarter' ? '4分の1結界' : '結界'}</span>`);
-    if (u.hp > 0 && u.poison) b.push(`<span class="badge st-poison">毒 残${u.poison.turns}</span>`);
-    if (u.hp > 0 && u.weakAtk) b.push(`<span class="badge st-weak">攻撃力↓ 残${u.weakAtk.turns}</span>`);
-    if (u.hp > 0 && u.weakHeal) b.push(`<span class="badge st-weak">回復力↓ 残${u.weakHeal.turns}</span>`);
+    if (u.barrier) b.push(`<span class="badge barrier">${u.barrier === 'quarter' ? fxIcon('guard') + '4分の1結界' : '結界'}</span>`);
+    if (u.hp > 0 && u.poison) b.push(`<span class="badge st-poison">${fxIcon('poison')}毒 残${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) b.push(`<span class="badge st-weak">${fxIcon('weakAtk')}攻撃力↓ 残${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) b.push(`<span class="badge st-weak">${fxIcon('weakHeal')}回復力↓ 残${u.weakHeal.turns}</span>`);
     if (u.hp > 0) b.push(u.cd > 0 ? `<span class="badge cd">CD残${u.cd}</span>` : '<span class="badge ready">スキル可</span>');
     return b.join('');
   }
@@ -386,7 +386,7 @@
       html += `<div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">回復力${p.healPow}×${p.move.heal}＝${p.healPow * p.move.heal}${p.healBase !== p.healPow * p.move.heal ? `・強化後${p.healBase}` : ''}${f}</span></div><div class="chips">` +
         p.heals.map(h => `<span class="chip heal">${esc(h.name)} <b>+${h.effective}</b></span>`).join('') + '</div>';
     }
-    if (p.fx) html += `<div class="pv-line"><span class="pv-range fx">技の効果</span><span class="pv-base">${esc(fxPreviewText(p))}</span></div>`;
+    if (p.fx) html += `<div class="pv-line"><span class="pv-range fx">${fxIcon(fxKey(p.fx))}技の効果</span><span class="pv-base">${esc(fxPreviewText(p))}</span></div>`;
     if (!p.move.atk && !p.move.heal && !p.fx) html += '<div class="pv-line muted">何も起こらない</div>';
     return html;
   }
@@ -418,7 +418,7 @@
     const atk = p.move.atk > 0, heal = p.move.heal > 0;
     const healVal = p.heals.length ? p.heals[0].amount : p.healBase;
     const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
-    const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: '効果なし' }[kind];
+    const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: p.move.fx ? '効果の技' : '効果なし' }[kind];
     const main = kind === 'both' ? `攻${atkNum(p.boosted)}＋回${healVal}` : kind === 'atk' ? `攻撃 ${atkNum(p.boosted)}` : kind === 'heal' ? `回復 ${healVal}` : '—';
     // 攻撃と回復を分けて描く（固有スキルの強化で光らせるのは攻撃の数字だけ）
     const atkTxt = kind === 'both' ? `攻${atkNum(p.boosted)}` : `攻撃 ${atkNum(p.boosted)}`;
@@ -426,7 +426,7 @@
       : kind === 'atk' ? `<span class="mo-atk">${esc(atkTxt)}</span>` : esc(main);
     const boosted = atk && s.turnSide === bt.me && (s.boost.mult > 1 || s.boost.bonus > 0);
     return `<button type="button" class="mo-btn ${kind}${boosted ? ' boosted' : ''}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} data-el="${esc(boostEl() || ch.element)}" aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
-      <span class="mo-kind">${head}</span><b class="mo-main">${mainHtml}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span></button>`;
+      <span class="mo-kind">${head}</span><b class="mo-main">${mainHtml}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span>${p.move.fx ? `<span class="mo-fx">${fxTag(p.move.fx)}</span>` : ''}</button>`;
   }
 
   // カード：絵（押すと詳細）＋名前・★・HP＋（味方前衛で出目確定後は）通常技。枠は属性色×ランクの濃さ
@@ -455,11 +455,11 @@
     if (E.isBoss(u.charId)) tags.push(`<span class="bt-tag boss">${esc(ch.rank || 'ボス')}</span>`);
     // 結界：膜が届く瞬間までは出さず、被弾で消えたときは当たる瞬間まで残す（どちらも表示だけ）
     const shield = u.hp > 0 && ((u.barrier && !(key in bt.barrierWait)) || key in bt.barrierHold);
-    if (shield) tags.push(u.barrier === 'quarter' ? '<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">◈¼結界</span>' : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+    if (shield) tags.push(u.barrier === 'quarter' ? `<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">${fxIcon('guard')}¼結界</span>` : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
     // 技の効果による状態（毒・攻撃力ダウン・回復力ダウン）。数字は残りの回数
-    if (u.hp > 0 && u.poison) tags.push(`<span class="bt-tag st-poison" title="毒：ターンの始めに${u.poison.amount}ダメージ（あと${u.poison.turns}回・毒では倒れない）">☠${u.poison.turns}</span>`);
-    if (u.hp > 0 && u.weakAtk) tags.push(`<span class="bt-tag st-weak" title="攻撃力${u.weakAtk.percent}%ダウン（あと${u.weakAtk.turns}ターン）">攻↓${u.weakAtk.turns}</span>`);
-    if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag st-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">回↓${u.weakHeal.turns}</span>`);
+    if (u.hp > 0 && u.poison) tags.push(`<span class="bt-tag st-poison" title="毒：ターンの始めに${u.poison.amount}ダメージ（あと${u.poison.turns}回・毒では倒れない）">${fxIcon('poison')}${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) tags.push(`<span class="bt-tag st-weak" title="攻撃力${u.weakAtk.percent}%ダウン（あと${u.weakAtk.turns}ターン）">${fxIcon('weakAtk')}${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag st-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">${fxIcon('weakHeal')}${u.weakHeal.turns}</span>`);
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
     const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${hpState(u) === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
@@ -949,7 +949,7 @@
       flash(card, 'glow-heal');
       if (ev.amount > 0) floatAt(card, '+' + ev.amount, 'heal', 14); // 満タンで回復0のときは数字を出さない
     } else if (ev.type === 'barrier') {
-      const tagHtml = ev.quarter ? '<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">◈¼結界</span>' : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>';
+      const tagHtml = ev.quarter ? `<span class="bt-tag barrier" title="4分の1結界：次の防げるダメージ1回を4分の1に">${fxIcon('guard')}¼結界</span>` : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>';
       if (key in bt.barrierWait) {
         delete bt.barrierWait[key];
         if (card && !card.classList.contains('has-barrier')) {
@@ -1513,6 +1513,7 @@
     isLocked: () => bt.locked || bt.waiting,
     getSession: () => bt.session,
     me: () => bt.me,
-    mode: () => bt.mode
+    mode: () => bt.mode,
+    redraw: () => { if (bt.active && bt.state) render(); }   // テスト・確認用：状態を書き換えた後に描き直す
   };
 })();
