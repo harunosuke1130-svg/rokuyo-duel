@@ -2739,3 +2739,9 @@ body[data-screen="gacha"] .topbar {
   .bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 520px); }
   .bt-card.boss-stage .bt-art.bs-art { height: clamp(300px, 56vh, 600px); }
 }
+
+/* ---- dungeon-art: tomb（scripts/dungeon-art.js が書く。顔の位置は art/tomb/art.json の emblem で直す） ---- */
+[data-char="b-scorpion"] { --cx: 36%; --cy: 80%; --ex: 36%; --ey: 80%; --es: 240%; }
+[data-char="b-sphinx"] { --cx: 75%; --cy: 46%; --ex: 75%; --ey: 46%; --es: 240%; }
+[data-char="b-pharaoh"] { --cx: 43%; --cy: 19%; --ex: 43%; --ey: 19%; --es: 240%; }
+/* ---- dungeon-art: tomb ここまで ---- */

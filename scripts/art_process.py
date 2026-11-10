@@ -14,6 +14,8 @@
 - landscape（PC の背景）：1100×619（16:9）・200KB 以下
 - cutout（背景を透明にした敵）：透明のまま。透明が無い絵は、まわりの平らな地の色を外側から塗りつぶして抜く。
   中身の大きさに切り詰め、幅 360px 以内・80KB 以下（戦闘で背景の中に立たせる。src/img/boss）
+- enemycut（背景なしの絵から作る紋章・図鑑用の敵の絵）：cutout と同じく抜いてから、透明のまま縦長（幅:高さ 0.56）の
+  箱に下ぞろえで置き、幅 360px・80KB 以下（src/img/chara。背景ありの絵 floorN が無いときに使う）
 - banner（ダンジョン一覧のカード）：横長の背景から 2:1 で切り抜き、640×320・60KB 以下（スマホのカードは約 2.1:1、PC は約 1.6:1 で、どちらも余白なしで覆う）
 結果（大きさ・容量・画質）を JSON で標準出力に出す。
 """
@@ -30,6 +32,7 @@ SPECS = {
     'landscape': {'max_kb': 200, 'size': (1100, 619)},
     'banner':    {'max_kb': 60,  'size': (640, 320)},
     'cutout':    {'max_kb': 80,  'width': 360},
+    'enemycut':  {'max_kb': 80,  'width': 360},
 }
 ENEMY_RATIO = (0.45, 0.62)   # 幅÷高さ（既存の敵の絵は約 0.53）
 
@@ -144,9 +147,26 @@ def cutout(src):
     return im
 
 
+def enemy_from_cut(src):
+    """背景なしの絵を、透明のまま縦長の箱（幅:高さ 0.56）に下ぞろえで置く。"""
+    im = cutout(src)
+    w, h = im.size
+    W = max(w, round(h * 0.56))
+    H = max(h, round(W / 0.56))
+    box = Image.new('RGBA', (W, H), (0, 0, 0, 0))
+    box.paste(im, ((W - w) // 2, H - h), im)
+    tw = SPECS['enemycut']['width']
+    return box.resize((tw, round(H * tw / W)), Image.LANCZOS)
+
+
 def run(job):
     kind = job['kind']
     spec = SPECS[kind]
+    if kind == 'enemycut':
+        im = enemy_from_cut(job['src'])
+        q, size = save_small(im, job['out'], spec['max_kb'])
+        return {'kind': kind, 'src': job['src'], 'out': job['out'], 'trimmed': list(im.size), 'size': list(im.size),
+                'kb': round(size / 1024, 1), 'quality': q, 'ok': size <= spec['max_kb'] * 1024}
     if kind == 'cutout':
         im = cutout(job['src'])
         q, size = save_small(im, job['out'], spec['max_kb'])

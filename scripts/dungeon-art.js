@@ -270,7 +270,12 @@ function importArt(opt) {
     if (fs.existsSync(out) && !opt.force) { console.log(`・${rel(out)} はもうあるので上書きしません（上書きは --force）`); return; }
     jobs.push({ kind, src, out, focus });
   };
-  enemies(d).forEach(e => add('enemy', e.key, path.join(ROOT, 'src/img/chara', e.boss.id + '.webp'), (art.enemies[e.boss.id] || {}).focus));
+  // 背景ありの絵（floorN）が無く、背景なしの絵（floorN-cut）だけあるときは、紋章・図鑑用の絵も背景なしの絵から作る（2026-11-10〜 敵は背景なしだけ描く）
+  enemies(d).forEach(e => {
+    const out = path.join(ROOT, 'src/img/chara', e.boss.id + '.webp');
+    if (!findRaw(raw, e.key) && findRaw(raw, e.key + '-cut')) add('enemycut', e.key + '-cut', out);
+    else add('enemy', e.key, out, (art.enemies[e.boss.id] || {}).focus);
+  });
   enemies(d).forEach(e => add('cutout', e.key + '-cut', path.join(ROOT, 'src/img/boss', e.boss.id + '.webp')));
   const bg = art.backgrounds || {};
   add('portrait', 'portrait', path.join(ROOT, 'src/img/battle', `${opt.id}-portrait.webp`), bg.portraitFocus);
@@ -285,7 +290,7 @@ function importArt(opt) {
   finally { fs.unlinkSync(cfg); }
   out.forEach(r => console.log(`${r.ok ? '・' : '✗ '}${rel(r.out)}：${r.size.join('×')}・${r.kb}KB（画質${r.quality}）${r.ok ? '' : ' 容量の目安を超えています'}`));
   if (jobs.some(j => j.kind === 'cutout')) console.log('・背景なしの敵の絵は src/img/boss に入れました（戦闘で背景の中に立つ）');
-  if (jobs.some(j => j.kind === 'enemy')) { emblemCss(opt.id, art); console.log('・src/style.css に丸い紋章の顔の位置を書きました'); }
+  if (jobs.some(j => j.kind === 'enemy' || j.kind === 'enemycut')) { emblemCss(opt.id, art); console.log('・src/style.css に丸い紋章の顔の位置を書きました'); }
   return out;
 }
 
