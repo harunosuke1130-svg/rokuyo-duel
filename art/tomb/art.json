@@ -5,9 +5,9 @@
     "b-scorpion": {
       "describe": "a large desert scorpion the size of a dog, glossy amber and crimson armored shell glowing faintly like hot coals, raised pincers, curled stinger dripping purple venom, small beady black eyes, scuttling across rippled orange sand with heat shimmer around it",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 36,
+        "ey": 80,
+        "es": 240
       },
       "focus": [
         0.5,
@@ -17,9 +17,9 @@
     "b-sphinx": {
       "describe": "a towering sphinx guardian with the body of a muscular lion and great feathered wings of bronze, a regal stone-carved face with a golden nemes headdress, fiery glowing orange eyes, sandstone and gold plating on its chest and paws, crouched before a massive tomb gate, stern and imposing",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 75,
+        "ey": 46,
+        "es": 240
       },
       "focus": [
         0.5,
@@ -29,9 +29,9 @@
     "b-pharaoh": {
       "describe": "a majestic undead sun king pharaoh, tall and gaunt, wrapped in ancient linen bandages under a radiant golden collar and royal robes of crimson and gold, a tall golden crown topped with a blazing sun disc, glowing amber eyes, holding a golden crook-like scepter crackling with solar fire, floating before an enormous sarcophagus throne in a treasure-filled burial chamber",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 220
+        "ex": 43,
+        "ey": 19,
+        "es": 240
       },
       "focus": [
         0.5,
