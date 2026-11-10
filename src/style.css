@@ -2683,6 +2683,12 @@ body[data-screen="gacha"] .topbar {
   filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .45));
 }
 .bs-art .portrait i { font-size: 96px; opacity: .85; }
+/* 大ボス：絵を箱より大きく描く（下のサイコロの場所まではみ出す。押せるのは元の箱だけ） */
+/* 中ボスは少しだけ大きく。雑魚 → 中ボス → 大ボスで大きさの差をはっきりさせる */
+.bt-card.boss-stage[data-rank="mid"] .bs-art .portrait { top: -2%; bottom: -10%; pointer-events: none; }
+.bt-card.boss-stage[data-rank="mid"] .bs-art::before { bottom: -12%; }
+.bt-card.boss-stage[data-rank="boss"] .bs-art .portrait { top: -5%; bottom: -30%; pointer-events: none; }
+.bt-card.boss-stage[data-rank="boss"] .bs-art::before { bottom: -32%; left: 10%; right: 10%; }
 /* 背景を切り抜いた絵（透過）にはぼかしを掛けない（data-cut="1"） */
 .bs-art .portrait[data-cut="1"] { -webkit-mask-image: none; mask-image: none; }
 @keyframes bossIdle { 0%, 100% { transform: translateY(0) scale(1) rotate(0); } 30% { transform: translateY(-1.2%) scale(1.012) rotate(-.4deg); } 65% { transform: translateY(.4%) scale(.996) rotate(.35deg); } }

@@ -77,7 +77,7 @@ function imageRules() {
   // src/img/boss/<敵ID>.*（背景を透明にした敵の絵）を置くと、ダンジョンの戦闘でその絵を背景の中に立たせる（ふちのぼかし無し）
   list('boss').forEach(f => {
     const id = path.basename(f, path.extname(f));
-    rules.push(`.bs-art .portrait[data-char="${id}"] { background-image: url("img/boss/${f}"); background-size: contain; background-position: center bottom; -webkit-mask-image: none; mask-image: none; }`);
+    rules.push(`.bs-art .portrait[data-char="${id}"] { background-image: url("img/boss/${f}"); background-size: contain; background-position: center bottom; aspect-ratio: 4 / 5; max-width: 100%; -webkit-mask-image: none; mask-image: none; }`);
   });
   // src/img/dungeon/<ダンジョンID>.* を置くと、ダンジョン一覧のカードの絵になる（無ければ戦闘の背景を使う）
   list('dungeon').forEach(f => { art[path.basename(f, path.extname(f))] = `url("img/dungeon/${f}")`; });

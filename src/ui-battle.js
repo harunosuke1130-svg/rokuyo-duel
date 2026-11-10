@@ -492,7 +492,9 @@
     if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag st-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">${fxIcon('weakHeal')}${u.weakHeal.turns}</span>`);
     const cd = u.hp > 0 && u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : '';
     const label = `${ch.name}（${ch.rank || 'ボス'}）HP${u.hp}/${u.maxHp}${u.hp <= 0 ? '（倒した）' : ''}`;
-    return `<div class="bt-card unit-card boss-stage foe${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${shield ? ' has-barrier' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="front">
+    // ランクで大きさを変える（大ボスは箱からはみ出して大きく描く）
+    const rk = ch.rank === '大ボス' ? 'boss' : ch.rank === '中ボス' ? 'mid' : 'minion';
+    return `<div data-rank="${rk}" class="bt-card unit-card boss-stage foe${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${shield ? ' has-barrier' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="front">
       <span class="bs-head"><span class="bs-rank">${esc(ch.rank || 'ボス')}</span><b class="bs-name">${esc(ch.name)}</b>${elMark(ch)}
         <span class="bs-hpline">${hpBar(vu)}<span class="bt-hp"><b>${vu.hp}</b>/${u.maxHp}</span>${cd}</span>
         <span class="bt-tags">${tags.join('')}</span></span>
