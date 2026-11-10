@@ -4653,7 +4653,17 @@ body[data-screen="gacha"] .topbar {
       skill: { name: '翠刃の構え', cd: 4, text: 'このターンに使う通常技の攻撃を1.5倍にする。', effects: [{ type: 'atkMultiplier', value: 1.5 }] } },
     { id: 'b-hydra', name: '沼の主ヒュドラ', glyph: '蛇', maxHp: 539, element: 'nature', subTypes: ['竜', '王族'], rank: '大ボス',
       moves: [{ name: '三つ首の噛みつき', atk: 31, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '毒霧の息', atk: 27, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } }, { name: '首の再生', atk: 0, heal: 24 }, { name: '尾の薙ぎ払い', atk: 37, heal: 0 }, { name: '沼の生命', atk: 21, heal: 6, fx: { type: 'drain', percent: 30 } }, { name: '大湿原の怒り', atk: 50, heal: 0 }],
-      skill: { name: '腐蝕の大毒霧', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } }
+      skill: { name: '腐蝕の大毒霧', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } },
+    // 灼砂の王墓（2026-11-10）
+    { id: 'b-scorpion', name: '灼砂の大サソリ', glyph: '蠍', maxHp: 259, element: 'fire', subTypes: ['クリーチャー'], rank: '雑魚',
+      moves: [{ name: 'はさみ打ち', atk: 20, heal: 0 }, { name: '砂かけ', atk: 17, heal: 0 }, { name: '砂にもぐる', atk: 0, heal: 14 }, { name: '毒針', atk: 18, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } }, { name: '尾の払い', atk: 14, heal: 4 }, { name: '灼熱の一刺し', atk: 30, heal: 0 }],
+      skill: { name: '熱砂の嵐', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×16のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 16 }] } },
+    { id: 'b-sphinx', name: '炎眼のスフィンクス', glyph: '獅', maxHp: 435, element: 'fire', subTypes: ['守護者', '獣'], rank: '中ボス',
+      moves: [{ name: '獅子の爪', atk: 32, heal: 0 }, { name: '謎かけの眼光', atk: 24, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } }, { name: '砂の守り', atk: 0, heal: 19 }, { name: '翼の烈風', atk: 26, heal: 0 }, { name: '石の構え', atk: 19, heal: 5 }, { name: '炎眼の咆哮', atk: 47, heal: 0 }],
+      skill: { name: '王墓の封印', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
+    { id: 'b-pharaoh', name: '灼陽王ネフェルカ', glyph: '陽', maxHp: 527, element: 'fire', subTypes: ['王族', '亡霊'], rank: '大ボス',
+      moves: [{ name: '黄金の王笏', atk: 33, heal: 0 }, { name: '太陽の連弾', atk: 30, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '不死の包帯', atk: 0, heal: 25 }, { name: '灼光の裁き', atk: 38, heal: 0 }, { name: '王の生気', atk: 21, heal: 6, fx: { type: 'drain', percent: 30 } }, { name: '日輪の怒り', atk: 52, heal: 0 }],
+      skill: { name: '灼陽の大審判', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } }
   ];
 
   /*
@@ -4682,7 +4692,9 @@ body[data-screen="gacha"] .topbar {
     { id: 'glacier', name: '蒼氷の大氷河', text: '分かれ道の先で一つになる、凍てつく氷の大地。', recommend: 'Lv20〜', requires: ['skytemple', 'ghostkeep'], firstClearStones: 800, clearStones: 110,
       floors: [{ boss: 'b-icicle', level: 19, exp: 340 }, { boss: 'b-icebear', level: 20, exp: 480 }, { boss: 'b-icequeen', level: 21, exp: 660 }] },
     { id: 'marsh', name: '毒霧の大湿原', text: '毒の霧が立ちこめる、底なしの沼地。', recommend: 'Lv24〜', requires: 'glacier', firstClearStones: 900, clearStones: 120,
-      floors: [{ boss: 'b-bogfrog', level: 23, exp: 380 }, { boss: 'b-mantis', level: 24, exp: 530 }, { boss: 'b-hydra', level: 25, exp: 730 }] }
+      floors: [{ boss: 'b-bogfrog', level: 23, exp: 380 }, { boss: 'b-mantis', level: 24, exp: 530 }, { boss: 'b-hydra', level: 25, exp: 730 }] },
+    { id: 'tomb', name: '灼砂の王墓', text: '熱砂に眠る、太陽王の古い墓所。', recommend: 'Lv27〜', requires: 'marsh', firstClearStones: 950, clearStones: 130,
+      floors: [{ boss: 'b-scorpion', level: 26, exp: 410 }, { boss: 'b-sphinx', level: 27, exp: 570 }, { boss: 'b-pharaoh', level: 28, exp: 790 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
