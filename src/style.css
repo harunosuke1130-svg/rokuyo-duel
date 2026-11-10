@@ -2643,3 +2643,99 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-mantis"] { --cx: 55%; --cy: 10%; --ex: 55%; --ey: 10%; --es: 220%; }
 [data-char="b-hydra"] { --cx: 50%; --cy: 8%; --ex: 50%; --ey: 8%; --es: 220%; }
 /* ---- dungeon-art: marsh ここまで ---- */
+
+/* ---------- ダンジョンの敵：カード枠を外し、背景の中に立たせる（2026-11-10） ---------- */
+#screen-battle.boss-fight .bt-enemy .bt-label,
+#screen-battle.boss-fight #enemy-leader { display: none; }
+.bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 100%); }
+.bt-card.unit-card.boss-stage {
+  padding: 0; border: 0; background: none; box-shadow: none; border-radius: 0; color: #fff; overflow: visible;
+  display: flex; flex-direction: column; align-items: center;
+}
+.bt-card.unit-card.boss-stage:hover { border-color: transparent; }
+/* 名前と細い HP バー：画面の上に独立 */
+.bs-head {
+  position: relative; z-index: 3; display: grid; grid-template-columns: auto 1fr auto; align-items: center; column-gap: 8px; row-gap: 2px;
+  width: min(100%, 460px); padding: 4px 10px 5px; box-sizing: border-box; border-radius: 6px;
+  background: linear-gradient(180deg, rgba(10, 8, 6, .62), rgba(10, 8, 6, .35)); text-shadow: 0 1px 3px #000;
+}
+.bs-rank { font-size: 10.5px; font-weight: 700; padding: 0 6px; border-radius: 3px; background: #6a2030; color: #ffd0d8; letter-spacing: .08em; }
+.bs-name { font-family: var(--mincho); font-size: 17px; letter-spacing: .06em; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.bs-head .el-mark { width: 22px; height: 22px; }
+.bs-hpline { grid-column: 1 / 4; display: flex; align-items: center; gap: 8px; }
+.bs-hpline .hpbar { flex: 1; height: 7px; margin: 0; }
+.bs-hpline .bt-hp { font-size: 12px; white-space: nowrap; color: #fff3dc; }
+.bs-hpline .bt-hp b { font-size: 14px; color: #fff; }
+.bs-head .bt-tags { position: absolute; left: 4px; top: calc(100% + 4px); flex-direction: row; flex-wrap: wrap; }
+/* 敵の絵：枠なし・ふちをぼかして背景になじませる・大きく */
+.bt-card.boss-stage .bt-art.bs-art {
+  position: relative; display: block; width: 100%; height: clamp(230px, 40svh, 470px); aspect-ratio: auto; margin-top: -6px;
+  border: 0; border-radius: 0; overflow: visible; cursor: pointer;
+}
+.bs-art .portrait {
+  /* 絵と同じ縦長の箱にして（幅は高さから決まる）、その箱のふちをぼかす */
+  position: absolute; top: 0; bottom: 0; left: 0; right: 0; margin: 0 auto; width: auto; height: 100%; aspect-ratio: 360 / 660;
+  background-color: transparent !important; background-size: cover; background-position: center; background-repeat: no-repeat;
+  -webkit-mask-image: radial-gradient(closest-side at 50% 50%, #000 62%, rgba(0, 0, 0, .6) 82%, transparent 100%);
+          mask-image: radial-gradient(closest-side at 50% 50%, #000 62%, rgba(0, 0, 0, .6) 82%, transparent 100%);
+  -webkit-mask-size: 100% 100%; mask-size: 100% 100%;
+  transform-origin: 50% 100%; animation: bossIdle 4.6s ease-in-out infinite;
+  filter: drop-shadow(0 10px 14px rgba(0, 0, 0, .45));
+}
+.bs-art .portrait i { font-size: 96px; opacity: .85; }
+/* 背景を切り抜いた絵（透過）にはぼかしを掛けない（data-cut="1"） */
+.bs-art .portrait[data-cut="1"] { -webkit-mask-image: none; mask-image: none; }
+@keyframes bossIdle { 0%, 100% { transform: translateY(0) scale(1) rotate(0); } 30% { transform: translateY(-1.2%) scale(1.012) rotate(-.4deg); } 65% { transform: translateY(.4%) scale(.996) rotate(.35deg); } }
+/* 足もとの影 */
+.bs-art::before { content: ""; position: absolute; left: 22%; right: 22%; bottom: -2%; height: 9%; border-radius: 50%; background: radial-gradient(ellipse, rgba(0, 0, 0, .5), transparent 70%); }
+/* 待機中に舞う粒（属性の色） */
+.bs-motes { position: absolute; inset: 0; pointer-events: none; }
+.bs-motes i { position: absolute; width: 7px; height: 7px; border-radius: 50%; opacity: 0; background: var(--mote, #e8f5c0); box-shadow: 0 0 6px var(--mote, #e8f5c0); animation: moteFall 5.5s linear infinite; }
+.bs-motes i:nth-child(1) { left: 22%; animation-delay: 0s; } .bs-motes i:nth-child(2) { left: 64%; animation-delay: 1.4s; }
+.bs-motes i:nth-child(3) { left: 40%; animation-delay: 2.8s; } .bs-motes i:nth-child(4) { left: 78%; animation-delay: 4.1s; }
+.bs-motes[data-el="nature"] { --mote: #b9e07a; } .bs-motes[data-el="nature"] i { border-radius: 70% 0; width: 9px; height: 6px; }
+.bs-motes[data-el="fire"] { --mote: #ffb35a; } .bs-motes[data-el="water"] { --mote: #9fdcff; }
+.bs-motes[data-el="holy"] { --mote: #fff1b0; } .bs-motes[data-el="dark"] { --mote: #c99bff; }
+@keyframes moteFall { 0% { opacity: 0; transform: translate(0, 10%) rotate(0); top: 18%; } 15% { opacity: .9; } 85% { opacity: .7; } 100% { opacity: 0; transform: translate(-30px, 0) rotate(260deg); top: 88%; } }
+.bs-motes[data-el="fire"] i, .bs-motes[data-el="holy"] i, .bs-motes[data-el="dark"] i { animation-name: moteRise; }
+@keyframes moteRise { 0% { opacity: 0; top: 85%; transform: translateX(0); } 20% { opacity: .9; } 100% { opacity: 0; top: 12%; transform: translateX(24px); } }
+/* 攻撃：体を引いてから、味方側へ踏み込む */
+.bt-card.boss-stage.boss-attack .bs-art { animation: bossLunge .78s cubic-bezier(.3, 0, .2, 1); }
+@keyframes bossLunge {
+  0% { transform: none; }
+  32% { transform: translateY(-5%) scale(.96); filter: brightness(.9); }
+  55% { transform: translateY(7%) scale(1.07); filter: brightness(1.15); }
+  100% { transform: none; }
+}
+/* 当たったとき：少しのけぞる（カードの揺れは使わない） */
+.bt-card.boss-stage.hit-up, .bt-card.boss-stage.act-down { animation: none; }
+.bt-card.boss-stage.hit-up .bs-art { animation: bossRecoil .38s ease-out; }
+@keyframes bossRecoil { 0% { transform: none; } 30% { transform: translateY(-3%) rotate(-1.6deg) scale(.985); filter: brightness(1.35); } 100% { transform: none; } }
+.bt-card.boss-stage .fx-card { overflow: visible; }
+.bt-card.boss-stage.ko .bs-art .portrait { animation: none; filter: grayscale(.8) brightness(.6); opacity: .55; }
+.bt-card.boss-stage.ko .bt-ko { top: 45%; left: 20%; right: 20%; font-size: 14px; border-radius: 4px; }
+/* 画面が小さく揺れる */
+#screen-battle.shake .bt-layout { animation: shakeScr .34s linear; }
+@keyframes shakeScr { 0%, 100% { transform: none; } 20% { transform: translate(-4px, 2px); } 40% { transform: translate(4px, -2px); } 60% { transform: translate(-3px, -1px); } 80% { transform: translate(2px, 1px); } }
+/* 属性の筋（敵 → 味方の前衛） */
+.fx-surge { position: fixed; height: 10px; margin-top: -5px; transform-origin: 0 50%; pointer-events: none; border-radius: 6px;
+  background: linear-gradient(90deg, transparent, var(--fx, #ffd86a) 30%, #fff 50%, var(--fx, #ffd86a) 70%, transparent);
+  box-shadow: 0 0 14px var(--fx, #ffd86a); animation: surge .6s ease-out forwards; }
+.fx-surge[data-el="nature"] { --fx: #8fd06a; } .fx-surge[data-el="fire"] { --fx: #ff7a3c; } .fx-surge[data-el="water"] { --fx: #5ab8ff; }
+.fx-surge[data-el="holy"] { --fx: #ffe27a; } .fx-surge[data-el="dark"] { --fx: #a46bff; }
+@keyframes surge { 0% { clip-path: inset(0 100% 0 0); opacity: 1; } 60% { clip-path: inset(0 0 0 0); opacity: 1; } 100% { clip-path: inset(0 0 0 70%); opacity: 0; } }
+/* 当たったときに散る粒 */
+.fx-debris { position: fixed; width: 9px; height: 6px; border-radius: 2px; pointer-events: none; background: #c9a36b; animation: debris .85s cubic-bezier(.2, .7, .4, 1) forwards; }
+.fx-debris[data-el="nature"] { background: #7fb84e; border-radius: 70% 0; } .fx-debris[data-el="nature"]:nth-child(odd) { background: #8a6a3e; border-radius: 1px; }
+.fx-debris[data-el="fire"] { background: #ffb04a; box-shadow: 0 0 6px #ff7a2a; border-radius: 50%; width: 6px; }
+.fx-debris[data-el="water"] { background: #bfe6ff; border-radius: 50%; width: 7px; height: 7px; }
+.fx-debris[data-el="holy"] { background: #fff0b8; box-shadow: 0 0 6px #ffe27a; }
+.fx-debris[data-el="dark"] { background: #b98cff; box-shadow: 0 0 6px #7d4dd6; border-radius: 50%; }
+@keyframes debris { 0% { opacity: 1; transform: translate(0, 0) rotate(0); } 100% { opacity: 0; transform: translate(var(--dx), calc(var(--dy) + 90px)) rotate(var(--rot)); } }
+@media (prefers-reduced-motion: reduce) {
+  .bs-art .portrait, .bs-motes i, .bt-card.boss-stage.boss-attack .bs-art, .bt-card.boss-stage.hit-up .bs-art, #screen-battle.shake .bt-layout { animation: none !important; }
+}
+@media (min-width: 960px) and (orientation: landscape) {
+  .bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 520px); }
+  .bt-card.boss-stage .bt-art.bs-art { height: clamp(300px, 56vh, 600px); }
+}

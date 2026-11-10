@@ -22,7 +22,7 @@ Mac の Claude Code の毎晩の予定（22:30 ごろ・`rokuyo-dungeon-art`）�
 - `git fetch origin` → `git checkout claude/determined-archimedes-wy7qnj`。
 - `git status --short` を見る。
   - **何も無い** → `git merge --ff-only origin/main`。
-  - **前の晩のダンジョンの絵の残りだけ**（`art/<ID>/art.json`、`src/style.css` の `dungeon-art` の区切りの中、`src/img/chara/b-*.webp`、`src/img/battle/*`、`src/img/dungeon/*`、それと生成物の `dist/`・`docs/index.html`）
+  - **前の晩のダンジョンの絵の残りだけ**（`art/<ID>/art.json`、`src/style.css` の `dungeon-art` の区切りの中、`src/img/chara/b-*.webp`、`src/img/boss/b-*.webp`、`src/img/battle/*`、`src/img/dungeon/*`、それと生成物の `dist/`・`docs/index.html`）
     → 消さずに引き継ぐ。生成物だけ `git checkout -- dist docs/index.html` で戻してから `git merge --ff-only origin/main`。残っていた絵は「取り込み済み・未公開」として手順 6 から続ける。
   - **それ以外の変更**（キャラの絵づくりの途中など）→ 触らずに止めて報告する。
 
@@ -31,6 +31,9 @@ Mac の Claude Code の毎晩の予定（22:30 ごろ・`rokuyo-dungeon-art`）�
 - `src/data.js` の `DUNGEONS` のうち、敵 3 体の `src/img/chara/<敵ID>.webp`、`src/img/battle/<ダンジョンID>-portrait.webp`、`-landscape.webp` のどれかが無いものが対象。
 - 対象が無く、引き継いだ残りも無ければ「今日は作る絵なし」と報告して終わる。
 - 対象が複数あれば、**新しいものから最大 2 つ**（たまっている分は次の晩以降に続けて追いつく）。引き継いだ残りは数に入れない。
+- **背景なしの敵の絵（2026-11-10〜）**：ダンジョンの戦闘では、敵を背景の中に直接立たせる。そのために敵ごとに「背景を透明にした絵」`src/img/boss/<敵ID>.webp` が要る。
+  - 上の対象のダンジョンでは、5 枚に加えて背景なし 3 枚（floor1-cut〜floor3-cut）も作る。
+  - それとは別に、**絵はあるのに `src/img/boss/<敵ID>.webp` が無い敵**を、1 晩に**最大 3 体**作って追いつく（古いダンジョンから。`art/<ID>/prompts.md` の「（背景なし）」の指示文を使う。その敵の floorN-cut だけ作って取り込む）。
 
 ## 3. 指示文を用意する
 
@@ -38,7 +41,7 @@ Mac の Claude Code の毎晩の予定（22:30 ごろ・`rokuyo-dungeon-art`）�
 - 無ければ `node scripts/dungeon-art.js prompts <ID>` で下書きを作り、`art.json` の `world`（場所の景色）と
   `enemies.<敵ID>.describe`（敵の姿）を、`src/data.js` の名前・属性・ランク・固有スキルに合わせて英語で具体的に書き直し、もう一度 `prompts` を実行する。
 
-## 4. codex-image で 5 枚作る（1 回に 1 枚ずつ。まとめて頼まない）
+## 4. codex-image で 5 枚＋背景なし 3 枚作る（1 回に 1 枚ずつ。まとめて頼まない）
 
 - floor1（1 階の雑魚）・floor2（2 階の中ボス）・floor3（3 階の大ボス）：縦長 1024×1536
 - portrait（スマホ用の背景）：縦長 1024×1536
@@ -46,6 +49,9 @@ Mac の Claude Code の毎晩の予定（22:30 ごろ・`rokuyo-dungeon-art`）�
 - 指示文は `prompts.md` の英語の文をそのまま使う。画質は medium で十分。
 - 見本は採用済みの絵：敵は `src/img/chara/b-*.webp`（同じランクのもの）、背景は `src/img/battle/*-landscape.webp`・`*-portrait.webp`。
 - 保存先：`art/<ID>/raw/floor1.png`〜`floor3.png`・`portrait.png`・`landscape.png`
+- 背景なし（floor1-cut〜floor3-cut）：縦長 1024×1536。**見本の画像は渡さない**（見本の背景まで描かれてしまう）。指示文は `prompts.md` の「（背景なし）」の英語の文。
+  codex-image で背景を透明にできればそのまま。できなければ、指示文のとおり真っ平らな薄い灰色の地でよい（取り込みで自動で抜く）。
+  保存先：`art/<ID>/raw/floor1-cut.png`〜`floor3-cut.png`。同じ敵の floorN（背景あり）と見た目をそろえる（できれば floorN を見ながら描かせる指示を足す）。
 
 ## 5. 自分の目で確かめる（だめなものはその 1 枚だけ作り直す。最大 2 回まで）
 
@@ -54,10 +60,13 @@ Mac の Claude Code の毎晩の予定（22:30 ごろ・`rokuyo-dungeon-art`）�
 - 雑魚 → 中ボス → 大ボスで、大きさと迫力がはっきり違う
 - 背景に人や敵がいない、余白がない
 - 繊細な線の手描き水彩風で、既存の絵と並べて浮かない
+- 背景なしの絵：まわりに景色・地面・影・枠が無い。敵の体が欠けていない（透明の地か、平らな灰色の地）
 
 ## 6. 取り込む
 
 - `node scripts/dungeon-art.js import <ID>`（縮小・軽量化して `src/img/` に入る。既にある絵は上書きしない）
+  背景なしの絵は `src/img/boss/<敵ID>.webp` に入る（灰色の地は自動で抜く）。追いつきで 1 体だけなら `import <ID> --only floor2-cut` のように指定する。
+  取り込んだ背景なしの絵は、戦闘のスクリーンショット（check）で、敵が背景の中に立っているか・ふちに灰色が残っていないかを見る。
 - `node scripts/dungeon-art.js check <ID>` を実行し、`art/<ID>/check/` のスクリーンショットを全部見る。
 - 丸い紋章で敵の顔が切れていたら、`art.json` の `emblem`（`ex`・`ey`＝顔の位置%、`es`＝拡大率%）を直して
   `node scripts/dungeon-art.js emblem <ID>` → もう一度 `check`。

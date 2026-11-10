@@ -59,7 +59,14 @@ test('画像の指示文：敵は1体ずつ・ランクで迫力を変える・�
   try {
     execFileSync('node', [path.join(ROOT, 'scripts/dungeon-art.js'), 'prompts', id], { stdio: 'ignore' });
     const p = JSON.parse(fs.readFileSync(path.join(dir, 'prompts.json'), 'utf8'));
-    assert.deepEqual(Object.keys(p), ['floor1', 'floor2', 'floor3', 'portrait', 'landscape']);
+    assert.deepEqual(Object.keys(p), ['floor1', 'floor2', 'floor3', 'floor1-cut', 'floor2-cut', 'floor3-cut', 'portrait', 'landscape']);
+    // 背景なしの敵（戦闘で背景の中に立たせる）：景色・地面を描かず、透明（だめなら平らな灰色）の地
+    ['floor1-cut', 'floor2-cut', 'floor3-cut'].forEach(k => {
+      assert.equal(p[k].kind, 'cutout');
+      assert.match(p[k].prompt, /transparent background/);
+      assert.match(p[k].prompt, /No scenery, no ground/);
+      assert.match(p[k].prompt, /No text, no letters, no numbers/);
+    });
     assert.deepEqual(['floor1', 'floor2', 'floor3'].map(k => p[k].target), ['b-goblin', 'b-boar', 'b-elder']);
     ['floor1', 'floor2', 'floor3'].forEach(k => {
       assert.match(p[k].prompt, /Exactly one creature/);
@@ -85,4 +92,32 @@ test('画像の生成：鍵が無いときは何もせず、置き方を案内�
   assert.notEqual(r.status, 0);
   assert.match(r.stderr, /GEMINI_API_KEY/);
   assert.equal(fs.existsSync(path.join(ROOT, 'art/forest/raw')), false, '何も作らない');
+});
+
+test('背景なしの敵の絵：透明が無い絵は平らな地の色を外側から抜き、中身の大きさに切り詰める', { skip: !hasPil && 'python3 の Pillow がありません' }, () => {
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'cut-'));
+  execFileSync('python3', ['-I', '-c', `
+from PIL import Image, ImageDraw
+im = Image.new('RGB', (1024, 1536), (216, 216, 216))
+d = ImageDraw.Draw(im)
+d.ellipse((312, 400, 712, 1300), fill=(150, 60, 40))
+d.ellipse((450, 600, 560, 700), fill=(216, 216, 216))   # 中の同じ色は抜かない（外側とつながっていない）
+im.save(r'${dir}/floor1-cut.png')
+`]);
+  fs.writeFileSync(`${dir}/jobs.json`, JSON.stringify({ jobs: [{ kind: 'cutout', src: `${dir}/floor1-cut.png`, out: `${dir}/c.webp` }] }));
+  const out = JSON.parse(execFileSync('python3', ['-I', path.join(ROOT, 'scripts/art_process.py'), `${dir}/jobs.json`], { encoding: 'utf8' }))[0];
+  assert.ok(out.ok);
+  assert.ok(out.size[0] <= 360 && out.size[1] <= 700, '縮める');
+  assert.ok(out.size[1] / out.size[0] > 2, '中身（縦長の楕円）の大きさに切り詰める');
+  const px = JSON.parse(execFileSync('python3', ['-I', '-c', `
+from PIL import Image
+import json
+im = Image.open(r'${dir}/c.webp').convert('RGBA')
+w, h = im.size
+print(json.dumps([im.getpixel((1, 1))[3], im.getpixel((w // 2, h // 2))[3], im.getpixel((w // 2, round(h * 0.28)))[3]]))
+`], { encoding: 'utf8' }));
+  assert.equal(px[0], 0, '外側の地は透明');
+  assert.equal(px[1], 255, '中身は不透明');
+  assert.equal(px[2], 255, '中の同じ色の部分は抜かない');
+  fs.rmSync(dir, { recursive: true, force: true });
 });

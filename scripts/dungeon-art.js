@@ -30,7 +30,8 @@ const ROOT = path.join(__dirname, '..');
 const D = require('../src/data.js');
 const E = require('../src/engine.js');
 
-const KEYS = ['floor1', 'floor2', 'floor3', 'portrait', 'landscape'];
+const KEYS = ['floor1', 'floor2', 'floor3', 'portrait', 'landscape', 'floor1-cut', 'floor2-cut', 'floor3-cut'];
+// 〇〇-cut：背景を透明にした敵の絵（ダンジョンの戦闘で、背景の中に直接立たせる。src/img/boss/<敵ID>.webp）
 const RAW_EXT = ['.png', '.jpg', '.jpeg', '.webp'];
 const RANK_KEY = { '雑魚': 'floor1', '中ボス': 'floor2', '大ボス': 'floor3' };
 
@@ -121,6 +122,23 @@ function buildPrompts(id) {
       ].join(' ')
     };
   });
+  // 背景を透明にした敵の絵（戦闘の舞台用）。透明にできない生成 AI では、真っ平らな薄い灰色の地にしてもらい、取り込みで抜く
+  enemies(d).forEach(e => {
+    const b = e.boss, a = art.enemies[b.id] || {};
+    out[e.key + '-cut'] = {
+      target: b.id, kind: 'cutout', aspect: '9:16',
+      prompt: [
+        `${STYLE}`,
+        `Isolated character art of a single fantasy monster for a dice battle game: ${a.describe || b.name}.`,
+        `Element: ${ELEMENT_EN[b.element]} — colors and mood: ${ELEMENT_LOOK[b.element]}.`,
+        `${RANK_LOOK[b.rank]}.`,
+        'Exactly one creature, no other characters. Full body visible from head to feet, centered, facing the viewer at a slight angle, with a little empty space around it.',
+        'The creature alone on a fully transparent background. If transparency is not possible, use a perfectly flat, plain light grey (#d8d8d8) background with nothing else.',
+        'No scenery, no ground, no floor, no cast shadow, no frame, no vignette.',
+        NO_TEXT
+      ].join(' ')
+    };
+  });
   const bg = orient => [
     STYLE,
     `An empty background scene of a fantasy dungeon: ${art.world}.`,
@@ -141,9 +159,11 @@ function buildPrompts(id) {
     '共通：繊細な線と手描きの水彩風ファンタジー（既存の採用済みの絵を参考画像として渡す）。名前・HP・星・ボタンなどの文字は描かない。余白なしで画面全体を覆う。', ''];
   KEYS.forEach(k => {
     const p = out[k];
-    const label = { floor1: '1階の雑魚', floor2: '2階の中ボス', floor3: '3階の大ボス', portrait: 'スマホ用の縦長背景', landscape: 'PC 用の横長背景' }[k];
-    const who = p.kind === 'enemy' ? E.getChar(p.target) : null;
-    md.push(`## ${label}（${k}・${p.aspect}）`, who ? `${who.name}／${D.ELEMENTS[who.element].name}／${who.rank}　→ \`src/img/chara/${who.id}.webp\`` : `→ \`src/img/battle/${p.target}.webp\``, '', '```', p.prompt, '```', '');
+    const label = { floor1: '1階の雑魚', floor2: '2階の中ボス', floor3: '3階の大ボス', portrait: 'スマホ用の縦長背景', landscape: 'PC 用の横長背景',
+      'floor1-cut': '1階の雑魚（背景なし）', 'floor2-cut': '2階の中ボス（背景なし）', 'floor3-cut': '3階の大ボス（背景なし）' }[k];
+    const who = p.kind === 'enemy' || p.kind === 'cutout' ? E.getChar(p.target) : null;
+    const dest = p.kind === 'cutout' ? `src/img/boss/${p.target}.webp` : who ? `src/img/chara/${who.id}.webp` : `src/img/battle/${p.target}.webp`;
+    md.push(`## ${label}（${k}・${p.aspect}）`, who ? `${who.name}／${D.ELEMENTS[who.element].name}／${who.rank}　→ \`${dest}\`` : `→ \`${dest}\``, '', '```', p.prompt, '```', '');
   });
   fs.writeFileSync(path.join(artDir(id), 'prompts.md'), md.join('\n'));
   fs.writeFileSync(path.join(artDir(id), 'prompts.json'), JSON.stringify(out, null, 2) + '\n');
@@ -192,7 +212,7 @@ async function genOpenAI(p, refs) {
     refs.forEach(f => fd.append('image[]', new Blob([fs.readFileSync(f)], { type: 'image/webp' }), path.basename(f)));
     res = await fetch('https://api.openai.com/v1/images/edits', { method: 'POST', headers: auth, body: fd });
   } else {
-    res = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify({ model, prompt: p.prompt, size, quality: 'high' }) });
+    res = await fetch('https://api.openai.com/v1/images/generations', { method: 'POST', headers: { ...auth, 'Content-Type': 'application/json' }, body: JSON.stringify(Object.assign({ model, prompt: p.prompt, size, quality: 'high' }, p.kind === 'cutout' ? { background: 'transparent', output_format: 'png' } : {})) });
   }
   const j = await res.json().catch(() => ({}));
   if (!res.ok) throw new Error(`OpenAI ${res.status}: ${(j.error && j.error.message) || ''}`);
@@ -208,7 +228,9 @@ async function generate(opt) {
     if (opt.only && opt.only.indexOf(k) < 0) continue;
     if (!opt.force && findRaw(raw, k)) { console.log(`・${k}：もうあるので飛ばします（作り直すときは --force）`); continue; }
     const p = prompts[k];
-    const refs = references(p.kind === 'enemy' ? 'enemy' : p.kind, p.kind === 'enemy' ? E.getChar(p.target).rank : null, opt.id);
+    const isEnemy = p.kind === 'enemy' || p.kind === 'cutout';
+    // 背景なしの絵には参考画像を付けない（参考の背景まで描かれてしまうため）
+    const refs = p.kind === 'cutout' ? [] : references(isEnemy ? 'enemy' : p.kind, isEnemy ? E.getChar(p.target).rank : null, opt.id);
     process.stdout.write(`・${k} を生成中（${provider}・参考画像 ${refs.length} 枚）… `);
     const r = await (provider === 'gemini' ? genGemini : genOpenAI)(p, refs);
     RAW_EXT.forEach(x => { const old = path.join(raw, k + x); if (fs.existsSync(old)) fs.unlinkSync(old); });
@@ -249,6 +271,7 @@ function importArt(opt) {
     jobs.push({ kind, src, out, focus });
   };
   enemies(d).forEach(e => add('enemy', e.key, path.join(ROOT, 'src/img/chara', e.boss.id + '.webp'), (art.enemies[e.boss.id] || {}).focus));
+  enemies(d).forEach(e => add('cutout', e.key + '-cut', path.join(ROOT, 'src/img/boss', e.boss.id + '.webp')));
   const bg = art.backgrounds || {};
   add('portrait', 'portrait', path.join(ROOT, 'src/img/battle', `${opt.id}-portrait.webp`), bg.portraitFocus);
   add('landscape', 'landscape', path.join(ROOT, 'src/img/battle', `${opt.id}-landscape.webp`), bg.landscapeFocus);
@@ -261,6 +284,7 @@ function importArt(opt) {
   try { out = JSON.parse(execFileSync('python3', ['-I', path.join(__dirname, 'art_process.py'), cfg], { encoding: 'utf8' })); }
   finally { fs.unlinkSync(cfg); }
   out.forEach(r => console.log(`${r.ok ? '・' : '✗ '}${rel(r.out)}：${r.size.join('×')}・${r.kb}KB（画質${r.quality}）${r.ok ? '' : ' 容量の目安を超えています'}`));
+  if (jobs.some(j => j.kind === 'cutout')) console.log('・背景なしの敵の絵は src/img/boss に入れました（戦闘で背景の中に立つ）');
   if (jobs.some(j => j.kind === 'enemy')) { emblemCss(opt.id, art); console.log('・src/style.css に丸い紋章の顔の位置を書きました'); }
   return out;
 }

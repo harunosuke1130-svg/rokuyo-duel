@@ -1,0 +1,56 @@
+{
+  "dungeon": "volcano",
+  "world": "a volcanic cave with rivers of glowing lava, cracked black basalt, falling embers and red-orange heat haze",
+  "enemies": {
+    "b-salamander": {
+      "describe": "a fiery salamander lizard with glowing orange cracked scales and a flame-tipped curled tail",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-golem": {
+      "describe": "a towering lava golem made of jagged black volcanic rocks with glowing molten lava cracks running through its body, massive fists, hunched powerful stance",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-dragon": {
+      "describe": "a mighty crimson fire dragon with spread wings, horned head, ember-glowing scales and a long tail",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}

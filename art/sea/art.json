@@ -1,0 +1,56 @@
+{
+  "dungeon": "sea",
+  "world": "a sunken temple under misty sea water, pale stone columns and stairs, flooded halls with rippling reflections, drifting fog and cool blue-green light",
+  "enemies": {
+    "b-jelly": {
+      "describe": "a translucent misty jellyfish floating in the air, glowing pale blue bell with long trailing tentacles",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-serpent": {
+      "describe": "a great sea serpent dragon with teal and silver scales, long coiling body, fin-like crest and whiskers",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-nagi": {
+      "describe": "a majestic sea goddess sorceress with very long flowing dark blue hair, a crown of coral and pearls, layered white and deep blue robes like waves, holding a tall ornate staff topped with a glowing aqua crystal, serene cold expression",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}

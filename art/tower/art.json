@@ -1,0 +1,56 @@
+{
+  "dungeon": "tower",
+  "world": "a dark gothic tower under a huge full moon at night, ruined spires and arches, purple flowers growing over cracked stone, silver starlight and violet magic glow",
+  "enemies": {
+    "b-imp": {
+      "describe": "a small black shadow imp familiar like a fluffy black cat with bat wings, big pointed ears, glowing violet eyes and a crescent-moon charm, sitting proudly",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-witch": {
+      "describe": "a beautiful moon-eating witch with long silver hair, a wide pointed black hat with crescent ornaments, a flowing black and violet gown with gold trim, holding a crescent-moon staff and a dark orb of void magic",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-maou": {
+      "describe": "a tall star-devouring demon king with long black hair and a jagged dark crown, dark ornate robes embroidered with silver stars and constellations, holding a black star orb in one hand, regal and menacing",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}

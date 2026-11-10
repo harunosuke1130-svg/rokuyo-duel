@@ -12,6 +12,8 @@
 - enemy（敵）：縦長（幅:高さ ≒ 0.45〜0.62）にそろえ、幅 360px・80KB 以下
 - portrait（スマホの背景）：620×1102（9:16）に余白なしで切り抜き・200KB 以下
 - landscape（PC の背景）：1100×619（16:9）・200KB 以下
+- cutout（背景を透明にした敵）：透明のまま。透明が無い絵は、まわりの平らな地の色を外側から塗りつぶして抜く。
+  中身の大きさに切り詰め、幅 360px 以内・80KB 以下（戦闘で背景の中に立たせる。src/img/boss）
 - banner（ダンジョン一覧のカード）：横長の背景から 2:1 で切り抜き、640×320・60KB 以下（スマホのカードは約 2.1:1、PC は約 1.6:1 で、どちらも余白なしで覆う）
 結果（大きさ・容量・画質）を JSON で標準出力に出す。
 """
@@ -27,6 +29,7 @@ SPECS = {
     'portrait':  {'max_kb': 200, 'size': (620, 1102)},
     'landscape': {'max_kb': 200, 'size': (1100, 619)},
     'banner':    {'max_kb': 60,  'size': (640, 320)},
+    'cutout':    {'max_kb': 80,  'width': 360},
 }
 ENEMY_RATIO = (0.45, 0.62)   # 幅÷高さ（既存の敵の絵は約 0.53）
 
@@ -105,9 +108,50 @@ def save_small(im, out, max_kb):
             return q, buf.tell()
 
 
+def cutout(src):
+    """背景を透明にした敵の絵：透明が無ければ、外側から平らな地の色を抜く。中身の大きさに切り詰めて縮める。"""
+    from PIL import ImageDraw, ImageFilter
+    im = Image.open(src).convert('RGBA')
+    a = im.getchannel('A')
+    if a.getextrema()[0] > 250:   # 透明が無い：四隅の色を地の色として、外側からつながっている所を抜く
+        rgb = im.convert('RGB')
+        w, h = rgb.size
+        mask = Image.new('L', (w + 2, h + 2), 0)
+        pad = Image.new('RGB', (w + 2, h + 2), rgb.getpixel((0, 0)))
+        pad.paste(rgb, (1, 1))
+        ImageDraw.floodfill(pad, (0, 0), (255, 0, 255), thresh=34)
+        px = pad.load()
+        m = Image.new('L', (w, h), 255)
+        mp = m.load()
+        for y in range(h):
+            for x in range(w):
+                if px[x + 1, y + 1] == (255, 0, 255):
+                    mp[x, y] = 0
+        m = m.filter(ImageFilter.GaussianBlur(1.2))
+        im.putalpha(m)
+    a = im.getchannel('A').point(lambda v: 0 if v < 24 else v)
+    im.putalpha(a)
+    box = a.getbbox()
+    if box:
+        x0, y0, x1, y1 = box
+        p = 8
+        im = im.crop((max(0, x0 - p), max(0, y0 - p), min(im.width, x1 + p), min(im.height, y1 + p)))
+    tw = SPECS['cutout']['width']
+    if im.width > tw:
+        im = im.resize((tw, round(im.height * tw / im.width)), Image.LANCZOS)
+    if im.height > 700:
+        im = im.resize((round(im.width * 700 / im.height), 700), Image.LANCZOS)
+    return im
+
+
 def run(job):
     kind = job['kind']
     spec = SPECS[kind]
+    if kind == 'cutout':
+        im = cutout(job['src'])
+        q, size = save_small(im, job['out'], spec['max_kb'])
+        return {'kind': kind, 'src': job['src'], 'out': job['out'], 'trimmed': list(im.size), 'size': list(im.size),
+                'kb': round(size / 1024, 1), 'quality': q, 'ok': size <= spec['max_kb'] * 1024}
     focus = tuple(job.get('focus') or (0.5, 0.5))
     im = trim(flatten(Image.open(job['src'])))
     src_size = im.size

@@ -1,0 +1,56 @@
+{
+  "dungeon": "forest",
+  "world": "an ancient overgrown forest with giant mossy trees, broken stone ruins and arches covered in vines, soft green light filtering through the canopy, ferns, wildflowers and small streams",
+  "enemies": {
+    "b-goblin": {
+      "describe": "a small mossy forest goblin with big pointed ears, leaf and moss clothing, a little wooden club, sly grin",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-boar": {
+      "describe": "a huge armored wild boar with thorny moss-covered bark-like plates on its back, curved tusks, angry glowing eyes",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-elder": {
+      "describe": "an ancient giant treant, a walking tree with a wise bearded face in the bark, thick twisted trunk-body and branch arms covered in moss and hanging vines, small white flowers and mushrooms, a glowing green heart-light in its chest, roots for feet",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}

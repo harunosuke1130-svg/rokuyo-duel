@@ -441,6 +441,7 @@
       </div>`;
     }
     const ch = E.unitChar(u);
+    if (kind === 'front' && E.isBoss(u.charId)) return bossStage(side, i);
     const hidden = side === bt.foe && s.phase === 'formation';
     const mine = side === bt.me;
     // HPは「当たる瞬間」まで前の値を見せる（演出だけ。状態は変えない）
@@ -469,6 +470,33 @@
         : `${hpBar(vu)}<span class="bt-backline">${starsHtml(ch)}${u.hp > 0 && u.cd > 0 && !hidden ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : ''}</span>`}
       ${withMove ? `<span class="bt-move">${moveArea(i)}</span>` : ''}
       ${hidden ? '<span class="bt-hidden">配置前</span>' : ''}
+    </div>`;
+  }
+
+  // ダンジョンの敵：カードの枠を外し、背景の中に大きく立たせる。名前と細い HP バーは上に独立させる（2026-11-10）
+  // 当たり・数字などの演出は、カードと同じ仕組み（.unit-card・.bt-art）でそのまま動く
+  function bossStage(side, i) {
+    const s = bt.state;
+    const u = s.teams[side][i];
+    const ch = E.unitChar(u);
+    const key = side + ':' + i;
+    const shown = key in bt.hpHold ? bt.hpHold[key] : u.hp;
+    bt.hpShown[key] = shown;
+    const vu = shown === u.hp ? u : Object.assign({}, u, { hp: shown });
+    const st = hpState(vu);
+    const tags = [];
+    const shield = u.hp > 0 && ((u.barrier && !(key in bt.barrierWait)) || key in bt.barrierHold);
+    if (shield) tags.push(u.barrier === 'quarter' ? `<span class="bt-tag barrier">${fxIcon('guard')}¼結界</span>` : '<span class="bt-tag barrier" title="結界：次の防げるダメージ1回を半減">◈結界</span>');
+    if (u.hp > 0 && u.poison) tags.push(`<span class="bt-tag st-poison" title="毒：ターンの始めに${u.poison.amount}ダメージ（あと${u.poison.turns}回）">${fxIcon('poison')}${u.poison.turns}</span>`);
+    if (u.hp > 0 && u.weakAtk) tags.push(`<span class="bt-tag st-weak" title="攻撃力${u.weakAtk.percent}%ダウン（あと${u.weakAtk.turns}ターン）">${fxIcon('weakAtk')}${u.weakAtk.turns}</span>`);
+    if (u.hp > 0 && u.weakHeal) tags.push(`<span class="bt-tag st-weak" title="回復力${u.weakHeal.percent}%ダウン（あと${u.weakHeal.turns}ターン）">${fxIcon('weakHeal')}${u.weakHeal.turns}</span>`);
+    const cd = u.hp > 0 && u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : '';
+    const label = `${ch.name}（${ch.rank || 'ボス'}）HP${u.hp}/${u.maxHp}${u.hp <= 0 ? '（倒した）' : ''}`;
+    return `<div class="bt-card unit-card boss-stage foe${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${shield ? ' has-barrier' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="front">
+      <span class="bs-head"><span class="bs-rank">${esc(ch.rank || 'ボス')}</span><b class="bs-name">${esc(ch.name)}</b>${elMark(ch)}
+        <span class="bs-hpline">${hpBar(vu)}<span class="bt-hp"><b>${vu.hp}</b>/${u.maxHp}</span>${cd}</span>
+        <span class="bt-tags">${tags.join('')}</span></span>
+      <span class="bt-art bs-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch)}<span class="bs-motes" data-el="${esc(ch.element)}" aria-hidden="true"><i></i><i></i><i></i><i></i></span>${vu.hp <= 0 ? '<span class="bt-ko">撃破</span>' : ''}</span>
     </div>`;
   }
 
@@ -575,6 +603,7 @@
   }
 
   function render() {
+    if (bt.state) $('#screen-battle').classList.toggle('boss-fight', bt.state.teams[bt.foe].some(u => E.isBoss(u.charId)));
     if (!bt.state) {
       $('#phase-text').textContent = '準備中';
       $('#phase-sub').textContent = '相手の準備を待っています…';
@@ -888,6 +917,44 @@
     schedule(() => go(), 760);
   }
 
+  // ダンジョンの敵の攻撃：属性の筋が地面を走って味方の前衛へ
+  function bossSurge(from, elem) {
+    const a = fxRect(from && from.querySelector('.bt-art')), row = $('#ally-front'), b = fxRect(row);
+    if (!a || !b) return;
+    const n = document.createElement('div');
+    n.className = 'fx-surge';
+    if (elem) n.dataset.el = elem;
+    const dx = b.x - a.x, dy = b.y - a.y;
+    Object.assign(n.style, { left: a.x + 'px', top: (a.y + 40) + 'px', width: Math.hypot(dx, dy - 40) + 'px', transform: `rotate(${Math.atan2(dy - 40, dx)}rad)` });
+    $('#fx-layer').appendChild(n);
+    setTimeout(() => n.remove(), 700);
+  }
+  // 当たった瞬間だけ、画面を小さく揺らす
+  function shakeScreen() {
+    if (reduced()) return;
+    const el = $('#screen-battle');
+    el.classList.remove('shake'); void el.offsetWidth; el.classList.add('shake');
+    setTimeout(() => el.classList.remove('shake'), 380);
+  }
+  // ダンジョンの敵に当たった：属性に合った粒（自然＝葉・木片、猛火＝火の粉、水脈＝しぶき…）が散る
+  function debrisAt(card) {
+    const art = card.querySelector('.bt-art');
+    const r = art && art.getBoundingClientRect();
+    if (!r || !r.width) return;
+    const el = card.dataset.el || '';
+    for (let i = 0; i < 9; i++) {
+      const p = document.createElement('i');
+      p.className = 'fx-debris';
+      p.dataset.el = el;
+      p.style.left = (r.left + r.width * (0.3 + 0.4 * Math.random())) + 'px';
+      p.style.top = (r.top + r.height * (0.3 + 0.3 * Math.random())) + 'px';
+      p.style.setProperty('--dx', ((Math.random() - 0.5) * 160).toFixed(0) + 'px');
+      p.style.setProperty('--dy', (-30 - Math.random() * 70).toFixed(0) + 'px');
+      p.style.setProperty('--rot', (Math.random() * 540 - 270).toFixed(0) + 'deg');
+      $('#fx-layer').appendChild(p);
+      setTimeout(() => p.remove(), 900);
+    }
+  }
   // 1体への当たり・回復・結界（数字とHPバーは、その瞬間に動かす）
   // 技の効果：3段は3回に分けて当たる・毒は紫の泡・吸収は相手から命が流れ込む・弱体は下向きの矢印・¼結界は厚い金の盾
   function hitOne(ev, actEl) {
@@ -922,8 +989,9 @@
       } else {
         cardFx(card, 'hit', actEl);
         flash(card, ev.side === bt.me ? 'hit-down' : 'hit-up');
-        floatAt(card, '-' + ev.amount, 'dmg', 0, actEl);
+        floatAt(card, '-' + ev.amount, 'dmg', card && card.classList.contains('boss-stage') ? -20 + Math.round(Math.random() * 40) : 0, actEl);
       }
+      if (card && card.classList.contains('boss-stage') && !quick) debrisAt(card);
       if (ev.guts) schedule(() => { cardFx(card, 'guard'); floatAt(card, '根性！', 'guard', -40); }, releaseAt + (quick ? 0 : 120));
       // 毒・弱体がかかった（毒に強いキャラは効かない）
       if (ev.status) {
@@ -974,6 +1042,13 @@
     if (actEv && actEv.type === 'move') {
       const c = cardOf(actEv.side, actEv.idx);
       if (c) { c.style.setProperty('--act-el', `var(--el-${actEl || 'holy'})`); flash(c, actEv.side === bt.me ? 'act-up' : 'act-down'); }
+      // ダンジョンの敵の攻撃：体を引いてから踏み込み、属性の筋が味方へ走り、当たった瞬間に画面が小さく揺れる
+      if (c && c.classList.contains('boss-stage') && events.some(e => e.type === 'damage' && e.side !== actEv.side)) {
+        c.classList.remove('boss-attack'); void c.offsetWidth; c.classList.add('boss-attack');
+        setTimeout(() => c.classList.remove('boss-attack'), 900);
+        if (!quick) schedule(() => bossSurge(c, actEl), 260);
+        schedule(() => shakeScreen(), quick ? 0 : 520);
+      }
       // ピンチ：赤い気がふくらむ
       if (c && actEv.pinch) { cardFx(c, 'pinch'); floatAt(c, '反撃！攻撃×2', 'pinch', -30); }
       if (c && actEv.firstStrike) { cardFx(c, 'pinch'); floatAt(c, '先手！攻撃×1.5', 'pinch', -30); }
@@ -1032,7 +1107,8 @@
       groups.filter(g => !used.has(g)).forEach(g => { schedule(() => playGroup(g), t); t += gap; });
       end = t;
     } else {
-      const lead = actEv && !U.FAST ? 200 : 0;
+      const bossAtk = actEv && actEv.type === 'move' && (cardOf(actEv.side, actEv.idx) || { classList: { contains: () => false } }).classList.contains('boss-stage');
+      const lead = actEv && !U.FAST ? (bossAtk && !quick ? 520 : 200) : 0;
       fatigue.length && schedule(showFatigue, lead);
       const gapM = U.FAST ? 0 : 340;
       // ターンの始めの毒は、技の当たり・「毒」の表示と重ならないよう少し遅らせる
