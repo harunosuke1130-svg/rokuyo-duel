@@ -5,9 +5,9 @@
     "b-swallow": {
       "describe": "a small swift swallow-like bird the size of a hawk, sleek white and pale-gold feathers with deep blue wingtips, long forked tail, tiny crackling sparks of golden lightning running along its wings, bright curious amber eyes, darting through the air mid-flight",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 65,
+        "ey": 56,
+        "es": 220
       },
       "focus": [
         0.5,
@@ -18,8 +18,8 @@
       "describe": "a huge muscular thunder ogre (oni) with pale ivory-gold skin and two short horns, wild white hair streaming upward with static, fierce grin with tusks, wearing a tiger-pattern loincloth and a heavy ring of large taiko drums on its back, gripping a spiked iron club crackling with golden lightning, broad stance, intimidating and heavily built",
       "emblem": {
         "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ey": 34,
+        "es": 220
       },
       "focus": [
         0.5,
@@ -29,9 +29,9 @@
     "b-raiga": {
       "describe": "a colossal divine thunder beast resembling a great white lion-wolf with a flowing mane of storm clouds, fur of white and gold with glowing lightning-shaped markings, six tails ending in sparks, sacred golden ornaments and a halo-like ring of lightning behind its head, piercing electric-blue eyes, roaring majestically on the summit altar, bolts of lightning arcing around its body, awe-inspiring and regal",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 220
+        "ex": 40,
+        "ey": 35,
+        "es": 230
       },
       "focus": [
         0.5,

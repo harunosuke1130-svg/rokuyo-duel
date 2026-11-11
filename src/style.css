@@ -2751,3 +2751,9 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-sphinx"] { --cx: 75%; --cy: 46%; --ex: 75%; --ey: 46%; --es: 240%; }
 [data-char="b-pharaoh"] { --cx: 43%; --cy: 19%; --ex: 43%; --ey: 19%; --es: 240%; }
 /* ---- dungeon-art: tomb ここまで ---- */
+
+/* ---- dungeon-art: thunderpeak（scripts/dungeon-art.js が書く。顔の位置は art/thunderpeak/art.json の emblem で直す） ---- */
+[data-char="b-swallow"] { --cx: 65%; --cy: 56%; --ex: 65%; --ey: 56%; --es: 220%; }
+[data-char="b-raikoki"] { --cx: 50%; --cy: 34%; --ex: 50%; --ey: 34%; --es: 220%; }
+[data-char="b-raiga"] { --cx: 40%; --cy: 35%; --ex: 40%; --ey: 35%; --es: 230%; }
+/* ---- dungeon-art: thunderpeak ここまで ---- */
