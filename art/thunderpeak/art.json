@@ -1,0 +1,56 @@
+{
+  "dungeon": "thunderpeak",
+  "world": "a sacred mountain peak high above a sea of storm clouds, steep jagged cliffs of pale granite, a white stone shrine gate and ancient weathered torii-like arches (no writing) on narrow ridges, hanging rope bridges and stone stairways, giant war drums on a mountaintop altar, dark violet-gray thunderclouds lit from within, bright white-gold lightning bolts striking the summit, wind-whipped paper streamers, a sliver of golden light breaking through the clouds",
+  "enemies": {
+    "b-swallow": {
+      "describe": "a small swift swallow-like bird the size of a hawk, sleek white and pale-gold feathers with deep blue wingtips, long forked tail, tiny crackling sparks of golden lightning running along its wings, bright curious amber eyes, darting through the air mid-flight",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-raikoki": {
+      "describe": "a huge muscular thunder ogre (oni) with pale ivory-gold skin and two short horns, wild white hair streaming upward with static, fierce grin with tusks, wearing a tiger-pattern loincloth and a heavy ring of large taiko drums on its back, gripping a spiked iron club crackling with golden lightning, broad stance, intimidating and heavily built",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-raiga": {
+      "describe": "a colossal divine thunder beast resembling a great white lion-wolf with a flowing mane of storm clouds, fur of white and gold with glowing lightning-shaped markings, six tails ending in sparks, sacred golden ornaments and a halo-like ring of lightning behind its head, piercing electric-blue eyes, roaring majestically on the summit altar, bolts of lightning arcing around its body, awe-inspiring and regal",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}

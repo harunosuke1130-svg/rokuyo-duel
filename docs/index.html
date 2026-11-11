@@ -4817,7 +4817,17 @@ body[data-screen="gacha"] .topbar {
       skill: { name: '王墓の封印', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
     { id: 'b-pharaoh', name: '灼陽王ネフェルカ', glyph: '陽', maxHp: 527, element: 'fire', subTypes: ['王族', '亡霊'], rank: '大ボス',
       moves: [{ name: '黄金の王笏', atk: 33, heal: 0 }, { name: '太陽の連弾', atk: 30, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '不死の包帯', atk: 0, heal: 25 }, { name: '灼光の裁き', atk: 38, heal: 0 }, { name: '王の生気', atk: 21, heal: 6, fx: { type: 'drain', percent: 30 } }, { name: '日輪の怒り', atk: 52, heal: 0 }],
-      skill: { name: '灼陽の大審判', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } }
+      skill: { name: '灼陽の大審判', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } },
+    // 雷鳴の霊峰（2026-11-11）
+    { id: 'b-swallow', name: '雷つばめ', glyph: '燕', maxHp: 259, element: 'holy', subTypes: ['クリーチャー', '鳥'], rank: '雑魚',
+      moves: [{ name: '電光のくちばし', atk: 21, heal: 0 }, { name: '急降下', atk: 17, heal: 0 }, { name: '雲間で休む', atk: 0, heal: 14 }, { name: 'しびれ羽', atk: 18, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } }, { name: 'つばめ返し', atk: 14, heal: 4 }, { name: '雷光一閃', atk: 30, heal: 0 }],
+      skill: { name: '群れ稲光', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×16のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 16 }] } },
+    { id: 'b-raikoki', name: '雷鼓の鬼', glyph: '鼓', maxHp: 440, element: 'holy', subTypes: ['鬼', '剛力'], rank: '中ボス',
+      moves: [{ name: '金棒の一撃', atk: 32, heal: 0 }, { name: '雷鼓の乱れ打ち', atk: 27, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '雲上の瞑想', atk: 0, heal: 19 }, { name: '稲光の拳', atk: 26, heal: 0 }, { name: '鬼の踏ん張り', atk: 19, heal: 5 }, { name: '轟雷の大太鼓', atk: 47, heal: 0 }],
+      skill: { name: '怒りの連打', cd: 4, text: 'このターンに使う通常技の攻撃を1.5倍にする。', effects: [{ type: 'atkMultiplier', value: 1.5 }] } },
+    { id: 'b-raiga', name: '天雷の神獣ライガ', glyph: '獣', maxHp: 505, element: 'holy', subTypes: ['神獣', '王族'], rank: '大ボス',
+      moves: [{ name: '雷爪の一閃', atk: 33, heal: 0 }, { name: '落雷の連撃', atk: 30, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '雷光の結界', atk: 0, heal: 22, fx: { type: 'guard' } }, { name: '霹靂の牙', atk: 38, heal: 0 }, { name: '手負いの雷撃', atk: 24, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } }, { name: '天地鳴動', atk: 52, heal: 0 }],
+      skill: { name: '万雷の裁き', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } }
   ];
 
   /*
@@ -4848,7 +4858,9 @@ body[data-screen="gacha"] .topbar {
     { id: 'marsh', name: '毒霧の大湿原', text: '毒の霧が立ちこめる、底なしの沼地。', recommend: 'Lv24〜', requires: 'glacier', firstClearStones: 900, clearStones: 120,
       floors: [{ boss: 'b-bogfrog', level: 23, exp: 380 }, { boss: 'b-mantis', level: 24, exp: 530 }, { boss: 'b-hydra', level: 25, exp: 730 }] },
     { id: 'tomb', name: '灼砂の王墓', text: '熱砂に眠る、太陽王の古い墓所。', recommend: 'Lv27〜', requires: 'marsh', firstClearStones: 950, clearStones: 130,
-      floors: [{ boss: 'b-scorpion', level: 26, exp: 410 }, { boss: 'b-sphinx', level: 27, exp: 570 }, { boss: 'b-pharaoh', level: 28, exp: 790 }] }
+      floors: [{ boss: 'b-scorpion', level: 26, exp: 410 }, { boss: 'b-sphinx', level: 27, exp: 570 }, { boss: 'b-pharaoh', level: 28, exp: 790 }] },
+    { id: 'thunderpeak', name: '雷鳴の霊峰', text: '稲妻が絶えず落ちる、雲の上の霊峰。', recommend: 'Lv27〜', requires: 'marsh', firstClearStones: 950, clearStones: 130,
+      floors: [{ boss: 'b-swallow', level: 26, exp: 410 }, { boss: 'b-raikoki', level: 27, exp: 570 }, { boss: 'b-raiga', level: 28, exp: 790 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
