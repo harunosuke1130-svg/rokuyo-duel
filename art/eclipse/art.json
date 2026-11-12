@@ -6,7 +6,7 @@
       "describe": "a small eerie moth the size of a cat, velvety black wings patterned with pale silver crescent-moon eye spots, fluffy violet body, feathery antennae, glowing pale lavender eyes, a faint trail of shimmering silver scale dust falling from its wings, fluttering in mid-air",
       "emblem": {
         "ex": 50,
-        "ey": 25,
+        "ey": 64,
         "es": 200
       },
       "focus": [
@@ -17,9 +17,9 @@
     "b-gargoyle": {
       "describe": "a large heavily built gargoyle guardian carved from glossy midnight-black stone with violet veins, bat-like stone wings spread wide, curved ram horns, fanged snarling face with glowing purple eyes, thick clawed hands and feet, cracked stone armor plates with silver trim, crouched menacingly as if just leaped down from a palace spire",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 62,
+        "ey": 46,
+        "es": 220
       },
       "focus": [
         0.5,
@@ -29,9 +29,9 @@
     "b-noctia": {
       "describe": "a colossal majestic empress of the eclipse, tall and regal with long flowing silver-white hair and pale skin, a dark crown shaped like an eclipsed moon with a glowing violet corona, an enormous gown of deep purple and black that flows into starry night sky with silver constellations, holding a great crescent-moon scythe, cold violet glowing eyes, a ring of dark moons orbiting behind her, overwhelming and solemn",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 220
+        "ex": 46,
+        "ey": 31,
+        "es": 240
       },
       "focus": [
         0.5,

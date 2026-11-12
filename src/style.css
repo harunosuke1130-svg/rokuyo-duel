@@ -2761,3 +2761,9 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-raikoki"] { --cx: 50%; --cy: 34%; --ex: 50%; --ey: 34%; --es: 220%; }
 [data-char="b-raiga"] { --cx: 40%; --cy: 35%; --ex: 40%; --ey: 35%; --es: 230%; }
 /* ---- dungeon-art: thunderpeak ここまで ---- */
+
+/* ---- dungeon-art: eclipse（scripts/dungeon-art.js が書く。顔の位置は art/eclipse/art.json の emblem で直す） ---- */
+[data-char="b-moth"] { --cx: 50%; --cy: 64%; --ex: 50%; --ey: 64%; --es: 200%; }
+[data-char="b-gargoyle"] { --cx: 62%; --cy: 46%; --ex: 62%; --ey: 46%; --es: 220%; }
+[data-char="b-noctia"] { --cx: 46%; --cy: 31%; --ex: 46%; --ey: 31%; --es: 240%; }
+/* ---- dungeon-art: eclipse ここまで ---- */
