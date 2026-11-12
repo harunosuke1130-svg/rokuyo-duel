@@ -1,4 +1,8 @@
-/* 六耀の決闘 — 画面デザイン（外部フォントなし。画像 img/*.webp はビルドで埋め込む） */
+/* 六耀の決闘 — 画面デザイン（外部フォントなし。画像 img/*.webp と本文の文字 img/font/*.woff2 はビルドで埋め込む） */
+/* 本文の文字：Zen角ゴシック New（ロダンに近い形の無料の文字・SIL OFL。fonts/ が元。ゲームで使う字だけに絞ったもの＝scripts/font-subset.py）。
+   無い字（プレイヤーの名前など）は端末の標準のゴシック体で出る。見出し・名前は明朝体のまま */
+@font-face { font-family: "Rikuyou Gothic"; font-weight: 100 500; font-style: normal; font-display: swap; src: url("img/font/zkg-400.woff2") format("woff2"); }
+@font-face { font-family: "Rikuyou Gothic"; font-weight: 600 1000; font-style: normal; font-display: swap; src: url("img/font/zkg-700.woff2") format("woff2"); }
 :root {
   /* 画像は1回だけ埋め込み、ホームのバナーと戦闘の背景で共有する */
   --img-dungeon: url("img/banner-dungeon.webp");
@@ -29,7 +33,7 @@
   --danger: #e0604f;
   --heal: #6fe08e;
   --mincho: "Hiragino Mincho ProN", "Hiragino Mincho Pro", "YuMincho", "Yu Mincho", "Noto Serif JP", "Noto Serif CJK JP", serif;
-  --gothic: -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
+  --gothic: "Rikuyou Gothic", -apple-system, BlinkMacSystemFont, "Hiragino Sans", "Hiragino Kaku Gothic ProN", "Yu Gothic", "Meiryo", system-ui, sans-serif;
 }
 
 * { box-sizing: border-box; }

@@ -35,7 +35,7 @@ function read(name) {
 }
 
 // 画像は data URI にして埋め込む（単一HTMLを1ファイルのまま・外部通信なしで動かすため）
-const IMG_TYPES = { '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml' };
+const IMG_TYPES = { '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
 function dataUri(rel) {
   const file = path.join(SRC, rel);
   const type = IMG_TYPES[path.extname(file).toLowerCase()];
