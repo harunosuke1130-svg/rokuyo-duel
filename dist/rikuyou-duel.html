@@ -4846,14 +4846,24 @@ body[data-screen="gacha"] .topbar {
       skill: { name: '灼陽の大審判', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } },
     // 雷鳴の霊峰（2026-11-11）
     { id: 'b-swallow', name: '雷つばめ', glyph: '燕', maxHp: 259, element: 'holy', subTypes: ['クリーチャー', '鳥'], rank: '雑魚',
-      moves: [{ name: '電光のくちばし', atk: 21, heal: 0 }, { name: '急降下', atk: 17, heal: 0 }, { name: '雲間で休む', atk: 0, heal: 14 }, { name: 'しびれ羽', atk: 18, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } }, { name: 'つばめ返し', atk: 14, heal: 4 }, { name: '雷光一閃', atk: 30, heal: 0 }],
+      moves: [{ name: '電光のくちばし', atk: 21, heal: 0 }, { name: '稲妻急降下', atk: 17, heal: 0 }, { name: '雲間で休む', atk: 0, heal: 14 }, { name: 'しびれ羽', atk: 18, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } }, { name: 'つばめ返し', atk: 14, heal: 4 }, { name: '雷光一閃', atk: 30, heal: 0 }],
       skill: { name: '群れ稲光', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×16のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 16 }] } },
     { id: 'b-raikoki', name: '雷鼓の鬼', glyph: '鼓', maxHp: 440, element: 'holy', subTypes: ['鬼', '剛力'], rank: '中ボス',
       moves: [{ name: '金棒の一撃', atk: 32, heal: 0 }, { name: '雷鼓の乱れ打ち', atk: 27, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '雲上の瞑想', atk: 0, heal: 19 }, { name: '稲光の拳', atk: 26, heal: 0 }, { name: '鬼の踏ん張り', atk: 19, heal: 5 }, { name: '轟雷の大太鼓', atk: 47, heal: 0 }],
       skill: { name: '怒りの連打', cd: 4, text: 'このターンに使う通常技の攻撃を1.5倍にする。', effects: [{ type: 'atkMultiplier', value: 1.5 }] } },
     { id: 'b-raiga', name: '天雷の神獣ライガ', glyph: '獣', maxHp: 505, element: 'holy', subTypes: ['神獣', '王族'], rank: '大ボス',
       moves: [{ name: '雷爪の一閃', atk: 33, heal: 0 }, { name: '落雷の連撃', atk: 30, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '雷光の結界', atk: 0, heal: 22, fx: { type: 'guard' } }, { name: '霹靂の牙', atk: 38, heal: 0 }, { name: '手負いの雷撃', atk: 24, heal: 0, fx: { type: 'pinch', mult: 2, under: 30 } }, { name: '天地鳴動', atk: 52, heal: 0 }],
-      skill: { name: '万雷の裁き', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } }
+      skill: { name: '万雷の裁き', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×27のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 27, ignoreDefense: true }] } },
+    // 蝕月の宮殿（2026-11-12・1 周目のおわり）
+    { id: 'b-moth', name: '月喰い蛾', glyph: '蛾', maxHp: 268, element: 'dark', subTypes: ['クリーチャー', '虫'], rank: '雑魚',
+      moves: [{ name: '黒い羽ばたき', atk: 21, heal: 0 }, { name: '鱗粉まき', atk: 17, heal: 0 }, { name: '月影で眠る', atk: 0, heal: 14 }, { name: '鱗粉吸い', atk: 19, heal: 0, fx: { type: 'drain', percent: 30 } }, { name: 'まとわり羽', atk: 14, heal: 4 }, { name: '闇夜の乱舞', atk: 31, heal: 0 }],
+      skill: { name: '眠りの鱗粉', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×17のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 17 }] } },
+    { id: 'b-gargoyle', name: '夜石のガーゴイル', glyph: '番', maxHp: 455, element: 'dark', subTypes: ['守護者', '魔物'], rank: '中ボス',
+      moves: [{ name: '石爪の一撃', atk: 33, heal: 0 }, { name: '急降下の体当たり', atk: 28, heal: 0 }, { name: '石に戻る', atk: 0, heal: 14, fx: { type: 'guard' } }, { name: '翼の打ち下ろし', atk: 27, heal: 0 }, { name: '尖塔に留まる', atk: 19, heal: 5 }, { name: '夜空の落石', atk: 49, heal: 0 }],
+      skill: { name: '宮殿の番人', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
+    { id: 'b-noctia', name: '蝕月の女帝ノクティア', glyph: '蝕', maxHp: 545, element: 'dark', subTypes: ['王族', '魔術師'], rank: '大ボス',
+      moves: [{ name: '新月の大鎌', atk: 33, heal: 0 }, { name: '欠けゆく月光', atk: 29, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '満ちる月の癒し', atk: 0, heal: 25 }, { name: '影縫いの呪い', atk: 24, heal: 0, fx: { type: 'weaken', stat: 'heal', percent: 25, turns: 2 } }, { name: '夜の生気', atk: 20, heal: 6, fx: { type: 'drain', percent: 30 } }, { name: '皆既の帳', atk: 53, heal: 0 }],
+      skill: { name: '永夜の蝕', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×26のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 26, ignoreDefense: true }] } }
   ];
 
   /*
@@ -4886,7 +4896,9 @@ body[data-screen="gacha"] .topbar {
     { id: 'tomb', name: '灼砂の王墓', text: '熱砂に眠る、太陽王の古い墓所。', recommend: 'Lv27〜', requires: 'marsh', firstClearStones: 950, clearStones: 130,
       floors: [{ boss: 'b-scorpion', level: 26, exp: 410 }, { boss: 'b-sphinx', level: 27, exp: 570 }, { boss: 'b-pharaoh', level: 28, exp: 790 }] },
     { id: 'thunderpeak', name: '雷鳴の霊峰', text: '稲妻が絶えず落ちる、雲の上の霊峰。', recommend: 'Lv27〜', requires: 'marsh', firstClearStones: 950, clearStones: 130,
-      floors: [{ boss: 'b-swallow', level: 26, exp: 410 }, { boss: 'b-raikoki', level: 27, exp: 570 }, { boss: 'b-raiga', level: 28, exp: 790 }] }
+      floors: [{ boss: 'b-swallow', level: 26, exp: 410 }, { boss: 'b-raikoki', level: 27, exp: 570 }, { boss: 'b-raiga', level: 28, exp: 790 }] },
+    { id: 'eclipse', name: '蝕月の宮殿', text: '分かれ道の先で一つになる、月が欠けたまま昇らない夜の宮殿。', recommend: 'Lv30〜', requires: ['tomb', 'thunderpeak'], firstClearStones: 1000, clearStones: 140,
+      floors: [{ boss: 'b-moth', level: 29, exp: 440 }, { boss: 'b-gargoyle', level: 30, exp: 610 }, { boss: 'b-noctia', level: 31, exp: 850 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };

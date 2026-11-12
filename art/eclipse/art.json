@@ -1,0 +1,56 @@
+{
+  "dungeon": "eclipse",
+  "world": "a vast gothic moonlit palace floating in an endless night sky, black marble towers and spires with silver filigree, a huge eclipsed moon with a burning silver-violet corona hanging over the palace, long colonnades and a grand staircase leading to a throne hall, violet crystal lanterns, drifting black moth-like petals, starry sky reflected in still dark pools, cold silver and deep purple light",
+  "enemies": {
+    "b-moth": {
+      "describe": "a small eerie moth the size of a cat, velvety black wings patterned with pale silver crescent-moon eye spots, fluffy violet body, feathery antennae, glowing pale lavender eyes, a faint trail of shimmering silver scale dust falling from its wings, fluttering in mid-air",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-gargoyle": {
+      "describe": "a large heavily built gargoyle guardian carved from glossy midnight-black stone with violet veins, bat-like stone wings spread wide, curved ram horns, fanged snarling face with glowing purple eyes, thick clawed hands and feet, cracked stone armor plates with silver trim, crouched menacingly as if just leaped down from a palace spire",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-noctia": {
+      "describe": "a colossal majestic empress of the eclipse, tall and regal with long flowing silver-white hair and pale skin, a dark crown shaped like an eclipsed moon with a glowing violet corona, an enormous gown of deep purple and black that flows into starry night sky with silver constellations, holding a great crescent-moon scythe, cold violet glowing eyes, a ring of dark moons orbiting behind her, overwhelming and solemn",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}
