@@ -2767,3 +2767,9 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-gargoyle"] { --cx: 62%; --cy: 46%; --ex: 62%; --ey: 46%; --es: 220%; }
 [data-char="b-noctia"] { --cx: 46%; --cy: 31%; --ex: 46%; --ey: 31%; --es: 240%; }
 /* ---- dungeon-art: eclipse ここまで ---- */
+
+/* ---- dungeon-art: cove（scripts/dungeon-art.js が書く。顔の位置は art/cove/art.json の emblem で直す） ---- */
+[data-char="b-crab"] { --cx: 47%; --cy: 73%; --ex: 47%; --ey: 73%; --es: 230%; }
+[data-char="b-octopus"] { --cx: 50%; --cy: 49%; --ex: 50%; --ey: 49%; --es: 230%; }
+[data-char="b-turtle"] { --cx: 83%; --cy: 30%; --ex: 83%; --ey: 30%; --es: 280%; }
+/* ---- dungeon-art: cove ここまで ---- */

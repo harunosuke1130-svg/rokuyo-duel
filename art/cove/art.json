@@ -5,9 +5,9 @@
     "b-crab": {
       "describe": "a small cute beach crab about the size of a cat, glossy coral-red and sand-colored shell with tiny barnacles, two oversized pincers raised playfully, little eyes on stalks, a few bubbles at its mouth, scuttling sideways on wet sand",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ex": 47,
+        "ey": 73,
+        "es": 230
       },
       "focus": [
         0.5,
@@ -18,8 +18,8 @@
       "describe": "a large heavy octopus clinging to a rock, deep blue-violet skin with teal spots, eight thick curling tentacles with pale suckers, big intelligent golden eyes, a cloud of dark ink swirling behind it, water dripping from its body, crafty and menacing",
       "emblem": {
         "ex": 50,
-        "ey": 25,
-        "es": 200
+        "ey": 49,
+        "es": 230
       },
       "focus": [
         0.5,
@@ -29,9 +29,9 @@
     "b-turtle": {
       "describe": "a gigantic ancient sea turtle, the lord of the cove, a massive domed shell covered in coral, seaweed, barnacles and small rock pools, wise wrinkled face with deep sea-green eyes and a long white beard of kelp, enormous flippers, water cascading off its shell, a swirling wave and glowing blue water magic around it, majestic and calm",
       "emblem": {
-        "ex": 50,
-        "ey": 25,
-        "es": 220
+        "ex": 83,
+        "ey": 30,
+        "es": 280
       },
       "focus": [
         0.5,
