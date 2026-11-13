@@ -1,0 +1,56 @@
+{
+  "dungeon": "cove",
+  "world": "a sunny little cove on a rocky seashore, turquoise shallow water and gentle white-foam waves, tide pools among mossy dark rocks, a pale sand beach with scattered shells and starfish, a weathered wooden pier and a small stone lighthouse on the cliff, sea caves glowing with soft blue light, seabirds, bright morning sky with soft clouds",
+  "enemies": {
+    "b-crab": {
+      "describe": "a small cute beach crab about the size of a cat, glossy coral-red and sand-colored shell with tiny barnacles, two oversized pincers raised playfully, little eyes on stalks, a few bubbles at its mouth, scuttling sideways on wet sand",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-octopus": {
+      "describe": "a large heavy octopus clinging to a rock, deep blue-violet skin with teal spots, eight thick curling tentacles with pale suckers, big intelligent golden eyes, a cloud of dark ink swirling behind it, water dripping from its body, crafty and menacing",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 200
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    },
+    "b-turtle": {
+      "describe": "a gigantic ancient sea turtle, the lord of the cove, a massive domed shell covered in coral, seaweed, barnacles and small rock pools, wise wrinkled face with deep sea-green eyes and a long white beard of kelp, enormous flippers, water cascading off its shell, a swirling wave and glowing blue water magic around it, majestic and calm",
+      "emblem": {
+        "ex": 50,
+        "ey": 25,
+        "es": 220
+      },
+      "focus": [
+        0.5,
+        0.5
+      ]
+    }
+  },
+  "backgrounds": {
+    "portraitFocus": [
+      0.5,
+      0.5
+    ],
+    "landscapeFocus": [
+      0.5,
+      0.5
+    ],
+    "bannerFocus": [
+      0.5,
+      0.55
+    ]
+  }
+}

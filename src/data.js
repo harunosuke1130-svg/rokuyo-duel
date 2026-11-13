@@ -1416,7 +1416,17 @@
       skill: { name: '宮殿の番人', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
     { id: 'b-noctia', name: '蝕月の女帝ノクティア', glyph: '蝕', maxHp: 545, element: 'dark', subTypes: ['王族', '魔術師'], rank: '大ボス',
       moves: [{ name: '新月の大鎌', atk: 33, heal: 0 }, { name: '欠けゆく月光', atk: 29, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: '満ちる月の癒し', atk: 0, heal: 25 }, { name: '影縫いの呪い', atk: 24, heal: 0, fx: { type: 'weaken', stat: 'heal', percent: 25, turns: 2 } }, { name: '夜の生気', atk: 20, heal: 6, fx: { type: 'drain', percent: 30 } }, { name: '皆既の帳', atk: 53, heal: 0 }],
-      skill: { name: '永夜の蝕', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×26のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 26, ignoreDefense: true }] } }
+      skill: { name: '永夜の蝕', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×26のダメージ（防御と属性を無視）。', effects: [{ type: 'damage', amount: 26, ignoreDefense: true }] } },
+    // 潮騒の入り江（2026-11-13・2 周目のはじまり）
+    { id: 'b-crab', name: '浜辺の小ガニ', glyph: '蟹', maxHp: 139, element: 'water', subTypes: ['クリーチャー'], rank: '雑魚',
+      moves: [{ name: 'はさみ挟み', atk: 13, heal: 0 }, { name: '横歩き突撃', atk: 10, heal: 0 }, { name: '砂に隠れる', atk: 0, heal: 8 }, { name: '泡ふき', atk: 17, heal: 0 }, { name: '貝がら飛ばし', atk: 12, heal: 0 }, { name: '大ばさみ', atk: 20, heal: 0 }],
+      skill: { name: '潮だまりの群れ', cd: 4, text: '敵前衛全員に、それぞれ攻撃力×7のダメージ（属性倍率なし・結界は有効）。', effects: [{ type: 'damage', amount: 7 }] } },
+    { id: 'b-octopus', name: '岩場の大ダコ', glyph: '蛸', maxHp: 268, element: 'water', subTypes: ['クリーチャー', '海の獣'], rank: '中ボス',
+      moves: [{ name: '足の巻きつき', atk: 22, heal: 0 }, { name: '八本足の連打', atk: 16, heal: 0, fx: { type: 'multi', hits: 3 } }, { name: 'たこつぼに潜る', atk: 0, heal: 12 }, { name: '墨はき', atk: 19, heal: 0 }, { name: '吸盤の一撃', atk: 16, heal: 0 }, { name: '大渦の締めつけ', atk: 31, heal: 0 }],
+      skill: { name: '墨の煙幕', cd: 4, text: '自分に結界を付ける（次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'barrier' }] } },
+    { id: 'b-turtle', name: '入り江の主・千年亀', glyph: '亀', maxHp: 335, element: 'water', subTypes: ['守護者', '海の獣'], rank: '大ボス',
+      moves: [{ name: '甲羅の体当たり', atk: 29, heal: 0 }, { name: '大波よび', atk: 37, heal: 0 }, { name: '潮の恵み', atk: 0, heal: 20 }, { name: '水しぶき砲', atk: 32, heal: 0 }, { name: '甲羅にこもる', atk: 17, heal: 10 }, { name: '千年の大津波', atk: 49, heal: 0 }],
+      skill: { name: '満ち潮の怒り', cd: 4, text: 'このターンに使う通常技の攻撃を1.5倍にする。', effects: [{ type: 'atkMultiplier', value: 1.5 }] } }
   ];
 
   /*
@@ -1451,7 +1461,9 @@
     { id: 'thunderpeak', name: '雷鳴の霊峰', text: '稲妻が絶えず落ちる、雲の上の霊峰。', recommend: 'Lv27〜', requires: 'marsh', firstClearStones: 950, clearStones: 130,
       floors: [{ boss: 'b-swallow', level: 26, exp: 410 }, { boss: 'b-raikoki', level: 27, exp: 570 }, { boss: 'b-raiga', level: 28, exp: 790 }] },
     { id: 'eclipse', name: '蝕月の宮殿', text: '分かれ道の先で一つになる、月が欠けたまま昇らない夜の宮殿。', recommend: 'Lv30〜', requires: ['tomb', 'thunderpeak'], firstClearStones: 1000, clearStones: 140,
-      floors: [{ boss: 'b-moth', level: 29, exp: 440 }, { boss: 'b-gargoyle', level: 30, exp: 610 }, { boss: 'b-noctia', level: 31, exp: 850 }] }
+      floors: [{ boss: 'b-moth', level: 29, exp: 440 }, { boss: 'b-gargoyle', level: 30, exp: 610 }, { boss: 'b-noctia', level: 31, exp: 850 }] },
+    { id: 'cove', name: '潮騒の入り江', text: '波の音がひびく、岩場と砂浜の入り江。', recommend: 'Lv1〜', requires: 'forest', firstClearStones: 300, clearStones: 40,
+      floors: [{ boss: 'b-crab', level: 1, exp: 50 }, { boss: 'b-octopus', level: 2, exp: 80 }, { boss: 'b-turtle', level: 5, exp: 140 }] }
   ];
 
   const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
