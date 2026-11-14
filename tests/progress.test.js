@@ -139,11 +139,11 @@ test('プロフィール：初期は6体所持・石300、管理用アカウン�
   assert.equal(s.chars.ryogen.level, 99);
   assert.equal(s.chars.ryogen.cap, 120, '上限が無い古いデータは、今のレベルが入る上限にする');
   assert.equal(s.chars.nobody, undefined);
-  assert.deepEqual(s.items, { crystal: 0, kakera: 0 }, '結晶・かけらが無い古いデータは0個');
+  assert.deepEqual(s.items, { crystal: 0, kakera: 0, bookS: 0, bookM: 0, bookL: 0 }, '結晶・かけらが無い古いデータは0個');
   assert.equal(s.dupeMode, 'exp');
   const it = P.sanitize({ chars: { ryogen: { level: 30, cap: 45 } }, items: { crystal: '7', kakera: -3 }, dupeMode: 'kakera' }, { uid: 'u' });
   assert.equal(it.chars.ryogen.cap, 30, 'おかしな上限は直す');
-  assert.deepEqual(it.items, { crystal: 7, kakera: 0 });
+  assert.deepEqual(it.items, { crystal: 7, kakera: 0, bookS: 0, bookM: 0, bookL: 0 });
   assert.equal(it.dupeMode, 'kakera');
   assert.equal(P.ownedIds(s).length, D.CHARACTERS.length);
   assert.deepEqual(s.loadouts, { ryogen: [7, 1, 2, 3, 4, 5] }, 'Lv30なら上限内なので残し、Lv1でまだ使えない技を含む構成は捨てる');
@@ -448,4 +448,40 @@ test('属性ガチャ：その属性のキャラだけが出る・値段は通�
   }
   assert.equal(P.gachaPool('all').length, E.CHARACTERS.length);
   assert.equal(P.drawGacha(P.newProfile({ uid: 'h' }), 1, Math.random, 'nothing').ok, false, '無い種類は引けない');
+});
+
+test('修練の書：ダンジョン・CPU対戦で手に入り、レベルアップのタブで経験値にできる（上限を超える分は使わない）', () => {
+  const p = P.newProfile({ uid: 'u' }, E.createRng(4));
+  assert.deepEqual([p.items.bookS, p.items.bookM, p.items.bookL], [0, 0, 0]);
+  // 古い保存データ（書の項目なし）も 0 で読める
+  const old = JSON.parse(JSON.stringify(p)); delete old.items.bookS; delete old.items.bookM; delete old.items.bookL;
+  assert.deepEqual(P.sanitize(old).items, { crystal: 0, kakera: 0, bookS: 0, bookM: 0, bookL: 0 });
+  // 森（T=1）：1階 初級2、2階 初級3、3階 中級1＋初踏破 中級1
+  const team = p.team.slice();
+  assert.deepEqual(P.applyDungeonFloor(p, 'forest', 0, team, true).books, { bookS: 2, bookM: 0, bookL: 0 });
+  P.applyDungeonFloor(p, 'forest', 1, team, true);
+  const last = P.applyDungeonFloor(p, 'forest', 2, team, true);
+  assert.deepEqual(last.books, { bookS: 0, bookM: 2, bookL: 0 });
+  assert.equal(P.applyDungeonFloor(p, 'forest', 0, team, false).books.bookS, 0, '負けた階では手に入らない');
+  assert.deepEqual([p.items.bookS, p.items.bookM], [5, 2]);
+  // 後のダンジョンの初踏破は上級
+  assert.equal(P.dungeonBooks(P.getDungeon('eclipse'), 2, true, true, true).bookL, 1);
+  // CPU 対戦：初勝利は中級も
+  const m = P.applyMatchResult(p, 'm1', team, true);
+  assert.deepEqual(m.books, { bookS: 2, bookM: 1, bookL: 0 });
+  // レベルアップ：経験値の少ない素材から使い、上限に届いたら残りは使わない
+  const id = team[0];
+  const plan = P.planItems(p, id, { bookS: 2, bookM: 1 });
+  assert.equal(plan.exp, 2 * D.ECONOMY.books.bookS.exp + D.ECONOMY.books.bookM.exp);
+  const before = { s: p.items.bookS, m: p.items.bookM };
+  const r = P.useItems(p, id, { bookS: 2, bookM: 1 });
+  assert.equal(r.ok, true);
+  assert.ok(r.to > r.from, 'レベルが上がる');
+  assert.deepEqual([p.items.bookS, p.items.bookM], [before.s - 2, before.m - 1]);
+  p.items.bookL = 100;
+  const big = P.useItems(p, id, { bookL: 100 });
+  assert.equal(big.ok, true);
+  assert.ok(p.items.bookL > 90, '上限に届いたら残りは使わない');
+  assert.ok(P.atCap(p, id));
+  assert.equal(P.useItems(p, id, { bookS: 1 }).ok, false, '上限のレベルでは使えない');
 });

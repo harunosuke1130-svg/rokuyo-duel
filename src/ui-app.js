@@ -207,6 +207,8 @@
   const TEAM_SORTS = [['default', '標準'], ['stars', '★順'], ['atk', '攻撃力順'], ['heal', '回復力順'], ['hp', 'HP順'], ['element', '属性順'], ['level', 'レベル順']];
   const savedSort = (() => { try { const v = localStorage.getItem(SORT_KEY); return TEAM_SORTS.some(t => t[0] === v) ? v : 'default'; } catch (e) { return 'default'; } })();
   const teamUI = { slots: [], leader: null, filter: 'all', sort: savedSort, dragger: null };
+  // レベルアップのタブ：選んだキャラと、使う素材の数
+  const growUI = { tab: 'team', id: null, counts: {} };
   // 今のレベルの強さで並べる。同じなら★の多い順 → 元の順
   function sortTeamList(list, p, key) {
     const idx = id => E.CHARACTERS.findIndex(c => c.id === id);
@@ -243,7 +245,7 @@
     teamUI.slots = Array.from({ length: CONFIG.TEAM_SIZE }, (_, i) => order[i] || null);
     teamUI.leader = fm && team.indexOf(fm.leader) >= 0 ? fm.leader : (order[0] || null);
     renderAdminTools();
-    renderTeam();
+    setTeamTab(growUI.tab);
   }
   function teamSlotCard(id, i) {
     if (!id) return `<div class="tm-card empty" data-tslot="${i}"><span>空き</span></div>`;
@@ -279,9 +281,91 @@
     }).join('') || '<p class="paper-empty">この属性のキャラはまだ持っていません。</p>';
     const filled = s.filter(Boolean).length;
     $('#team-count').textContent = filled;
-    $('#team-items').innerHTML = itemsHtml(p) + '<small>キャラの詳細（i）で、かけらを使う・限界突破ができます</small>';
+    $('#team-items').innerHTML = itemsHtml(p) + bookChips(p) + '<small>「レベルアップ」で、修練の書・かけらを使ってレベルを上げられます</small>';
+    if (growUI.tab === 'grow') renderGrow();
     $('#btn-team-ok').disabled = filled !== CONFIG.TEAM_SIZE;
     if (!teamUI.dragger) bindTeamDrag();
+  }
+  // ---- レベルアップのタブ ----
+  function setTeamTab(tab) {
+    growUI.tab = tab === 'grow' ? 'grow' : 'team';
+    document.querySelectorAll('#team-tabs [data-tmtab]').forEach(b => b.setAttribute('aria-selected', String(b.dataset.tmtab === growUI.tab)));
+    $('#team-edit').classList.toggle('hidden', growUI.tab !== 'team');
+    $('#team-grow').classList.toggle('hidden', growUI.tab !== 'grow');
+    $('#btn-team-ok').classList.toggle('hidden', growUI.tab !== 'team');
+    $('#screen-team').dataset.tab = growUI.tab;
+    renderTeam();
+  }
+  function renderGrow() {
+    const p = app.profile;
+    if (!growUI.id || !P.owns(p, growUI.id)) { growUI.id = teamUI.slots.find(Boolean) || P.ownedIds(p)[0] || null; growUI.counts = {}; }
+    const list = sortTeamList(E.CHARACTERS.filter(ch => P.owns(p, ch.id) && (teamUI.filter === 'all' || ch.element === teamUI.filter)), p, teamUI.sort);
+    $('#grow-filter').innerHTML = elFilterHtml(teamUI.filter);
+    $('#grow-sort').innerHTML = '<span class="tm-sort-label">並べ替え</span>' + TEAM_SORTS.map(([k, label]) => `<button type="button" class="ts-btn" data-sort="${k}" aria-pressed="${k === teamUI.sort}">${label}</button>`).join('');
+    $('#grow-grid').innerHTML = list.map(ch => {
+      const on = ch.id === growUI.id, lv = P.levelOf(p, ch.id), capped = P.atCap(p, ch.id);
+      return `<div class="tm-mini el-frame${on ? ' picked' : ''}" ${frameAttrs(ch)}>
+        <button type="button" class="tm-mini-btn" data-grow="${esc(ch.id)}" aria-pressed="${on}" aria-label="${esc(ch.name)} Lv${lv}${capped ? '（上限）' : ''}を選ぶ">
+          <span class="tm-art">${portrait(ch, { zoom: true })}${on ? '<span class="tm-check" aria-hidden="true">✓</span>' : ''}${capped ? '<span class="gr-cap">上限</span>' : ''}${sortBadge(ch, p, teamUI.sort)}</span>
+          <span class="tm-mini-foot">${elMark(ch)}<span class="tm-lv">Lv.${lv}</span>${starsHtml(ch)}</span>
+        </button>
+      </div>`;
+    }).join('') || '<p class="paper-empty">この属性のキャラはまだ持っていません。</p>';
+    const id = growUI.id;
+    if (!id) { $('#grow-panel').innerHTML = ''; return; }
+    const ch = E.getChar(id), c = p.chars[id], cap = P.capOf(p, id);
+    const plan = P.planItems(p, id, growUI.counts);
+    const capped = P.atCap(p, id);
+    const head = `<div class="gr-head">${portrait(ch, { zoom: true })}<div class="gr-info">
+        <b class="gr-name">${esc(ch.name)}</b>${starsHtml(ch)}
+        <p class="gr-lv">Lv<b>${c.level}</b>${plan.to > c.level ? `<span class="gr-arrow">→</span><b class="gr-to">${plan.to}</b>` : ''}<span class="muted">（上限${cap}）</span></p>
+        <p class="gr-pow">${powerText(id, plan.to)}</p>
+        <div class="exp-line"><span class="muted">${capped ? (cap >= CONFIG.LEVEL.max ? '最大レベル' : `上限のLv${cap}（限界突破で先へ）`) : `上限まで経験値 ${plan.need}`}</span><div class="hpbar exp"><i style="width:${capped ? 100 : c.exp / P.expToNext(c.level) * 100}%"></i></div></div>
+      </div></div>`;
+    if (capped) { $('#grow-panel').innerHTML = head + breakBox(p, id); return; }
+    const rows = P.GROW_ITEMS.map(k => {
+      const info = growItemInfo(k), have = p.items[k] || 0, n = Math.min(growUI.counts[k] || 0, have);
+      return `<div class="gr-row" data-item="${k}"><span class="gr-ico" data-k="${k}" aria-hidden="true">${info.icon}</span>
+        <span class="gr-item"><b>${esc(info.name)}</b><small>経験値${info.exp}・所持 ${have}</small></span>
+        <button type="button" class="gr-step" data-step="-1" data-k="${k}" aria-label="${esc(info.name)}を減らす"${n < 1 ? ' disabled' : ''}>−</button>
+        <b class="gr-n">${n}</b>
+        <button type="button" class="gr-step" data-step="1" data-k="${k}" aria-label="${esc(info.name)}を増やす"${n >= have ? ' disabled' : ''}>＋</button>
+        <button type="button" class="gr-max" data-max="${k}"${have < 1 ? ' disabled' : ''}>最大</button></div>`;
+    }).join('');
+    const total = P.GROW_ITEMS.reduce((a, k) => a + Math.min(growUI.counts[k] || 0, p.items[k] || 0) * P.itemExp(k), 0);
+    $('#grow-panel').innerHTML = head + `<div class="gr-items">${rows}</div>
+      <p class="gr-sum">経験値 <b>+${plan.exp}</b>${total > plan.exp ? `<small>（上限に届くので、残りの素材は使いません）</small>` : ''}</p>
+      <div class="gr-actions"><button type="button" class="btn btn-ghost" id="btn-grow-clear"${total ? '' : ' disabled'}>選び直す</button>
+        <button type="button" class="btn btn-primary" id="btn-grow-go"${plan.exp ? '' : ' disabled'}>レベルアップ</button></div>
+      <p class="gr-note muted">修練の書は、ダンジョンの階の突破・踏破と CPU 対戦の勝利で手に入ります。</p>`;
+  }
+  function growClick(e) {
+    const p = app.profile, id = growUI.id;
+    const pick = e.target.closest('[data-grow]');
+    if (pick) { growUI.id = pick.dataset.grow; growUI.counts = {}; renderGrow(); return; }
+    const st = e.target.closest('[data-step]');
+    if (st) { const k = st.dataset.k; growUI.counts[k] = Math.max(0, Math.min(p.items[k] || 0, (growUI.counts[k] || 0) + Number(st.dataset.step))); renderGrow(); return; }
+    const mx = e.target.closest('[data-max]');
+    if (mx) {
+      // 上限まで足りる分だけ（ほかの素材で選んだ分を引いてから）
+      const k = mx.dataset.max, others = Object.assign({}, growUI.counts, { [k]: 0 });
+      const rest = Math.max(0, P.expToCap(p, id) - P.planItems(p, id, others).exp);
+      growUI.counts[k] = Math.min(p.items[k] || 0, Math.ceil(rest / P.itemExp(k)));
+      renderGrow(); return;
+    }
+    if (e.target.closest('#btn-grow-clear')) { growUI.counts = {}; renderGrow(); return; }
+    if (e.target.closest('#btn-grow-go')) {
+      const r = P.useItems(p, id, growUI.counts);
+      if (!r.ok) { toast(r.error); return; }
+      growUI.counts = {}; save(); renderTeam();
+      toast(`${E.getChar(id).name}：経験値+${r.exp}${r.to > r.from ? `・Lv${r.from}→${r.to}` : ''}`, 'ok');
+      return;
+    }
+    if (e.target.closest('[data-break]')) { if (doBreak(id)) renderTeam(); return; }
+    const f = e.target.closest('[data-filter]');
+    if (f) { teamUI.filter = f.dataset.filter; renderTeam(); return; }
+    const so = e.target.closest('[data-sort]');
+    if (so) { teamUI.sort = so.dataset.sort; try { localStorage.setItem(SORT_KEY, teamUI.sort); } catch (err) { /* 覚えられなくても並べ替えはできる */ } renderTeam(); }
   }
   function bindTeamDrag() {
     teamUI.dragger = U.cardDrag($('#screen-team'), {
@@ -311,16 +395,29 @@
   }
   // 結晶（限界突破）・かけら（経験値）の所持数
   const itemsHtml = p => `<span class="it-chip it-crystal"><i aria-hidden="true">◇</i>結晶 <b>${p.items.crystal}</b></span><span class="it-chip it-kakera"><i aria-hidden="true">✧</i>かけら <b>${p.items.kakera}</b></span>`;
+  const bookChips = p => Object.keys(D.ECONOMY.books).map(k => `<span class="it-chip it-book" data-book="${k}"><i aria-hidden="true">書</i>${esc(D.ECONOMY.books[k].short)} <b>${p.items[k] || 0}</b></span>`).join('');
+  // 素材の名前・経験値（かけら・修練の書）
+  const growItemInfo = k => k === 'kakera' ? { name: 'かけら', icon: '✧', exp: D.ECONOMY.kakeraExp } : { name: D.ECONOMY.books[k].name, icon: '書', exp: D.ECONOMY.books[k].exp };
+  // 限界突破の欄（詳細とレベルアップのタブで共通）
+  function breakBox(p, id) {
+    const cap = P.capOf(p, id);
+    if (cap >= CONFIG.LEVEL.max) return `<div class="grow-box"><b>最大レベル</b><span class="muted">これ以上は上げられません</span></div>`;
+    const cost = P.limitBreakCost(cap), ok = p.items.crystal >= cost;
+    return `<div class="grow-box grow-break"><div class="grow-head"><b>限界突破</b>${itemsHtml(p)}</div>
+      <p>結晶を <b>${cost}</b> 個使うと、上限が <b>Lv${cap} → Lv${Math.min(CONFIG.LEVEL.max, cap + CONFIG.LEVEL.capStep)}</b> になります。${ok ? '' : `<br><span class="grow-short">結晶が ${cost - p.items.crystal} 個足りません（ダンジョン・CPU対戦の勝利で手に入ります）</span>`}</p>
+      <button type="button" class="btn btn-primary btn-block" data-break="${esc(id)}"${ok ? '' : ' disabled'}>限界突破する（結晶 ${cost}）</button></div>`;
+  }
+  function doBreak(id) {
+    const r = P.limitBreak(app.profile, id);
+    if (!r.ok) { toast(r.error); return false; }
+    save();
+    toast(`${E.getChar(id).name}が限界突破！ 上限が Lv${r.cap} になりました`, 'ok');
+    return true;
+  }
   // キャラの詳細の「育てる」欄：上限まで上がっていたら限界突破、それ以外はかけらを使う
   function growBox(p, id) {
     const c = p.chars[id], cap = P.capOf(p, id);
-    if (P.atCap(p, id)) {
-      if (cap >= CONFIG.LEVEL.max) return `<div class="grow-box"><b>最大レベル</b><span class="muted">これ以上は上げられません</span></div>`;
-      const cost = P.limitBreakCost(cap), ok = p.items.crystal >= cost;
-      return `<div class="grow-box grow-break"><div class="grow-head"><b>限界突破</b>${itemsHtml(p)}</div>
-        <p>結晶を <b>${cost}</b> 個使うと、上限が <b>Lv${cap} → Lv${Math.min(CONFIG.LEVEL.max, cap + CONFIG.LEVEL.capStep)}</b> になります。${ok ? '' : `<br><span class="grow-short">結晶が ${cost - p.items.crystal} 個足りません（ダンジョン・CPU対戦の勝利で手に入ります）</span>`}</p>
-        <button type="button" class="btn btn-primary btn-block" id="btn-tc-break"${ok ? '' : ' disabled'}>限界突破する（結晶 ${cost}）</button></div>`;
-    }
+    if (P.atCap(p, id)) return breakBox(p, id);
     const toCap = P.kakeraToCap(p, id), have = p.items.kakera;
     const btn = (n, label) => { const m = Math.min(n, have, toCap); return `<button type="button" class="btn btn-small btn-ghost" data-kakera="${m}"${m < 1 ? ' disabled' : ''}>${label}</button>`; };
     return `<div class="grow-box grow-kakera"><div class="grow-head"><b>かけらを使う</b>${itemsHtml(p)}</div>
@@ -375,11 +472,8 @@
             toast(`かけらを${r.used}個使いました（経験値+${r.exp}${r.to > r.from ? `・Lv${r.from}→${r.to}` : ''}）`, 'ok');
             return;
           }
-          if (e.target.closest('#btn-tc-break')) {
-            const r = P.limitBreak(app.profile, id);
-            if (!r.ok) { toast(r.error); return; }
-            save(); renderTeam(); closeModal(true); showTeamChar(id);
-            toast(`${ch.name}が限界突破！ 上限が Lv${r.cap} になりました`, 'ok');
+          if (e.target.closest('[data-break]')) {
+            if (doBreak(id)) { renderTeam(); closeModal(true); showTeamChar(id); }
             return;
           }
           if (e.target.closest('#btn-tc-leader')) { teamUI.leader = id; closeModal(true); renderTeam(); toast(`${ch.name}をリーダーにしました`, 'ok'); return; }
@@ -599,6 +693,7 @@
           </div>
           <div class="rs-lines">${o.lines.map((t, n) => `<p class="${n === 0 ? 'rs-mode' : ''}">${esc(t)}</p>`).join('')}<p class="rs-round">第${o.round}巡で決着</p></div>
           ${o.stones ? `<div class="rs-reward"><span class="gem-wrap">${gemIcon()}</span><span>石</span><b class="rs-count" data-to="${o.stones}">+${o.stones}</b>${o.stoneNote ? `<small>${esc(o.stoneNote)}</small>` : ''}</div>` : ''}
+          ${o.books && (o.books.bookS || o.books.bookM || o.books.bookL) ? `<div class="rs-reward rs-book"><span class="gem-wrap it-book-ico" aria-hidden="true">書</span><span>修練の書</span><b class="rs-books">${Object.keys(D.ECONOMY.books).filter(k => o.books[k]).map(k => `${esc(D.ECONOMY.books[k].short)}+${o.books[k]}`).join('・')}</b><small>編成の「レベルアップ」で使います</small></div>` : ''}
           ${o.crystals ? `<div class="rs-reward rs-crystal"><span class="gem-wrap it-crystal-ico" aria-hidden="true">◇</span><span>結晶</span><b class="rs-count" data-to="${o.crystals}">+${o.crystals}</b><small>限界突破に使います</small></div>` : ''}
           ${o.note ? `<p class="rs-note">${esc(o.note)}</p>` : ''}
         </section>
@@ -949,10 +1044,10 @@
   function onMatchFinish(ctx, res) {
     const p = app.profile;
     const snap = snapTeam(ctx.team);
-    let nextId = null, exp, stones = 0, crystals = 0, note = '', lines;
+    let nextId = null, exp, stones = 0, crystals = 0, books = null, note = '', lines;
     if (ctx.kind === 'match') {
       const r = P.applyMatchResult(p, ctx.matchId, ctx.team, res.won);
-      exp = r.exp; stones = r.stones; crystals = r.crystals; note = r.firstWin ? '初勝利' : '';
+      exp = r.exp; stones = r.stones; crystals = r.crystals; books = r.books; note = r.firstWin ? '初勝利' : '';
       const k = D.CPU_MATCHES.findIndex(m => m.id === ctx.matchId);
       const m = D.CPU_MATCHES[k];
       if (res.won && D.CPU_MATCHES[k + 1]) nextId = D.CPU_MATCHES[k + 1].id;
@@ -967,7 +1062,7 @@
     if (nextId) buttons.push({ label: '次の相手に挑戦', primary: true, run: () => startMatch(nextId) });
     buttons.push({ label: 'もう一度挑戦', primary: !nextId, run: () => (ctx.kind === 'match' ? startMatch(ctx.matchId) : startFree()) });
     buttons.push({ label: '対戦の一覧へ', run: showMatch });
-    showResult({ won: res.won, kind: ctx.kind, lines: lines.filter(Boolean), round: res.state.round, stones, crystals, stoneNote: note, expEach: exp, growth: growthFrom(snap, exp), buttons });
+    showResult({ won: res.won, kind: ctx.kind, lines: lines.filter(Boolean), round: res.state.round, stones, crystals, books, stoneNote: note, expEach: exp, growth: growthFrom(snap, exp), buttons });
   }
 
   /* ---------- ダンジョン（冒険の地図。雑魚 → 中ボス → 大ボス を順に倒す） ---------- */
@@ -1149,7 +1244,7 @@
       buttons.push({ label: r.cleared ? 'もう一度挑む' : '1階から挑み直す', primary: true, run: () => startDungeon(ctx.dungeonId, 0) });
       buttons.push({ label: 'ダンジョン一覧へ', run: showDungeon });
     }
-    showResult({ won: res.won, grand: !!r.cleared, kind: 'dungeon', lines: [d.name, line2], round: res.state.round, stones: r.stones, crystals: r.crystals,
+    showResult({ won: res.won, grand: !!r.cleared, kind: 'dungeon', lines: [d.name, line2], round: res.state.round, stones: r.stones, crystals: r.crystals, books: r.books,
       stoneNote: r.firstClear ? '初回踏破' : (r.cleared ? '踏破' : ''), expEach: r.exp, growth, extra, buttons });
   }
 
@@ -1440,7 +1535,8 @@
         <li><b>特性</b>：★3以上の多くのキャラが持つ、ずっと効く力です。追撃（相手がピンチならもう1回、2回目は半分）・先手（最初のターンだけ攻撃1.5倍）・根性（1戦に1回、HP1で耐える）・毒に強い（毒にならない）。リーダースキルにも「反撃」があります。</li>
         <li><b>後衛は伏せる</b>：ダンジョン以外の対戦では、相手の後衛は「？」のカードになり、前衛に出るか、後衛から固有スキルを使うまで分かりません。リーダーは最初から見えます。</li>
         <li><b>レベル</b>：1レベルごとに最大HP+4%（Lv31〜90は+3%、Lv91からは+1%）、攻撃力と回復力も上がります（Lv1 で 10 なら Lv30 で約 29）。30レベルごとに止まり、<b>結晶</b>（ダンジョン・CPU対戦の勝利で手に入る）で<b>限界突破</b>すると、次の30レベルへ進めます。</li>
-        <li><b>かけら</b>：ガチャで持っているキャラが出たとき「かけらとして残す」を選ぶと手に入ります。編成のキャラの詳細で、好きなキャラの経験値（1個${D.ECONOMY.kakeraExp}）にできます。</li>
+        <li><b>かけら</b>：ガチャで持っているキャラが出たとき「かけらとして残す」を選ぶと手に入ります。編成の「レベルアップ」（またはキャラの詳細）で、好きなキャラの経験値（1個${D.ECONOMY.kakeraExp}）にできます。</li>
+        <li><b>修練の書</b>（初級・中級・上級）：ダンジョンの階の突破・踏破と CPU 対戦の勝利で手に入ります。編成の「レベルアップ」で、好きなキャラの経験値（初級${D.ECONOMY.books.bookS.exp}・中級${D.ECONOMY.books.bookM.exp}・上級${D.ECONOMY.books.bookL.exp}）にできます。後のダンジョンほど多く、上級は難しいダンジョンの初踏破で手に入ります。</li>
         <li><b>経験値</b>：対戦・ダンジョン（勝利で全量・敗北で3割）、ガチャで同じキャラが出たとき（+${E2.duplicateExp}）。</li>
         <li><b>技のカスタム</b>：各キャラ9個の技から6個を選び、出目1〜6の順番を決められます（技力の上限あり）。7・8・9個目の技はLv${CONFIG.LEVEL.moveUnlock.join('・')}で解放、技力の上限は1レベルごとに+1（Lv91からは2レベルで+1）。</li>
         <li><b>リーダースキル</b>：リーダーにしたキャラの効果が戦闘中ずっと有効です。</li>
@@ -1516,6 +1612,8 @@
       const b = e.target.closest('[data-filter]');
       if (b) { zukanFilter = b.dataset.filter; renderZukan(); }
     });
+    $('#team-tabs').addEventListener('click', e => { const b = e.target.closest('[data-tmtab]'); if (b) setTeamTab(b.dataset.tmtab); });
+    $('#team-grow').addEventListener('click', growClick);
     $('#btn-team-back').addEventListener('click', showHome);
     $('#btn-team-ok').addEventListener('click', () => {
       const ids = teamUI.slots.slice();

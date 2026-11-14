@@ -2773,3 +2773,34 @@ body[data-screen="gacha"] .topbar {
 [data-char="b-octopus"] { --cx: 50%; --cy: 49%; --ex: 50%; --ey: 49%; --es: 230%; }
 [data-char="b-turtle"] { --cx: 83%; --cy: 30%; --ex: 83%; --ey: 30%; --es: 280%; }
 /* ---- dungeon-art: cove ここまで ---- */
+
+/* ---------- 編成：編成／レベルアップのタブ（2026-11-14） ---------- */
+.tm-tabs { display: flex; gap: 6px; margin: 4px 0 10px; padding: 4px; border-radius: 12px; background: rgba(90, 64, 30, .12); }
+.tm-tab { flex: 1; padding: 9px 4px; border: 0; border-radius: 9px; background: transparent; font-family: var(--mincho); font-size: 16px; font-weight: 700; color: #6b5636; letter-spacing: .06em; cursor: pointer; }
+.tm-tab[aria-selected="true"] { background: linear-gradient(180deg, #fff8e6, #f0dfba); color: #2b1d0e; box-shadow: 0 1px 3px rgba(60, 40, 10, .3); }
+.tm-items .it-book i { color: #7a4fb0; font-style: normal; font-weight: 700; font-size: 11px; }
+.gr-panel { margin: 0 0 6px; padding: 12px; border-radius: 12px; background: rgba(255, 250, 236, .75); border: 1px solid rgba(180, 138, 60, .45); color: #2b1d0e; }
+.gr-head { display: flex; gap: 12px; align-items: center; }
+.gr-head > .portrait { flex: 0 0 76px; width: 76px; height: 96px; border-radius: 8px; }
+.gr-info { flex: 1; min-width: 0; }
+.gr-name { font-family: var(--mincho); font-size: 17px; }
+.gr-lv { margin: 2px 0 0; font-size: 14px; } .gr-lv b { font-size: 22px; margin: 0 2px; }
+.gr-arrow { margin: 0 4px; color: #b48a3c; } .gr-to { color: #2f6a3e; }
+.gr-pow { margin: 0 0 4px; font-size: 12px; color: #4a3820; }
+.gr-panel .muted { color: #7a6040; }
+.gr-items { display: grid; gap: 6px; margin: 10px 0 6px; }
+.gr-row { display: grid; grid-template-columns: 30px 1fr 34px 30px 34px auto; align-items: center; gap: 6px; padding: 6px 8px; border-radius: 9px; background: rgba(255, 255, 255, .6); }
+.gr-ico { display: grid; place-items: center; width: 28px; height: 28px; border-radius: 50%; color: #fff; font-weight: 700; font-size: 13px; background: #7a4fb0; }
+.gr-ico[data-k="bookS"] { background: #6f9a52; } .gr-ico[data-k="bookM"] { background: #3d7fbf; } .gr-ico[data-k="bookL"] { background: #9a4fb0; } .gr-ico[data-k="kakera"] { background: #c9961e; }
+.gr-item { display: flex; flex-direction: column; min-width: 0; } .gr-item b { font-size: 13px; } .gr-item small { font-size: 11px; color: #7a6040; }
+.gr-step, .gr-max { height: 32px; border: 1px solid rgba(120, 90, 40, .5); border-radius: 8px; background: #fffaf0; color: #2b1d0e; font-size: 16px; font-weight: 700; cursor: pointer; }
+.gr-max { font-size: 12px; padding: 0 8px; }
+.gr-step:disabled, .gr-max:disabled { opacity: .35; cursor: default; }
+.gr-n { text-align: center; font-size: 17px; }
+.gr-sum { margin: 6px 0; text-align: center; font-size: 14px; } .gr-sum b { font-size: 18px; color: #2f6a3e; } .gr-sum small { display: block; font-size: 11px; color: #7a6040; }
+.gr-actions { display: flex; gap: 8px; } .gr-actions .btn { flex: 1; }
+.gr-note { margin: 8px 0 0; font-size: 11px; text-align: center; }
+.gr-panel .grow-box { margin-top: 10px; }
+.gr-cap { position: absolute; left: 4px; bottom: 4px; padding: 0 5px; border-radius: 4px; background: rgba(150, 40, 40, .85); color: #fff; font-size: 10px; font-weight: 700; }
+.rs-book .it-book-ico { display: inline-grid; place-items: center; font-size: 16px; font-weight: 700; color: #b48ae0; }
+.rs-books { font-size: 15px; }

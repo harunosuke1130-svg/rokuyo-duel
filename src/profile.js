@@ -54,7 +54,7 @@
       matches: { won: {} },
       login: { last: null, streak: 0, total: 0 },
       pvp: { day: null, rewarded: 0, wins: 0, losses: 0 },
-      items: { crystal: 0, kakera: 0 },   // 結晶（限界突破に使う）・かけら（経験値にする）
+      items: { crystal: 0, kakera: 0, bookS: 0, bookM: 0, bookL: 0 },   // 結晶（限界突破に使う）・かけら・修練の書（経験値にする）
       dupeMode: 'exp',                    // ガチャで持っているキャラが出たとき：'exp'＝そのキャラの経験値／'kakera'＝かけらとして残す
       createdAt: Date.now()
     };
@@ -98,7 +98,8 @@
     p.login = Object.assign({ last: null, streak: 0, total: 0 }, raw.login);
     p.pvp = Object.assign({ day: null, rewarded: 0, wins: 0, losses: 0 }, raw.pvp);
     const it = raw.items || {};
-    p.items = { crystal: Math.max(0, Math.floor(Number(it.crystal) || 0)), kakera: Math.max(0, Math.floor(Number(it.kakera) || 0)) };
+    const cnt = k => Math.max(0, Math.floor(Number(it[k]) || 0));
+    p.items = { crystal: cnt('crystal'), kakera: cnt('kakera'), bookS: cnt('bookS'), bookM: cnt('bookM'), bookL: cnt('bookL') };
     p.dupeMode = raw.dupeMode === 'kakera' ? 'kakera' : 'exp';
     return p;
   }
@@ -152,14 +153,69 @@
     c.cap = Math.min(CONFIG.LEVEL.max, cap + CONFIG.LEVEL.capStep);
     return { ok: true, cost, from: cap, cap: c.cap };
   }
-  // 上限までに必要なかけらの数（今の経験値から数える）
-  function kakeraToCap(p, id) {
+  // 上限のレベルまでに要る経験値（今の経験値から数える）
+  function expToCap(p, id) {
     const c = p.chars[id];
     if (!c) return 0;
     const cap = capOf(p, id);
     let need = -c.exp;
     for (let lv = c.level; lv < cap; lv++) need += expToNext(lv);
-    return need > 0 ? Math.ceil(need / ECONOMY.kakeraExp) : 0;
+    return Math.max(0, need);
+  }
+  // 上限までに必要なかけらの数
+  function kakeraToCap(p, id) { return Math.ceil(expToCap(p, id) / ECONOMY.kakeraExp); }
+
+  /* ---------- レベルアップ（修練の書・かけらを経験値にする。2026-11-14〜） ---------- */
+  const GROW_ITEMS = ['bookS', 'bookM', 'bookL', 'kakera'];
+  function itemExp(key) { return key === 'kakera' ? ECONOMY.kakeraExp : (ECONOMY.books[key] ? ECONOMY.books[key].exp : 0); }
+  // 選んだ数から、実際に使う数を決める（持っている数まで。経験値の少ない素材から使い、上限に届いたら残りは使わない）
+  function planItems(p, id, counts) {
+    const need = expToCap(p, id);
+    const used = {};
+    let exp = 0;
+    GROW_ITEMS.slice().sort((a, b) => itemExp(a) - itemExp(b)).forEach(k => {
+      const want = Math.min(Math.max(0, Math.floor(Number(counts && counts[k]) || 0)), p.items[k] || 0);
+      let n = 0;
+      while (n < want && exp < need) { n++; exp += itemExp(k); }
+      used[k] = n;
+    });
+    // 何レベルになるか（保存データは変えない）
+    const c = p.chars[id];
+    let lv = c ? c.level : 1, left = (c ? c.exp : 0) + exp;
+    const cap = c ? capOf(p, id) : 1;
+    while (lv < cap && left >= expToNext(lv)) { left -= expToNext(lv); lv++; }
+    return { used, exp, need, from: c ? c.level : 1, to: lv, waste: Math.max(0, exp - need) };
+  }
+  function useItems(p, id, counts) {
+    if (!owns(p, id)) return { ok: false, error: '持っていないキャラです' };
+    if (atCap(p, id)) return { ok: false, error: '上限のレベルです。限界突破すると、また使えます' };
+    const plan = planItems(p, id, counts);
+    if (plan.exp <= 0) return { ok: false, error: '使う素材を選んでください' };
+    GROW_ITEMS.forEach(k => { p.items[k] -= plan.used[k]; });
+    const lv = addExp(p, id, plan.exp);
+    return { ok: true, used: plan.used, exp: plan.exp, from: lv.from, to: lv.to };
+  }
+  // 手に入る修練の書（T＝推奨レベルで決まる難しさの段 1〜4）
+  const bookTier = level => Math.min(4, 1 + Math.floor(Math.max(1, level) / 10));
+  function noBooks() { return { bookS: 0, bookM: 0, bookL: 0 }; }
+  function addBooks(p, b) { Object.keys(b).forEach(k => { p.items[k] = (p.items[k] || 0) + b[k]; }); return b; }
+  function dungeonBooks(d, floor, won, cleared, firstClear) {
+    const b = noBooks();
+    if (!won) return b;
+    const T = bookTier(d.floors[1] ? d.floors[1].level : d.floors[0].level);
+    if (floor === 0) b.bookS += 1 + T;
+    else if (floor === 1) b.bookS += 2 + T;
+    else b.bookM += T;
+    if (firstClear) { if (T >= 3) b.bookL += 1; else b.bookM += T; }
+    else if (cleared) b.bookS += 1 + T;
+    return b;
+  }
+  function matchBooks(m, won, firstWin) {
+    const b = noBooks();
+    if (!won) return b;
+    b.bookS += 1 + bookTier(m.enemyLevel || m.level);
+    if (firstWin) b.bookM += 1;
+    return b;
   }
   // かけらを使って経験値にする（上限を超える分は使わない）
   function useKakera(p, id, count) {
@@ -300,8 +356,9 @@
     const crystals = won ? (firstWin ? ECONOMY.crystal.matchFirstWin : ECONOMY.crystal.matchWin) : 0;
     p.stones += stones;
     p.items.crystal += crystals;
+    const books = addBooks(p, matchBooks(m, won, firstWin));
     if (won) p.matches.won[id] = true;
-    return { ok: true, won, firstWin, exp, stones, crystals, levelUps };
+    return { ok: true, won, firstWin, exp, stones, crystals, books, levelUps };
   }
 
   /* ---------- ダンジョン（3階層：雑魚 → 中ボス → 大ボス。1体ずつ倒していく） ---------- */
@@ -352,8 +409,9 @@
     const crystals = (won ? C.floorWin : 0) + (cleared ? (firstClear ? C.firstClear : C.clear) : 0);
     p.stones += stones;
     p.items.crystal += crystals;
+    const books = addBooks(p, dungeonBooks(d, floor, won, cleared, firstClear));
     if (cleared) p.dungeon.cleared[id] = true;
-    return { ok: true, won, exp, levelUps, cleared, firstClear, stones, crystals, last };
+    return { ok: true, won, exp, levelUps, cleared, firstClear, stones, crystals, books, last };
   }
 
   /* ---------- 対人戦の報酬（1日の回数制限あり） ---------- */
@@ -375,6 +433,7 @@
     dayKey, dayDiff, newProfile, sanitize,
     owns, ownedIds, levelOf, expToNext, addExp, levelsFor, loadoutsFor,
     fixCap, capOf, atCap, limitBreakCost, limitBreak, kakeraToCap, useKakera, setDupeMode,
+    expToCap, GROW_ITEMS, itemExp, planItems, useItems, dungeonBooks, matchBooks, bookTier,
     teamError, setTeam, setLoadout, setLevel,
     gachaCost, drawGacha, getGacha, gachaPool,
     loginStatus, claimLogin,

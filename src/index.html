@@ -93,8 +93,21 @@
       <h2 class="paper-title">編成</h2>
       <p class="paper-sub">ドラッグで入れ替え・タップで詳細</p>
     </header>
+    <div class="tm-tabs" id="team-tabs" role="tablist" aria-label="編成の切り替え">
+      <button type="button" class="tm-tab" role="tab" data-tmtab="team" aria-selected="true">編成</button>
+      <button type="button" class="tm-tab" role="tab" data-tmtab="grow" aria-selected="false">レベルアップ</button>
+    </div>
     <div id="admin-level-all" class="admin-tools hidden"></div>
     <p class="tm-items" id="team-items"></p>
+    <!-- レベルアップ：修練の書・かけらで経験値を入れる（ui-app.js の renderGrow） -->
+    <div id="team-grow" class="hidden">
+      <div id="grow-panel" class="gr-panel"></div>
+      <h3 class="paper-sec"><span>キャラを選ぶ</span><small>タップで選ぶ</small></h3>
+      <div id="grow-filter" class="el-filter" role="group" aria-label="属性で絞り込み"></div>
+      <div id="grow-sort" class="tm-sort" role="group" aria-label="並べ替え"></div>
+      <div id="grow-grid" class="tm-owned"></div>
+    </div>
+    <div id="team-edit">
     <h3 class="paper-sec"><span>前衛</span><small>攻撃を受ける3体</small></h3>
     <div id="team-front" class="tm-row"></div>
     <h3 class="paper-sec"><span>後衛</span><small>控えの3体</small></h3>
@@ -103,6 +116,7 @@
     <div id="team-filter" class="el-filter" role="group" aria-label="属性で絞り込み"></div>
     <div id="team-sort" class="tm-sort" role="group" aria-label="並べ替え"></div>
     <div id="team-grid" class="tm-owned"></div>
+    </div>
     <div class="team-actions">
       <button type="button" class="paper-link" id="btn-team-back">戻る</button>
       <button type="button" class="paper-btn" id="btn-team-ok" disabled>編成を保存</button>

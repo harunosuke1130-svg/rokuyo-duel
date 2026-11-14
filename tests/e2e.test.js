@@ -79,6 +79,17 @@ for (const kind of ['mobile', 'desktop']) {
     assert.equal(await page.$$eval('#team-back .tm-card[data-id]', c => c.length), 3);
     assert.equal(await page.$$eval('#team-grid .tm-mini', c => c.length), 6, '所持キャラだけ並ぶ');
     assert.equal(await page.isDisabled('#btn-team-ok'), false, '初期チーム6体が選ばれている');
+    // レベルアップのタブ：修練の書を入れてレベルを上げる
+    await page.evaluate(() => { window.RikuyouApp.getProfile().items.bookM = 2; });
+    await page.click('[data-tmtab="grow"]');
+    await page.waitForSelector('#team-grow:not(.hidden) #grow-panel .gr-row');
+    assert.equal(await page.isVisible('#team-edit'), false, '編成の欄は隠れる');
+    await page.click('#grow-panel [data-step="1"][data-k="bookM"]');
+    await page.click('#btn-grow-go');
+    await page.waitForFunction(() => window.RikuyouApp.getProfile().items.bookM === 1);
+    assert.ok(await page.evaluate(id => window.RikuyouApp.getProfile().chars[id].level > 1, await page.getAttribute('#grow-grid [aria-pressed="true"]', 'data-grow')), 'レベルが上がる');
+    await page.click('[data-tmtab="team"]');
+    await page.waitForSelector('#team-edit:not(.hidden)');
     const first = p.team[0];
     await page.waitForTimeout(500);
     await page.click(`#screen-team .tm-card[data-id="${first}"]`);
@@ -1536,9 +1547,9 @@ test('mobile: かけらを使う・限界突破（結晶）・ガチャで重な
   await page.click('#modal-x');
   // Lv30 のキャラは限界突破（結晶5個）で上限 Lv60 に
   await page.click(`#team-grid [data-info="${b}"]`);
-  await page.waitForSelector('#modal #btn-tc-break:not([disabled])');
+  await page.waitForSelector('#modal [data-break]:not([disabled])');
   assert.match(await page.textContent('#modal .grow-break'), /Lv30 → Lv60/);
-  await page.click('#modal #btn-tc-break');
+  await page.click('#modal [data-break]');
   await page.waitForSelector('#modal[data-kind="team-char"]:not(.hidden) [data-kakera]');
   p = await H.profile(page);
   assert.deepEqual([p.items.crystal, p.chars[b].cap], [1, 60]);
