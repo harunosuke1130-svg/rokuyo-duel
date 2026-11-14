@@ -125,7 +125,7 @@
     drag: null,       // つかんでいる最中の情報
     release: null,    // 投げた（指を離した）位置 { x, y, t }。結果が来たらそこから飛ぶ
     opts: null,       // { canThrow(), onThrow(throwInput|null, aim) }
-    aim: { el: null, t0: 0, lit: 0, locked: 0, timer: 0 }   // 目押し：1→6 と順に光る目（押した瞬間の目を狙う）
+    aim: { el: null, t0: 0, lit: 0, locked: 0 }   // 目押し：回っているサイコロの目（押した瞬間の目を狙う）
   };
   const cssPx = (name, def) => (D.layer ? parseFloat(getComputedStyle(D.layer).getPropertyValue(name)) || def : def);
   const size = () => cssPx('--die', 44);
@@ -157,13 +157,9 @@
     D.shadow = D.btn.querySelector('.die-shadow');
     D.fx = D.btn.querySelector('.die-fx');
     D.body.querySelectorAll('.die-face').forEach(f => { D.faces[f.dataset.n] = f; });
-    // 目押しの目（サイコロの上に 1〜6 が並び、順に光る）
-    D.aim.el = document.createElement('span');
-    D.aim.el.className = 'die-aim';
-    D.aim.el.setAttribute('aria-hidden', 'true');
-    D.aim.el.innerHTML = [1, 2, 3, 4, 5, 6].map(n => `<i data-n="${n}">${n}</i>`).join('');
-    D.btn.appendChild(D.aim.el);
-    D.aim.timer = setInterval(aimTick, 40);
+    // 目押し：振れる間はサイコロが目を変えながらくるくる回る（aimTick）
+    D.aim.el = D.btn;
+    requestAnimationFrame(aimTick);
     bindPointer();
     window.addEventListener('resize', () => { cancelDrag(); finish(); place(D.pose.at, false); if (D.layer.classList.contains('flat')) bigFace(D.pose.value); }, { passive: true });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); finish(); } });
@@ -295,6 +291,27 @@
     const endAll = () => { settleFinal(); callDone(); };
     if (!D.stage) { callDone(); return; }
 
+    // 目押しでタップした：その場でピタッと止まる。狙いが当たればそのまま、外れたら短く転がって別の目に
+    if (opts.stop && !opts.still) {
+      D.anim = { token, finish: endAll };
+      const aimed = Number(opts.stop);
+      const faces = aimed === value ? [] : [1 + (aimed % 6), 1 + ((aimed + 2) % 6), value].filter((n, k, arr) => arr.indexOf(n) === k);
+      let k = 0;
+      const next = () => {
+        if (!D.anim || D.anim.token !== token) return;
+        if (k < faces.length) {
+          const n = faces[k++];
+          draw(qMul(qAxis(1, -1, 0.4, 40), restQ(n, 0)), 0, 0, 4);
+          setTimeout(next, 90);
+          return;
+        }
+        draw(restQ(value, 0), 0, 0, 0);
+        D.btn.animate([{ transform: D.btn.style.transform + ' scale(1.25)' }, { transform: D.btn.style.transform }], { duration: 220, easing: 'ease-out' });
+        setTimeout(() => { if (D.anim && D.anim.token === token) endAll(); }, aimed === value ? 380 : 300);
+      };
+      next();
+      return;
+    }
     // 動きを減らす：転がり・急な拡大はせず、平らな出目を短いフェードで出す
     if (opts.still) {
       D.anim = { token, finish: endAll };
@@ -468,41 +485,43 @@
     if (D.anim) { const a = D.anim; D.anim = null; a.finish(); }
   }
 
-  /* ---------- 目押し（2026-11-14〜） ---------- */
-  // 振れる間は 1→6 の順に一定の速さで光る。押した瞬間（つかんだ瞬間）に光っていた目を狙う（Engine が CONFIG.DICE_AIM.chance で決める）
-  const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 190; };
+  /* ---------- 目押し（2026-11-14〜・11-15 にサイコロ自体が回る形に） ---------- */
+  // 振れる間は、サイコロが 1→2→…→6→1 の順に目を変えながらくるくる回る（1 つの目は DICE_AIM.stepMs）。
+  // 押した（つかんだ）瞬間にピタッと止まり、その目を狙う（Engine が CONFIG.DICE_AIM.chance で決める）
+  const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 100; };
   function aimTick() {
+    requestAnimationFrame(aimTick);
     const a = D.aim;
-    if (!a.el) return;
-    const on = !!(D.opts && D.opts.canThrow() && !D.anim);
-    if (!on) { if (a.lit || a.locked) { a.lit = 0; a.locked = 0; a.t0 = 0; a.el.classList.remove('on', 'locked'); a.el.querySelectorAll('i.lit').forEach(i => i.classList.remove('lit')); } return; }
-    if (a.locked) return;   // 押している間は、押した目のまま
-    if (!a.t0) { a.t0 = performance.now(); a.el.classList.add('on'); }
-    const n = 1 + Math.floor((performance.now() - a.t0) / aimStep()) % 6;
-    if (n !== a.lit) {
-      a.lit = n;
-      keepAimOnScreen();
-      a.el.querySelectorAll('i').forEach(i => i.classList.toggle('lit', Number(i.dataset.n) === n));
+    const on = !!(D.stage && D.opts && D.opts.canThrow() && !D.anim && !D.drag && !D.layer.classList.contains('flat'));
+    if (!on) {
+      if (a.t0 && !a.locked) { a.t0 = 0; a.lit = 0; D.btn.classList.remove('aiming'); }
+      if (!D.opts || !D.opts.canThrow()) { a.locked = 0; D.btn.classList.remove('aim-locked'); }
+      return;
     }
-  }
-  // 目の並びが画面の端で切れないように、左右にずらす
-  function keepAimOnScreen() {
-    const el = D.aim.el;
-    el.style.marginLeft = '0px';
-    const r = el.getBoundingClientRect(), vw = document.documentElement.clientWidth || window.innerWidth;
-    if (!r.width) return;
-    const shift = r.left < 6 ? 6 - r.left : r.right > vw - 6 ? vw - 6 - r.right : 0;
-    if (shift) el.style.marginLeft = shift.toFixed(0) + 'px';
+    if (a.locked) return;   // 押している間は、押した目のまま
+    if (!a.t0) { a.t0 = performance.now(); D.btn.classList.add('aiming'); }
+    const t = (performance.now() - a.t0) / aimStep();
+    const n = 1 + Math.floor(t) % 6, f = t - Math.floor(t);
+    a.lit = n;
+    D.pose.value = n;
+    // 目が切り替わるたびに、ななめの軸でくるっと転がって次の目が正面に来る（目が読める時間を長めに）
+    const spin = f < 0.45 ? (1 - f / 0.45) * 70 : 0;
+    const q = qMul(qAxis(1, -1, 0.4, spin), restQ(n, 0));
+    D.pose.q = restQ(n, 0);
+    draw(q, 0, 0, spin ? 3 : 0);
   }
   // 押した瞬間の目で止める（ポインター・キーボード共通）
   function lockAim() {
     const a = D.aim;
-    if (!a.el || !a.lit) return 0;
+    if (!a.lit) return 0;
     a.locked = a.lit;
-    a.el.classList.add('locked');
+    D.pose.value = a.locked; D.pose.q = restQ(a.locked, 0);
+    draw(D.pose.q, 0, 0, 0);
+    D.btn.classList.remove('aiming');
+    D.btn.classList.add('aim-locked');
     return a.locked;
   }
-  function unlockAim() { D.aim.locked = 0; if (D.aim.el) D.aim.el.classList.remove('locked'); }
+  function unlockAim() { D.aim.locked = 0; D.aim.t0 = 0; D.btn.classList.remove('aim-locked'); }
 
   /* ---------- つかんで投げる（ポインター：指・マウス・ペン） ---------- */
   function bindPointer() {

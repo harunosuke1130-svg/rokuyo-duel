@@ -554,7 +554,7 @@
     else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
     else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
-    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = '光っている目で押すと、その目が出やすい（目押し）'; }
+    else if (s.phase === 'roll') { phase = 'サイコロを止める'; sub = '回っているサイコロを、出したい目でタップ（目押し）'; }
     else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
     else { phase = '技を選ぶ'; sub = '使う技を選んでください'; }
@@ -573,7 +573,7 @@
     if (s.phase === 'over') { btn.disabled = !!U.ui.modal; cap = '結果を見る'; }
     else {
       btn.disabled = bt.locked || bt.waiting || bt.diceAnim || s.turnSide !== bt.me || s.phase !== 'roll';
-      cap = btn.disabled ? '' : 'スワイプで投げる・タップで振る';
+      cap = btn.disabled ? '' : 'タップで止める・スワイプで投げる';
     }
     $('#roll-cap').textContent = cap;
     btn.classList.toggle('ready', !btn.disabled && s.phase !== 'over');
@@ -1185,6 +1185,8 @@
       Dice.roll({
         value: ev.value, from: ev.reroll ? 'center' : ev.side === bt.me ? 'me' : 'foe',
         throw: ev.throw || null, tap: !ev.throw && ev.side === bt.me && !ev.reroll,
+        // 目押しでタップ（投げていない）：その場でピタッと止める
+        stop: !ev.throw && ev.aim && ev.side === bt.me && !ev.reroll ? ev.aim : 0,
         still: fast || reduced(), instant: fast,
         onDone: () => (fast ? schedule(done, DELAY.roll) : done())
       });

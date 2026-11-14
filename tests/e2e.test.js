@@ -464,7 +464,7 @@ test('mobile: 戦闘画面（サイコロで数字・カードの絵で詳細・
   for (const [i, id] of ids.entries()) assert.equal(await page.getAttribute(`#ally-front .bt-card[data-idx="${i}"], #ally-back .bt-card[data-idx="${i}"]`, 'data-stars'), String(exp[id]));
   // 数字を出す前：技の欄はない。サイコロに案内
   assert.equal(await page.$$eval('#ally-front [data-move]', b => b.length), 0);
-  assert.ok((await page.textContent('#roll-cap')).includes('タップで振る'));
+  assert.ok((await page.textContent('#roll-cap')).includes('タップで止める'));
   await page.click('#btn-roll');
   await H.waitMyAction(page);
   await page.waitForTimeout(470);
