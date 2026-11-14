@@ -563,9 +563,9 @@
     $('#screen-battle').classList.toggle('my-turn', s.turnSide === bt.me && (s.phase === 'roll' || s.phase === 'action'));
     $('#range-note').classList.toggle('hidden', !(myActing(s) && !bt.waiting));
 
-    // サイコロ自体が「振る」ボタン。振る番の側の手前（自分）／奥（相手）で待ち、出目が出たら盤面の中央に残る
+    // サイコロ自体が「振る」ボタン。自分の番は盤面の中央で回って待ち（目押し・2026-11-15〜）、相手の番は奥で待つ。出目が出たら盤面の中央に残る
     if (!bt.diceAnim) {
-      const at = s.phase === 'roll' ? (s.turnSide === bt.me ? 'me' : 'foe') : 'center';
+      const at = s.phase === 'roll' && s.turnSide !== bt.me ? 'foe' : 'center';
       Dice.show({ at, value: s.phase === 'roll' ? null : s.dice, glide: !reduced() && !U.FAST });
     }
     const btn = $('#btn-roll');

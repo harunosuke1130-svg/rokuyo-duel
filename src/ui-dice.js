@@ -293,7 +293,7 @@
 
     // 目押しでタップした：その場でピタッと止まる。狙いが当たればそのまま、外れたら短く転がって別の目に
     if (opts.stop && !opts.still) {
-      D.anim = { token, finish: endAll };
+      D.anim = { token, finish: () => { D.layer.classList.remove('aim-big'); endAll(); }, stop: true };
       const aimed = Number(opts.stop);
       const faces = aimed === value ? [] : [1 + (aimed % 6), 1 + ((aimed + 2) % 6), value].filter((n, k, arr) => arr.indexOf(n) === k);
       let k = 0;
@@ -307,7 +307,7 @@
         }
         draw(restQ(value, 0), 0, 0, 0);
         D.btn.animate([{ transform: D.btn.style.transform + ' scale(1.25)' }, { transform: D.btn.style.transform }], { duration: 220, easing: 'ease-out' });
-        setTimeout(() => { if (D.anim && D.anim.token === token) endAll(); }, aimed === value ? 380 : 300);
+        setTimeout(() => { if (D.anim && D.anim.token === token) { D.layer.classList.remove('aim-big'); endAll(); } }, aimed === value ? 380 : 300);
       };
       next();
       return;
@@ -496,10 +496,12 @@
     if (!on) {
       if (a.t0 && !a.locked) { a.t0 = 0; a.lit = 0; D.btn.classList.remove('aiming'); }
       if (!D.opts || !D.opts.canThrow()) { a.locked = 0; D.btn.classList.remove('aim-locked'); }
+      // 盤面の中央で回る間は大きく（止めた後の演出が終わるまで）
+      if (!a.locked && !(D.anim && D.anim.stop) && !D.drag) D.layer.classList.remove('aim-big');
       return;
     }
     if (a.locked) return;   // 押している間は、押した目のまま
-    if (!a.t0) { a.t0 = performance.now(); D.btn.classList.add('aiming'); }
+    if (!a.t0) { a.t0 = performance.now(); D.btn.classList.add('aiming'); D.layer.classList.add('aim-big'); }
     const t = (performance.now() - a.t0) / aimStep();
     const n = 1 + Math.floor(t) % 6, f = t - Math.floor(t);
     a.lit = n;

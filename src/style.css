@@ -2814,3 +2814,9 @@ body[data-screen="gacha"] .topbar {
 /* ---------- 目押し（2026-11-14・11-15 にサイコロ自体が回る形に）：止めた瞬間に光る ---------- */
 .bt-dice-btn.aim-locked .die-body { filter: drop-shadow(0 0 8px #ffe27a); }
 .fx-num.fx-aim { color: #ffe27a; font-size: 22px; font-weight: 800; text-shadow: 0 0 8px rgba(255, 200, 60, .8), 0 2px 3px #000; }
+/* 目押しの間は、盤面の中央で大きく回す（2026-11-15） */
+#screen-battle .dice-layer.aim-big { --die: 76px; }
+@media (min-width: 960px) and (orientation: landscape) {
+  /* PC は右の欄に案内があるので、中央で回るサイコロの下の文字は出さない（味方の見出しと重なる） */
+  #screen-battle .dice-layer.aim-big .bt-dice-cap { display: none; }
+}
