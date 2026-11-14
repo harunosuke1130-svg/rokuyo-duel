@@ -194,7 +194,7 @@
   function apply(state, side, type, a) {
     switch (type) {
       case 'formation': return E.chooseFormation(state, side, a.front, a.leader);
-      case 'roll': return E.roll(state, side, rng, a.throw);
+      case 'roll': return E.roll(state, side, rng, a.throw, a.aim);
       case 'swap': return E.swap(state, side, a.out, a.in);
       case 'skill': return E.useSkill(state, side, a.user, rng, a.dice !== undefined ? { dice: a.dice } : undefined);
       case 'move': return E.useMove(state, side, a.unit);
@@ -244,7 +244,11 @@
       if (rollEv) {
         bt.lastRoll = rollEv;
         if (rollEv.reroll && !rollEv.chosen) windAtDice();
-        animateDice(rollEv, () => afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined));
+        animateDice(rollEv, () => {
+          // 目押し：狙った目が出たら知らせる（相手の目押しも）
+          if (rollEv.aimHit) floatAt(document.querySelector('.die-pop') || $('#btn-roll'), rollEv.side === bt.me ? '目押し成功！' : '相手の目押し成功', 'fx-aim', -70);
+          afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined);
+        });
         return;
       }
       afterAction(r);
@@ -550,7 +554,7 @@
     else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
     else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
-    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = 'サイコロをつかんで投げる（タップでも振れる）'; }
+    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = '光っている目で押すと、その目が出やすい（目押し）'; }
     else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
     else { phase = '技を選ぶ'; sub = '使う技を選んでください'; }
@@ -1533,12 +1537,14 @@
       return !!s && bt.active && !bt.locked && !bt.waiting && !bt.diceAnim && !U.ui.modal
         && s.turnSide === bt.me && s.phase === 'roll';
     };
-    Dice.bindThrow({ canThrow, onThrow: t => perform('roll', t ? { throw: t } : {}) });
+    // 目押し：投げた（押した）瞬間に光っていた目を aim として渡す
+    const rollArgs = (t, aim) => Object.assign(t ? { throw: t } : {}, aim ? { aim } : {});
+    Dice.bindThrow({ canThrow, onThrow: (t, aim) => perform('roll', rollArgs(t, aim)) });
     // キーボード（Enter・スペース）は標準の勢いで振る。指・マウスの操作は上で扱うので、ここでは受けない
     $('#btn-roll').addEventListener('click', e => {
       if (!bt.state) return;
       if (bt.state.phase === 'over') { if (bt.opts && bt.opts.onShowResult) bt.opts.onShowResult(); return; }
-      if (e.detail === 0 && canThrow()) perform('roll', {});
+      if (e.detail === 0 && canThrow()) perform('roll', rollArgs(null, Dice.takeAim()));
     });
     $('#btn-battle-menu').addEventListener('click', showBattleMenu);
     // 前衛⇄後衛のドラッグ交代（判定はすべて Engine。対人戦のゲストはホストに依頼し、結果の状態で描き直す）

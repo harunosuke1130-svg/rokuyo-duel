@@ -124,7 +124,8 @@
     token: 0,
     drag: null,       // つかんでいる最中の情報
     release: null,    // 投げた（指を離した）位置 { x, y, t }。結果が来たらそこから飛ぶ
-    opts: null        // { canThrow(), onThrow(throwInput|null) }
+    opts: null,       // { canThrow(), onThrow(throwInput|null, aim) }
+    aim: { el: null, t0: 0, lit: 0, locked: 0, timer: 0 }   // 目押し：1→6 と順に光る目（押した瞬間の目を狙う）
   };
   const cssPx = (name, def) => (D.layer ? parseFloat(getComputedStyle(D.layer).getPropertyValue(name)) || def : def);
   const size = () => cssPx('--die', 44);
@@ -156,6 +157,13 @@
     D.shadow = D.btn.querySelector('.die-shadow');
     D.fx = D.btn.querySelector('.die-fx');
     D.body.querySelectorAll('.die-face').forEach(f => { D.faces[f.dataset.n] = f; });
+    // 目押しの目（サイコロの上に 1〜6 が並び、順に光る）
+    D.aim.el = document.createElement('span');
+    D.aim.el.className = 'die-aim';
+    D.aim.el.setAttribute('aria-hidden', 'true');
+    D.aim.el.innerHTML = [1, 2, 3, 4, 5, 6].map(n => `<i data-n="${n}">${n}</i>`).join('');
+    D.btn.appendChild(D.aim.el);
+    D.aim.timer = setInterval(aimTick, 40);
     bindPointer();
     window.addEventListener('resize', () => { cancelDrag(); finish(); place(D.pose.at, false); if (D.layer.classList.contains('flat')) bigFace(D.pose.value); }, { passive: true });
     document.addEventListener('visibilitychange', () => { if (document.hidden) { cancelDrag(); finish(); } });
@@ -460,6 +468,42 @@
     if (D.anim) { const a = D.anim; D.anim = null; a.finish(); }
   }
 
+  /* ---------- 目押し（2026-11-14〜） ---------- */
+  // 振れる間は 1→6 の順に一定の速さで光る。押した瞬間（つかんだ瞬間）に光っていた目を狙う（Engine が CONFIG.DICE_AIM.chance で決める）
+  const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 190; };
+  function aimTick() {
+    const a = D.aim;
+    if (!a.el) return;
+    const on = !!(D.opts && D.opts.canThrow() && !D.anim);
+    if (!on) { if (a.lit || a.locked) { a.lit = 0; a.locked = 0; a.t0 = 0; a.el.classList.remove('on', 'locked'); a.el.querySelectorAll('i.lit').forEach(i => i.classList.remove('lit')); } return; }
+    if (a.locked) return;   // 押している間は、押した目のまま
+    if (!a.t0) { a.t0 = performance.now(); a.el.classList.add('on'); }
+    const n = 1 + Math.floor((performance.now() - a.t0) / aimStep()) % 6;
+    if (n !== a.lit) {
+      a.lit = n;
+      keepAimOnScreen();
+      a.el.querySelectorAll('i').forEach(i => i.classList.toggle('lit', Number(i.dataset.n) === n));
+    }
+  }
+  // 目の並びが画面の端で切れないように、左右にずらす
+  function keepAimOnScreen() {
+    const el = D.aim.el;
+    el.style.marginLeft = '0px';
+    const r = el.getBoundingClientRect(), vw = document.documentElement.clientWidth || window.innerWidth;
+    if (!r.width) return;
+    const shift = r.left < 6 ? 6 - r.left : r.right > vw - 6 ? vw - 6 - r.right : 0;
+    if (shift) el.style.marginLeft = shift.toFixed(0) + 'px';
+  }
+  // 押した瞬間の目で止める（ポインター・キーボード共通）
+  function lockAim() {
+    const a = D.aim;
+    if (!a.el || !a.lit) return 0;
+    a.locked = a.lit;
+    a.el.classList.add('locked');
+    return a.locked;
+  }
+  function unlockAim() { D.aim.locked = 0; if (D.aim.el) D.aim.el.classList.remove('locked'); }
+
   /* ---------- つかんで投げる（ポインター：指・マウス・ペン） ---------- */
   function bindPointer() {
     const b = D.btn;
@@ -467,6 +511,7 @@
       if (e.button !== undefined && e.button !== 0) return;
       if (!D.opts || D.anim || D.drag || !D.opts.canThrow()) return;
       e.preventDefault();
+      lockAim();
       try { b.setPointerCapture(e.pointerId); } catch (err) { /* 古いブラウザ */ }
       const m = /translate\(([-\d.]+)px, ([-\d.]+)px\)/.exec(b.style.transform) || [0, 0, 0];
       D.drag = { id: e.pointerId, sx: e.clientX, sy: e.clientY, bx: +m[1], by: +m[2], t0: performance.now(), path: 0, lx: e.clientX, ly: e.clientY, moved: false, samples: [{ x: e.clientX, y: e.clientY, t: performance.now() }] };
@@ -499,14 +544,16 @@
       D.drag = null;
       b.classList.remove('dragging');
       try { b.releasePointerCapture(e.pointerId); } catch (err) { /* noop */ }
-      if (e.type !== 'pointerup') { restore(); return; }        // 取り消し（OS がつかみを奪ったなど）：振らない
+      const aim = D.aim.locked || 0;
+      if (e.type !== 'pointerup') { unlockAim(); restore(); return; }        // 取り消し（OS がつかみを奪ったなど）：振らない
       if (!d.moved) {                                          // 動かしていない＝タップ：標準の勢いで振る
         D.release = null;
-        if (D.opts && D.opts.canThrow()) D.opts.onThrow(null);
+        if (D.opts && D.opts.canThrow()) D.opts.onThrow(null, aim);
+        else unlockAim();
         return;
       }
       const ox = e.clientX - d.sx, oy = e.clientY - d.sy;
-      if (Math.hypot(ox, oy) < SWIPE_MIN) { restore(); return; }  // 元の場所へ戻して離した：取り消し
+      if (Math.hypot(ox, oy) < SWIPE_MIN) { unlockAim(); restore(); return; }  // 元の場所へ戻して離した：取り消し
       const v = velocity(d);
       const sp = Math.hypot(v[0], v[1]);                        // px/ms
       // 勢い：離す直前の速さ（主）と動かした距離（従）。上限・下限つき
@@ -515,8 +562,8 @@
       const input = { power: Math.round(power * 100) / 100, angle: Math.round(ang * 180 / Math.PI), dist: Math.round(Math.min(2000, d.path)) };
       D.release = { x: d.x, y: d.y, t: Date.now() };
       D.lastThrow = input;
-      if (D.opts && D.opts.canThrow()) D.opts.onThrow(input);
-      else restore();
+      if (D.opts && D.opts.canThrow()) D.opts.onThrow(input, aim);
+      else { unlockAim(); restore(); }
     };
     b.addEventListener('pointerup', end);
     b.addEventListener('pointercancel', end);
@@ -546,6 +593,8 @@
     mount, show, roll, finish,
     // { canThrow(): 今投げてよいか, onThrow(throwInput | null): 投げた（null＝タップ・標準の投げ方） }
     bindThrow: opts => { D.opts = opts; },
+    // キーボードで振るとき：今光っている目を狙う
+    takeAim: () => lockAim(),
     playing: () => !!D.anim,
     sfxOn,
     setSfx: on => { try { localStorage.setItem(SFX_KEY, on ? 'on' : 'off'); } catch (e) { /* 保存できなくても動く */ } },

@@ -2811,3 +2811,12 @@ body[data-screen="gacha"] .topbar {
 .ga-series-hero { --fx: #c9a24a; }
 .ga-series-hero h2 { font-size: clamp(26px, 7.5vw, 40px); }
 .ga-series-ico { font-size: 44px; color: #b8862a; }
+/* ---------- 目押し（2026-11-14）：サイコロの上に 1〜6 が並び、順に光る。押した目で止まる ---------- */
+.die-aim { position: absolute; left: 50%; bottom: calc(100% + 6px); transform: translateX(-50%); display: none; gap: 3px; padding: 3px 5px; border-radius: 10px;
+  background: rgba(20, 14, 6, .62); box-shadow: 0 2px 6px rgba(0, 0, 0, .4); pointer-events: none; white-space: nowrap; }
+.die-aim.on { display: flex; }
+.die-aim i { display: grid; place-items: center; width: 20px; height: 20px; border-radius: 50%; font-style: normal; font-size: 12px; font-weight: 700; color: rgba(255, 240, 200, .55); background: rgba(255, 255, 255, .08); }
+.die-aim i.lit { color: #2b1d0e; background: radial-gradient(circle at 40% 35%, #fffbe8, #ffd25a); box-shadow: 0 0 8px #ffd25a; transform: scale(1.18); }
+.die-aim.locked i.lit { background: radial-gradient(circle at 40% 35%, #ffffff, #7fe0a0); box-shadow: 0 0 10px #7fe0a0; }
+.bt-dice-btn.dragging .die-aim { display: none; }
+.fx-num.fx-aim { color: #ffe27a; font-size: 22px; font-weight: 800; text-shadow: 0 0 8px rgba(255, 200, 60, .8), 0 2px 3px #000; }

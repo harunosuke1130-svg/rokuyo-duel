@@ -638,16 +638,22 @@
   }
 
   // 数字を出す。throwInput は投げ方（normalizeThrow を参照）。1ターンに1回だけ（phase で二重の抽選を防ぐ）
-  function roll(state, side, rng, throwInput) {
+  // aim：目押しで狙った目（1〜6。無ければ狙わない）。CONFIG.DICE_AIM.chance の確率でその目になる
+  function roll(state, side, rng, throwInput, aim) {
     if (state.phase === 'over') return fail('勝敗はすでに決まっています');
     if (state.turnSide !== side) return fail('相手のターンです');
     if (state.phase !== 'roll') return fail(state.dice ? '数字はすでに出ています' : '今は数字を出せません');
     const ctx = newCtx();
     const t = normalizeThrow(throwInput);
-    state.dice = throwDie(rng, t);
+    const a = Number.isInteger(aim) && aim >= 1 && aim <= CONFIG.DICE_SIDES ? aim : null;
+    const hit = a ? rng() < ((CONFIG.DICE_AIM && CONFIG.DICE_AIM.chance) || 0) : false;
+    state.dice = hit ? a : throwDie(rng, t);
     state.phase = 'action';
-    addLog(state, ctx, `${who(state, side)}の出目：${state.dice}`, 'dice');
-    ctx.events.push(t ? { type: 'roll', side, value: state.dice, throw: t } : { type: 'roll', side, value: state.dice });
+    addLog(state, ctx, `${who(state, side)}の出目：${state.dice}${a ? (hit ? `（目押し成功：${a}を狙った）` : `（${a}を狙った）`) : ''}`, 'dice');
+    const ev = { type: 'roll', side, value: state.dice };
+    if (t) ev.throw = t;
+    if (a) { ev.aim = a; ev.aimHit = hit; }
+    ctx.events.push(ev);
     return done(state, ctx);
   }
 

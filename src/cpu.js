@@ -183,14 +183,27 @@
     return m;
   }
 
+  // 目押しで狙う目：出目 1〜6 それぞれで一番よい行動の点を比べ、いちばん高い目（試算用・CPU の目押し用）
+  function bestDice(state, side, rng) {
+    let best = null;
+    for (let d = 1; d <= (Engine.CONFIG ? Engine.CONFIG.DICE_SIDES : 6); d++) {
+      const sim = clone(state);
+      sim.dice = d; sim.phase = 'action';
+      const p = bestAfterSwap(sim, side, null);
+      const sc = p ? p.score : -Infinity;
+      if (!best || sc > best.score) best = { dice: d, score: sc };
+    }
+    return best ? best.dice : null;
+  }
+
   // 決定した行動を Engine で実行する
-  function act(state, side, rng) {
+  function act(state, side, rng, opts) {
     const d = decide(state, side, rng);
     if (!d) return { ok: false, error: 'CPUが行動できる段階ではありません' };
     let r;
     if (d.type === 'formation') r = Engine.chooseFormation(state, side, d.units, d.leader);
     else if (d.type === 'replace') r = Engine.chooseReplacement(state, side, d.unit);
-    else if (d.type === 'roll') r = Engine.roll(state, side, rng);
+    else if (d.type === 'roll') r = Engine.roll(state, side, rng, undefined, opts && opts.aim ? bestDice(state, side, rng) : undefined);
     else if (d.type === 'swap') r = Engine.swap(state, side, d.out, d.in);
     else if (d.type === 'skill') r = Engine.useSkill(state, side, d.user, rng, d.dice ? { dice: d.dice } : undefined);
     else r = Engine.useMove(state, side, d.unit);
@@ -198,7 +211,7 @@
     return r;
   }
 
-  const CPU = { evaluate, decide, act, chooseFormation, chooseLeader, chooseByHp, bestMove };
+  const CPU = { evaluate, decide, act, chooseFormation, chooseLeader, chooseByHp, bestMove, bestDice };
 
   if (typeof module === 'object' && module.exports) module.exports = CPU;
   else global.RikuyouCPU = CPU;

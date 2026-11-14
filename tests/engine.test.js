@@ -799,3 +799,31 @@ test('後衛を伏せる：前衛に出る・後衛から固有スキルを使�
   const d = E.createBattle(P, ['b-goblin'], { enemyKind: 'boss' });
   assert.equal(d.hideBack, false);
 });
+
+test('目押し：狙った目は CONFIG.DICE_AIM.chance の確率で出る・外れたら普通に振る・狙わなければ今までどおり', () => {
+  const start = () => battle();
+  // 当たり（最初の乱数が chance より小さい）→ 狙った目
+  let s = start();
+  let r = E.roll(s, 'player', () => 0, undefined, 5);
+  assert.equal(r.ok, true);
+  assert.equal(s.dice, 5);
+  const ev = r.events.find(e => e.type === 'roll');
+  assert.deepEqual([ev.aim, ev.aimHit], [5, true]);
+  // 外れ → 次の乱数で普通に振る
+  s = start();
+  const vals = [0.99, (2 - 1) / 6 + 0.01];
+  let k = 0;
+  r = E.roll(s, 'player', () => vals[k++], undefined, 5);
+  assert.equal(s.dice, 2);
+  assert.equal(r.events.find(e => e.type === 'roll').aimHit, false);
+  // 狙わない（aim なし・範囲外）は今までどおり
+  s = start();
+  E.roll(s, 'player', fixed(3), undefined, 9);
+  assert.equal(s.dice, 3);
+  // 多く振ると、当たりの割合は chance＋外れたときの 1/6
+  const rng = E.createRng(7);
+  let hit = 0;
+  for (let i = 0; i < 3000; i++) { const t = start(); E.roll(t, 'player', rng, undefined, 4); if (t.dice === 4) hit++; }
+  const c = E.CONFIG.DICE_AIM.chance, expect = c + (1 - c) / 6;
+  assert.ok(Math.abs(hit / 3000 - expect) < 0.04, `狙った目の割合 ${hit / 3000}（目安 ${expect}）`);
+});

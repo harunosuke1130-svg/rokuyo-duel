@@ -14,6 +14,9 @@ const [id, lvArg, nArg] = args.filter(a => a !== '--all');
 const d = P.getDungeon(id);
 if (!d || !lvArg) { console.error('使い方：node scripts/sim-dungeon.js <ダンジョンID> <レベル> [回数]'); process.exit(1); }
 const level = Number(lvArg), N = Number(nArg || 300);
+// 目押しの試し（参考）：SIM_AIM=player なら味方が、=both なら両方が、毎回いちばんよい目を狙う（狙いの成功は CONFIG.DICE_AIM.chance）
+if (process.env.SIM_AIM_CHANCE) E.CONFIG.DICE_AIM.chance = Number(process.env.SIM_AIM_CHANCE);
+const AIM = { player: /^(player|both)$/.test(process.env.SIM_AIM || ''), cpu: process.env.SIM_AIM === 'both' };
 
 // 乱数はゲームと同じ作り方（シード固定）。前の簡単な作り方は、少し数値を変えるだけで結果が大きく揺れた
 const rng = E.createRng(Number(process.env.SIM_SEED || 12345));
@@ -31,7 +34,7 @@ function fight(team, floor, startHp) {
     let moved = false;
     for (const side of ['player', 'cpu']) {
       if (s.phase === 'over') break;
-      const r = CPU.act(s, side, rng);
+      const r = CPU.act(s, side, rng, { aim: AIM[side] });
       if (r.ok) moved = true;
     }
     if (!moved) throw new Error('進まない状態：' + s.phase);
