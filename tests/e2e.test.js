@@ -10,6 +10,7 @@ const fs = require('fs');
 const { chromium } = require('playwright');
 const H = require('./helpers.js');
 const E = require('../src/engine.js');
+const D = require('../src/data.js');
 const CHAR_COUNT = E.CHARACTERS.length;
 
 const FILE = 'file://' + path.join(__dirname, '..', 'dist', 'rikuyou-duel.html');
@@ -564,7 +565,12 @@ test('mobile: ガチャ（1回・10回・石不足）', async () => {
   await page.click('[data-go="gacha"]');
   assert.equal(await page.isDisabled('#btn-gacha-10'), false);
   // 属性ガチャ：自然を選ぶと、呼び出せるキャラは自然属性だけ。値段は同じ
-  assert.equal(await page.$$eval('#gacha-kinds .gk-btn', b => b.length), 6, '通常＋5属性');
+  assert.equal(await page.$$eval('#gacha-kinds .gk-btn', b => b.length), D.GACHAS.length, '弾ごと＋5属性');
+  // キャラがまだいない弾は押せない（準備中）
+  for (const g of D.GACHAS.filter(x => x.series)) {
+    const n = E.CHARACTERS.filter(c => (c.series || 1) === g.series).length;
+    assert.equal(await page.isDisabled(`#gacha-kinds [data-gacha-kind="${g.id}"]`), n === 0, g.name);
+  }
   await page.click('#gacha-kinds [data-gacha-kind="nature"]');
   assert.equal(await page.getAttribute('#gacha-kinds [data-gacha-kind="nature"]', 'aria-pressed'), 'true');
   const natures = E.CHARACTERS.filter(c => c.element === 'nature').length;

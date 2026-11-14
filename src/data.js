@@ -1286,10 +1286,17 @@
    * 値段はどれも同じ（ECONOMY.gachaCost / gacha10Cost）。element があればその属性のキャラだけが出る。
    * どの種類でも、出るキャラの中では全員同じ確率。
    */
+  // シリーズ（弾）：キャラの series（無ければ 1）。弾ごとのガチャは、その弾のキャラだけが出る（2026-11-14〜）
+  //   limit：その弾に入れるキャラの数の目安（毎日のキャラ作りは、ここまで来たら止める）
+  const SERIES = [
+    { id: 1, name: '旅立ちの星泉', gacha: 'all' },
+    { id: 2, name: '暁の新星', gacha: 's2', limit: 30 }
+  ];
   const GACHAS = [
-    { id: 'all', name: '旅立ちの星泉ガチャ', text: 'すべてのキャラが同じ確率で出ます。' }
+    { id: 'all', series: 1, name: '旅立ちの星泉ガチャ', text: '第1弾のキャラが同じ確率で出ます。' },
+    { id: 's2', series: 2, name: '暁の新星ガチャ', text: '第2弾のキャラだけが出ます（その中では全員同じ確率）。' }
   ].concat(Object.keys(ELEMENTS).map(el => ({
-    id: el, element: el, name: ELEMENTS[el].name + 'ガチャ', text: `${ELEMENTS[el].name}属性のキャラだけが出ます（その中では全員同じ確率）。`
+    id: el, element: el, name: ELEMENTS[el].name + 'ガチャ', text: `${ELEMENTS[el].name}属性のキャラだけが出ます（すべての弾から。その中では全員同じ確率）。`
   })));
 
   /*
@@ -1475,7 +1482,7 @@
       floors: [{ boss: 'b-crab', level: 1, exp: 50 }, { boss: 'b-octopus', level: 2, exp: 80 }, { boss: 'b-turtle', level: 5, exp: 140 }] }
   ];
 
-  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
+  const Data = { CONFIG, ELEMENTS, ELEMENT_ADVANTAGE, RANKS, CHARACTERS, ECONOMY, SERIES, GACHAS, CPU_MATCHES, BOSSES, DUNGEON_RULES, DUNGEONS };
 
   if (typeof module === 'object' && module.exports) module.exports = Data;
   else global.RikuyouData = Data;

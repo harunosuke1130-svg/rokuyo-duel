@@ -2483,9 +2483,9 @@ body[data-screen="gacha"] .topbar {
 .ga-feat-main .stars { margin: 0; font-size: 12px; }
 .ga-feat-main small { font-size: 11px; color: #5a4526; overflow: hidden; display: -webkit-box; -webkit-line-clamp: 2; -webkit-box-orient: vertical; }
 .ga-feat-own { font-size: 11px; font-weight: 700; color: #24386c; white-space: nowrap; }
-/* 属性召喚：6枚の札（星泉＋5属性） */
+/* 属性召喚：5属性の札（弾ごとの召喚は上の段） */
 .ga-kinds { padding: 8px 8px 6px; border-radius: 4px; background: linear-gradient(180deg, rgba(250, 242, 222, .9), rgba(234, 218, 182, .9)); border: 1px solid #b89a62; box-shadow: 0 3px 8px rgba(40, 28, 12, .25); }
-.ga-kind-row { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 5px; }
+.ga-kind-row { display: grid; grid-template-columns: repeat(5, minmax(0, 1fr)); gap: 5px; }
 .ga-kind { display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 2px; min-height: 76px; padding: 6px 2px; border-radius: 3px; cursor: pointer; color: #2e2010;
   border: 1px solid rgba(150, 115, 60, .5); background: linear-gradient(180deg, color-mix(in srgb, var(--fx, #c9b48a) 22%, #fbf5e6), color-mix(in srgb, var(--fx, #c9b48a) 38%, #efe2c2)); }
 .ga-kind .el-ico { width: 26px; height: 26px; }
@@ -2804,3 +2804,10 @@ body[data-screen="gacha"] .topbar {
 .gr-cap { position: absolute; left: 4px; bottom: 4px; padding: 0 5px; border-radius: 4px; background: rgba(150, 40, 40, .85); color: #fff; font-size: 10px; font-weight: 700; }
 .rs-book .it-book-ico { display: inline-grid; place-items: center; font-size: 16px; font-weight: 700; color: #b48ae0; }
 .rs-books { font-size: 15px; }
+/* 弾ごとの召喚（2026-11-14）：属性召喚の上に横並び。キャラがまだいない弾は「準備中」 */
+.ga-kind-row.ga-series-row { grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); margin-bottom: 8px; }
+.ga-kind-series { min-height: 60px; }
+.ga-kind:disabled { opacity: .5; cursor: default; }
+.ga-series-hero { --fx: #c9a24a; }
+.ga-series-hero h2 { font-size: clamp(26px, 7.5vw, 40px); }
+.ga-series-ico { font-size: 44px; color: #b8862a; }

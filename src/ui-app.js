@@ -1262,12 +1262,15 @@
     const g = P.getGacha(gachaKind);
     const pool = P.gachaPool(gachaKind);
     const el = g.element ? D.ELEMENTS[g.element] : null;
-    $('#screen-gacha').dataset.kind = g.element || 'all';
+    const newSeries = !el && g.id !== 'all';   // 第2弾以降（絵はまだ無いので、文字の札）
+    $('#screen-gacha').dataset.kind = g.element || (newSeries ? 'series' : 'all');
     // 上の絵：星泉ガチャは利用者の絵（題名・キャラ名は絵の中）。属性召喚は属性の色の札
-    $('#gacha-hero').innerHTML = el
+    $('#gacha-hero').innerHTML = newSeries
+      ? `<div class="ga-el-hero ga-series-hero"><span class="ga-el-ico ga-series-ico" aria-hidden="true">✦</span><h2>${esc(g.name)}</h2><p>${esc(g.text)}</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
+      : el
       ? `<div class="ga-el-hero" data-el="${g.element}"><span class="ga-el-ico"><span class="el-ico" data-el="${g.element}" aria-hidden="true"></span></span><h2>${esc(el.name)}の召喚</h2><p>${esc(el.name)}属性のキャラだけが出ます</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
       : `<h2 class="sr-only">${esc(g.name)}</h2><div class="ga-hero-art" role="img" aria-label="旅立ちの星泉ガチャ（蒼泉の聖女・暁星の占星術師）"></div>`;
-    $('#gacha-kind-text').innerHTML = el ? `<b>${esc(g.name)}</b>：${esc(g.text)}` : '冒険のはじまりに、新たな仲間を。';
+    $('#gacha-kind-text').innerHTML = el || newSeries ? `<b>${esc(g.name)}</b>：${esc(g.text)}` : '冒険のはじまりに、新たな仲間を。';
     $('#gacha-stones').textContent = p.stones;
     $('#gacha-kakera').textContent = p.items.kakera;
     $('#gacha-dupe').innerHTML = `<span class="ga-dupe-label">持っているキャラが出たら</span>`
@@ -1297,10 +1300,17 @@
     const feat = FEATURED.filter(id => pool.indexOf(id) >= 0).map(id => E.getChar(id)).filter(Boolean);
     $('#gacha-featured').innerHTML = feat.length ? `<h3 class="ga-sec"><span>★4の注目キャラクター</span></h3><div class="ga-feat-row">${feat.map(ch => `<div class="ga-feat" data-el="${ch.element}">${emblem(ch, null, 'small')}<span class="ga-feat-main"><b>${esc(ch.name)}</b>${starsHtml(ch)}<small>${esc(ch.skill.name)}：${esc(ch.skill.text)}</small></span><span class="ga-feat-own">${P.owns(p, ch.id) ? '所持' : '未所持'}</span></div>`).join('')}</div><p class="ga-note">注目キャラも、ほかのキャラと同じ確率です。</p>` : '';
     // 種類：星泉ガチャと、5つの属性召喚
-    $('#gacha-kinds').innerHTML = `<h3 class="ga-sec"><span>属性召喚</span></h3><div class="ga-kind-row">` + D.GACHAS.map(k => {
+    // 弾ごとのガチャ（キャラがまだいない弾は「準備中」）
+    const seriesBtns = D.GACHAS.filter(k => !k.element).map(k => {
+      const n = P.gachaPool(k.id).length, sr = (D.SERIES || []).find(x => x.id === k.series);
+      return `<button type="button" class="gk-btn ga-kind ga-kind-series" data-gacha-kind="${k.id}" aria-pressed="${k.id === gachaKind}"${n ? '' : ' disabled'}><span class="ga-kind-star" aria-hidden="true">✦</span><b>${esc(sr ? sr.name : k.name)}</b><small>第${k.series}弾・${n ? n + '体' : '準備中'}</small></button>`;
+    }).join('');
+    const elBtns = D.GACHAS.filter(k => k.element).map(k => {
       const n = P.gachaPool(k.id).length;
-      return `<button type="button" class="gk-btn ga-kind" data-gacha-kind="${k.id}" aria-pressed="${k.id === gachaKind}"${k.element ? ` data-el="${k.element}"` : ''}>${k.element ? `<span class="el-ico" data-el="${k.element}" aria-hidden="true"></span><b>${esc(D.ELEMENTS[k.element].name)}</b>` : '<span class="ga-kind-star" aria-hidden="true">✦</span><b>星泉</b>'}<small>${n}体</small></button>`;
-    }).join('') + '</div><p class="ga-note">値段はどれも同じです。属性召喚は、その属性のキャラだけが出ます。</p>';
+      return `<button type="button" class="gk-btn ga-kind" data-gacha-kind="${k.id}" aria-pressed="${k.id === gachaKind}" data-el="${k.element}"><span class="el-ico" data-el="${k.element}" aria-hidden="true"></span><b>${esc(D.ELEMENTS[k.element].name)}</b><small>${n}体</small></button>`;
+    }).join('');
+    $('#gacha-kinds').innerHTML = `<h3 class="ga-sec"><span>弾ごとの召喚</span></h3><div class="ga-kind-row ga-series-row">${seriesBtns}</div>`
+      + `<h3 class="ga-sec"><span>属性召喚</span></h3><div class="ga-kind-row">${elBtns}</div><p class="ga-note">値段はどれも同じです。弾ごとの召喚はその弾のキャラだけ、属性召喚はすべての弾からその属性のキャラだけが出ます。</p>`;
   }
   let gachaBusy = false;
   function pullGacha(count) {

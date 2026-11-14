@@ -284,7 +284,9 @@
   function gachaPool(kind) {
     const g = getGacha(kind);
     if (!g) return [];
-    return g.element ? CHARACTERS.filter(c => c.element === g.element).map(c => c.id) : ALL_IDS.slice();
+    if (g.element) return CHARACTERS.filter(c => c.element === g.element).map(c => c.id);
+    if (g.series) return CHARACTERS.filter(c => (c.series || 1) === g.series).map(c => c.id);
+    return ALL_IDS.slice();
   }
   function drawGacha(p, count, rng, kind) {
     if (count !== 1 && count !== 10) return { ok: false, error: '1回か10回で引いてください' };
