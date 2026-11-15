@@ -1249,6 +1249,135 @@
         text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃の数字に4を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'damage', amount: 12, ignoreDefense: false }, { type: 'atkBonus', value: 4 }]
       }
+    },
+    // ---- 自動追加 2026-11-15（第2弾「暁の新星」）----
+    {
+      id: 'amihiki', name: '浜の網引き', glyph: '網', maxHp: 94, element: 'water', series: 2,
+      subTypes: ['漁師'],
+      leaderSkill: { name: '大漁の掛け声', text: '水脈属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'water', value: 2 }] },
+      moves: [
+        { name: '投網', atk: 10, heal: 0 },
+        { name: '浜辺の焚き火', atk: 0, heal: 9 },
+        { name: '櫓こぎ打ち', atk: 12, heal: 0 },
+        { name: '潮風で休む', atk: 0, heal: 7 },
+        { name: '銛の突き', atk: 12, heal: 0 },
+        { name: '網のつくろい', atk: 2, heal: 5 },
+        { name: '地引き網', atk: 18, heal: 0 },
+        { name: '漁村の炊き出し', atk: 0, heal: 14 },
+        { name: '波乗り網さばき', atk: 10, heal: 8 }
+      ],
+      skill: {
+        name: '一網打尽', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×8のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'kamaban', name: '窯番の少年', glyph: '窯', maxHp: 92, element: 'fire', series: 2,
+      subTypes: ['職人'],
+      leaderSkill: { name: '窯の温もり', text: '味方全員の通常技の回復の数字+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      moves: [
+        { name: '窯の火かき', atk: 11, heal: 0 },
+        { name: '焼きたての器', atk: 0, heal: 9 },
+        { name: '割り木投げ', atk: 13, heal: 0 },
+        { name: '炭火であたる', atk: 0, heal: 6 },
+        { name: '火の粉はらい', atk: 12, heal: 0 },
+        { name: '土こね', atk: 3, heal: 4 },
+        { name: '窯出しの熱風', atk: 19, heal: 0 },
+        { name: '陶工の湯呑み', atk: 0, heal: 13 },
+        { name: 'ふいご吹き', atk: 11, heal: 7 }
+      ],
+      skill: {
+        name: '大窯の火入れ', cd: 3,
+        text: 'このターンの通常技の攻撃の数字に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'atkBonus', value: 4 }]
+      }
+    },
+    {
+      id: 'fukurou', name: '夜目の梟使い', glyph: '梟', maxHp: 112, element: 'dark', series: 2,
+      subTypes: ['狩人'],
+      leaderSkill: { name: '夜目の導き', text: '味方の固有スキルのダメージの数字+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      moves: [
+        { name: '梟の急襲', atk: 15, heal: 0 },
+        { name: '止まり木の休息', atk: 0, heal: 11 },
+        { name: '爪の引っかき', atk: 13, heal: 0, fx: { type: 'weaken', stat: 'heal', percent: 25, turns: 2 } },
+        { name: '羽づくろい', atk: 3, heal: 6 },
+        { name: '夜の見張り', atk: 16, heal: 0 },
+        { name: '木の実をつまむ', atk: 0, heal: 9 },
+        { name: '大梟の舞い降り', atk: 24, heal: 0 },
+        { name: '月明かりの巣', atk: 0, heal: 19 },
+        { name: '無音の羽ばたき', atk: 14, heal: 9 }
+      ],
+      skill: {
+        name: '梟たちの夜襲', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×11のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 11, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'fuefuki', name: '霧笛の笛吹き', glyph: '笛', maxHp: 110, element: 'water', series: 2,
+      subTypes: ['楽師'],
+      leaderSkill: { name: '霧笛の調べ', text: '味方の固有スキルの回復の数字+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
+      moves: [
+        { name: '澄んだ一吹き', atk: 0, heal: 13 },
+        { name: '高鳴る旋律', atk: 15, heal: 0 },
+        { name: '波音の伴奏', atk: 13, heal: 0 },
+        { name: '霧のまどろみ', atk: 4, heal: 8 },
+        { name: '潮騒の調べ', atk: 18, heal: 0 },
+        { name: '凪の子守歌', atk: 0, heal: 10 },
+        { name: '霧笛の大音', atk: 24, heal: 0 },
+        { name: '港の夜想曲', atk: 0, heal: 21 },
+        { name: '水面の輪舞', atk: 12, heal: 11 }
+      ],
+      skill: {
+        name: '霧の安らぎ', cd: 4,
+        text: '味方前衛全員を、それぞれ回復力×15回復する。',
+        effects: [{ type: 'heal', amount: 15 }]
+      }
+    },
+    {
+      id: 'rekka', name: '烈火の槍騎兵', glyph: '騎', maxHp: 142, element: 'fire', series: 2,
+      subTypes: ['騎士', '戦士'],
+      leaderSkill: { name: '突撃の号令', text: '猛火属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 4 }] },
+      trait: { name: '一番槍', text: '先手：自分の陣営の最初のターンだけ、通常技の攻撃が1.5倍。', effects: [{ type: 'firstStrike', mult: 1.5 }] },
+      moves: [
+        { name: '炎槍の突き', atk: 24, heal: 0 },
+        { name: '騎馬の休息', atk: 0, heal: 14 },
+        { name: '三連突き', atk: 18, heal: 0, fx: { type: 'multi', hits: 3 } },
+        { name: '盾構え', atk: 8, heal: 8 },
+        { name: '馬上の薙ぎ払い', atk: 22, heal: 0 },
+        { name: '陣営の手当て', atk: 0, heal: 10 },
+        { name: '紅蓮の大突撃', atk: 35, heal: 0 },
+        { name: '戦場の祈り', atk: 0, heal: 24 },
+        { name: '旋回の槍', atk: 20, heal: 12 }
+      ],
+      skill: {
+        name: '烈火突貫', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×14のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 14, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'yoigarasu', name: '宵鴉の影使い', glyph: '鴉', maxHp: 138, element: 'dark', series: 2,
+      subTypes: ['術師', '暗殺者'],
+      leaderSkill: { name: '宵闇の契り', text: '呪闇属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
+      trait: { name: '影の追い打ち', text: '追撃：相手の前衛が HP3割以下なら、通常技がもう1回（2回目は1回目の半分）。', effects: [{ type: 'pursuit', percent: 50, under: 30 }] },
+      moves: [
+        { name: '鴉羽の刃', atk: 22, heal: 0 },
+        { name: '影に溶ける', atk: 0, heal: 14 },
+        { name: '命をすする影', atk: 17, heal: 0, fx: { type: 'drain', percent: 30 } },
+        { name: '黒羽の帳', atk: 6, heal: 9 },
+        { name: '影縫いの針', atk: 23, heal: 0 },
+        { name: '夜風の休み', atk: 0, heal: 11 },
+        { name: '群鴉の嵐', atk: 34, heal: 0 },
+        { name: '宵の秘薬', atk: 0, heal: 23 },
+        { name: '影渡り', atk: 19, heal: 12 }
+      ],
+      skill: {
+        name: '鴉の宴', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×13のダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃の数字に3を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'damage', amount: 13, ignoreDefense: false }, { type: 'atkBonus', value: 3 }]
+      }
     }
   ];
 

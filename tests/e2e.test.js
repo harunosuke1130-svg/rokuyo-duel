@@ -1514,7 +1514,7 @@ test('mobile: ガチャ画面（星泉ガチャの絵・不足の表示・提供
   assert.equal(await page.isDisabled('#btn-gacha-1'), false);
   assert.equal(await page.isDisabled('#btn-gacha-10'), true);
   assert.ok((await page.textContent('#btn-gacha-10')).includes('石が295不足'));
-  const all = E.CHARACTERS.length;
+  const all = E.CHARACTERS.filter(c => (c.series || 1) === 1).length;   // 星泉ガチャは第1弾だけ
   await page.click('#gacha-rates summary');
   const rate = await page.textContent('#gacha-rate-text');
   assert.ok(rate.includes(`${all}体`) && rate.includes(`${(Math.round(10000 / all) / 100).toFixed(2)}%`), '1体あたりの確率＝実際の人数から');
