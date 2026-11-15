@@ -3595,7 +3595,7 @@ body[data-screen="gacha"] .topbar {
     },
     DICE_SIDES: 6,             // 出目の最大値（1〜6）
     // 目押し（2026-11-14〜）：振れる間はサイコロが 1→6 の順に目を変えながら回り（1 つの目は stepMs）、押した瞬間の目を「狙う」。chance の確率でその目が出る（外れたら普通に振る）
-    DICE_AIM: { chance: 0.5, stepMs: 100 },
+    DICE_AIM: { chance: 0.5, stepMs: 200 },
     // 攻撃力・回復力・HP（2026-11-08〜）。技の数字は倍率：ダメージ＝攻撃力×技の攻撃、回復＝回復力×技の回復。
     // スキルの「20ダメージ」なども攻撃力×20、回復スキルは回復力×数字。
     POWER: {
@@ -7857,7 +7857,7 @@ body[data-screen="gacha"] .topbar {
   /* ---------- 目押し（2026-11-14〜・11-15 にサイコロ自体が回る形に） ---------- */
   // 振れる間は、サイコロが 1→2→…→6→1 の順に目を変えながらくるくる回る（1 つの目は DICE_AIM.stepMs）。
   // 押した（つかんだ）瞬間にピタッと止まり、その目を狙う（Engine が CONFIG.DICE_AIM.chance で決める）
-  const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 100; };
+  const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 200; };
   function aimTick() {
     requestAnimationFrame(aimTick);
     const a = D.aim;

@@ -488,7 +488,7 @@
   /* ---------- 目押し（2026-11-14〜・11-15 にサイコロ自体が回る形に） ---------- */
   // 振れる間は、サイコロが 1→2→…→6→1 の順に目を変えながらくるくる回る（1 つの目は DICE_AIM.stepMs）。
   // 押した（つかんだ）瞬間にピタッと止まり、その目を狙う（Engine が CONFIG.DICE_AIM.chance で決める）
-  const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 100; };
+  const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 200; };
   function aimTick() {
     requestAnimationFrame(aimTick);
     const a = D.aim;
