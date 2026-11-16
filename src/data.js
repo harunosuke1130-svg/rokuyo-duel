@@ -1378,6 +1378,135 @@
         text: '敵前衛全員に、それぞれ攻撃力×13のダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃の数字に3を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'damage', amount: 13, ignoreDefense: false }, { type: 'atkBonus', value: 3 }]
       }
+    },
+    // ---- 自動追加 2026-11-16（第2弾「暁の新星」・★は無作為 3 1 2 1 1 3）----
+    {
+      id: 'tenma', name: '白光の天馬騎士', glyph: '馬', maxHp: 146, element: 'holy', series: 2,
+      subTypes: ['騎士', '天馬'],
+      leaderSkill: { name: '天翔ける加護', text: '戦闘開始時、味方前衛全員に結界を付ける（各自、次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'startBarrier' }] },
+      trait: { name: '天馬の踏ん張り', text: '根性：1戦に1回、倒れるダメージを受けても HP1 で耐える（HP が2以上のとき）。', effects: [{ type: 'guts' }] },
+      moves: [
+        { name: '光槍の一閃', atk: 22, heal: 0 },
+        { name: '翼の癒し', atk: 0, heal: 15 },
+        { name: '天馬の蹴り', atk: 21, heal: 0 },
+        { name: '白光の盾', atk: 0, heal: 9, fx: { type: 'guard' } },
+        { name: '急降下突撃', atk: 24, heal: 0 },
+        { name: '雲上の休息', atk: 0, heal: 12 },
+        { name: '天翔ける大槍', atk: 33, heal: 0 },
+        { name: '聖なる羽ばたき', atk: 0, heal: 25 },
+        { name: '旋回の光槍', atk: 19, heal: 12 }
+      ],
+      skill: {
+        name: '天馬の号令', cd: 4,
+        text: '味方前衛全員を、それぞれ回復力×16回復する。さらに、このターンの通常技の攻撃の数字に3を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'heal', amount: 16 }, { type: 'atkBonus', value: 3 }]
+      }
+    },
+    {
+      id: 'kinokotori', name: '茸採りの少女', glyph: '菌', maxHp: 93, element: 'nature', series: 2,
+      subTypes: ['村人'],
+      leaderSkill: { name: '森の幸', text: '味方の固有スキルの回復の数字+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
+      moves: [
+        { name: '籠ぶつけ', atk: 10, heal: 0 },
+        { name: 'きのこ汁', atk: 0, heal: 10 },
+        { name: 'ふわふわ胞子', atk: 11, heal: 0 },
+        { name: '木陰で一休み', atk: 0, heal: 6 },
+        { name: '笑い茸', atk: 13, heal: 0 },
+        { name: '薬草えらび', atk: 2, heal: 5 },
+        { name: '大茸の傘', atk: 17, heal: 0 },
+        { name: '森の恵みの鍋', atk: 0, heal: 14 },
+        { name: '茸狩りの歌', atk: 10, heal: 8 }
+      ],
+      skill: {
+        name: '癒しの胞子', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×9回復する。',
+        effects: [{ type: 'heal', amount: 9 }]
+      }
+    },
+    {
+      id: 'kanetsuki', name: '鐘撞きの見習い', glyph: '撞', maxHp: 111, element: 'holy', series: 2,
+      subTypes: ['僧侶'],
+      leaderSkill: { name: '暁の鐘', text: '味方の固有スキルのダメージの数字+2（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 2 }] },
+      moves: [
+        { name: '撞木の一撃', atk: 15, heal: 0 },
+        { name: '朝の勤め', atk: 0, heal: 12 },
+        { name: '鐘の余韻', atk: 14, heal: 0 },
+        { name: '鐘楼で祈る', atk: 4, heal: 6 },
+        { name: '大鐘の響き', atk: 17, heal: 0 },
+        { name: '清めの水', atk: 0, heal: 9 },
+        { name: '百八の鐘', atk: 24, heal: 0 },
+        { name: '晩鐘の安らぎ', atk: 0, heal: 20 },
+        { name: '鐘の連打', atk: 13, heal: 10 }
+      ],
+      skill: {
+        name: '鐘の大音', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×11のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 11, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'kikori', name: '若い木こり', glyph: '樵', maxHp: 95, element: 'nature', series: 2,
+      subTypes: ['職人'],
+      leaderSkill: { name: '木こりの力こぶ', text: '自然属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'nature', value: 2 }] },
+      moves: [
+        { name: '斧の振り下ろし', atk: 12, heal: 0 },
+        { name: '切り株で休む', atk: 0, heal: 8 },
+        { name: '丸太転がし', atk: 13, heal: 0 },
+        { name: '弁当のおむすび', atk: 0, heal: 7 },
+        { name: '枝払い', atk: 10, heal: 0 },
+        { name: '木屑よけ', atk: 2, heal: 4 },
+        { name: '大木倒し', atk: 19, heal: 0 },
+        { name: '山小屋の囲炉裏', atk: 0, heal: 13 },
+        { name: '薪割りの舞', atk: 11, heal: 7 }
+      ],
+      skill: {
+        name: '木こりの気合', cd: 3,
+        text: 'このターンの通常技の攻撃の数字に4を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'atkBonus', value: 4 }]
+      }
+    },
+    {
+      id: 'kawauso', name: '川獺の子', glyph: '獺', maxHp: 91, element: 'water', series: 2,
+      subTypes: ['獣'],
+      leaderSkill: { name: '川辺の遊び', text: '味方全員の通常技の回復の数字+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      moves: [
+        { name: '尻尾ぱしゃり', atk: 10, heal: 0 },
+        { name: '石ころ遊び', atk: 0, heal: 9 },
+        { name: '水かけ', atk: 12, heal: 0 },
+        { name: '岩の上でひなた', atk: 0, heal: 7 },
+        { name: '川魚くわえ', atk: 12, heal: 0 },
+        { name: 'ひげの手入れ', atk: 2, heal: 5 },
+        { name: '急流くだり', atk: 18, heal: 0 },
+        { name: '巣穴でまるまる', atk: 0, heal: 14 },
+        { name: 'くるくる泳ぎ', atk: 10, heal: 8 }
+      ],
+      skill: {
+        name: '川獺の水遊び', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×8のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'kumohime', name: '深淵の蜘蛛姫', glyph: '蛛', maxHp: 136, element: 'dark', series: 2,
+      subTypes: ['魔物', '王族'],
+      leaderSkill: { name: '蜘蛛の巣城', text: '呪闇属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
+      trait: { name: '毒蜘蛛の血', text: '毒に強い：毒にならない。', effects: [{ type: 'poisonResist' }] },
+      moves: [
+        { name: '鋭い脚の刺突', atk: 23, heal: 0 },
+        { name: '繭の眠り', atk: 0, heal: 14 },
+        { name: '毒牙', atk: 18, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
+        { name: '糸の結界', atk: 6, heal: 9 },
+        { name: '糸絡め', atk: 22, heal: 0 },
+        { name: '巣の修繕', atk: 0, heal: 11 },
+        { name: '奈落の大網', atk: 34, heal: 0 },
+        { name: '女王の秘蜜', atk: 0, heal: 23 },
+        { name: '八つ脚の舞', atk: 19, heal: 12 }
+      ],
+      skill: {
+        name: '深淵の網', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×13のダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃の数字に3を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'damage', amount: 13, ignoreDefense: false }, { type: 'atkBonus', value: 3 }]
+      }
     }
   ];
 
