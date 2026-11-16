@@ -126,6 +126,16 @@ test('降参で相手の勝利・ログの呼び名を対人戦用に変えら�
   assert.equal(E.surrender(s, 'player').ok, false);
 });
 
+test('プロフィール：はじめの6体は最初の8体から選ばれる', () => {
+  const first8 = D.CHARACTERS.slice(0, 8).map(c => c.id);
+  for (let seed = 1; seed <= 200; seed++) {
+    const p = P.newProfile({ uid: 'u' + seed }, E.createRng(seed));
+    const owned = P.ownedIds(p);
+    assert.equal(owned.length, 6);
+    assert.ok(owned.every(id => first8.includes(id)), `seed ${seed}: ${owned}`);
+  }
+});
+
 test('プロフィール：初期は6体所持・石300、管理用アカウントは全キャラ所持', () => {
   const p = P.newProfile({ uid: 'u1', name: 'テスト' }, E.createRng(1));
   assert.equal(P.ownedIds(p).length, 6);

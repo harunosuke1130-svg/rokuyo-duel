@@ -38,7 +38,7 @@
 
   function newProfile(opts, rng) {
     opts = opts || {};
-    const owned = opts.isAdmin ? ALL_IDS.slice() : shuffle(ALL_IDS, rng).slice(0, ECONOMY.starterCount);
+    const owned = opts.isAdmin ? ALL_IDS.slice() : shuffle(ALL_IDS.slice(0, ECONOMY.starterPool || ALL_IDS.length), rng).slice(0, ECONOMY.starterCount);
     const chars = {};
     owned.forEach(id => { chars[id] = { level: 1, exp: 0, cap: CONFIG.LEVEL.capStep }; });
     return {

@@ -1385,6 +1385,7 @@
   const ECONOMY = {
     startStones: 300,          // はじめたときの石
     starterCount: 6,           // はじめに持っているキャラ数（ランダム）
+    starterPool: 8,            // はじめの6体を選ぶ範囲：CHARACTERS の先頭のこの数（最初の8体）
     gachaCost: 100,            // 1回
     gacha10Cost: 900,          // 10回まとめて
     duplicateExp: 300,         // 持っているキャラが出たときの経験値
