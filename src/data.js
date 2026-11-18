@@ -1551,7 +1551,7 @@
   //   limit：その弾に入れるキャラの数の目安（毎日のキャラ作りは、ここまで来たら止める）
   const SERIES = [
     { id: 1, name: '旅立ちの星泉', gacha: 'all' },
-    { id: 2, name: '暁の新星', gacha: 's2', limit: 30 }
+    { id: 2, name: '暁の新星', gacha: 's2', limit: 40 }
   ];
   const GACHAS = [
     { id: 'all', series: 1, name: '旅立ちの星泉ガチャ', text: '第1弾のキャラが同じ確率で出ます。' },
