@@ -114,6 +114,7 @@
    *   startBarrier                                 戦闘開始時、味方前衛全員に結界
    *   regen            {value}                     自分のターンの開始時、味方の生存前衛全員をそれぞれ回復（回復疲労の影響を受ける）
    *   lowDice          {dice:[1,2], atk, heal}     出目が dice のどれかのとき、味方の通常技の攻撃に atk・回復に heal を加算（攻撃0・回復0の技は除く）
+   *   thorns           {percent}                   棘：敵の通常技で味方の前衛がダメージを受けると、使った敵にその合計の percent% が返る（棘では倒れない。HP1で止まる。星4専用）
    * skill.effects の種類:
    *   atkMultiplier {value}          このターンの通常技の攻撃を value 倍
    *   atkBonus      {value}          このターンの通常技の攻撃に加算（攻撃0の技には加算しない）
@@ -121,6 +122,7 @@
    *   barrier                        味方の生存前衛全員に結界（すでに持つキャラは変化なし）
    *   reroll                         確定した数字を振り直す
    *   damage        {amount, ignoreDefense}  敵の生存前衛全員にそれぞれ直接ダメージ（属性倍率なし）
+   *   poison        {value, turns}   敵の生存前衛全員を毒にする（ターンの始めに攻撃力×value を turns 回。毒では倒れない・毒に強い敵には効かない。星4専用）
    *   chooseDice                     確定した数字を、使う人が1〜6から選んだ数字に変える（星4専用。CPU は一番よい数字を選ぶ）
    *   fatigueReset  {rounds}         味方の回復疲労をなくす（この巡から数え直し。回復量が100%に戻る）。rounds があればその巡数ぶんだけ戻す。
    *                                  1戦に1回まで（陣営ごと。2回目以降は何もしない）。heal より前に書くと、その回復にも効く
@@ -1507,8 +1509,138 @@
         text: '敵前衛全員に、それぞれ攻撃力×13のダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃の数字に3を加える（攻撃0の技には加算しない）。',
         effects: [{ type: 'damage', amount: 13, ignoreDefense: false }, { type: 'atkBonus', value: 3 }]
       }
+    },
+    // ---- 自動追加 2026-11-22（第2弾「暁の新星」・★は無作為 1 2 3 1 4 1）----
+    {
+      id: 'susuharai', name: '煤払いの小童', glyph: '煤', maxHp: 90, element: 'fire', series: 2,
+      subTypes: ['村人'],
+      leaderSkill: { name: '煤まみれの団結', text: '猛火属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 2 }] },
+      moves: [
+        { name: '煤ぼうき叩き', atk: 11, heal: 0 },
+        { name: '竈の温もり', atk: 0, heal: 8 },
+        { name: '火の粉振り払い', atk: 12, heal: 0 },
+        { name: '焚き付け拾い', atk: 0, heal: 6 },
+        { name: '煙突のぼり', atk: 13, heal: 0 },
+        { name: '灰まみれ', atk: 2, heal: 5 },
+        { name: '大掃除の火掻き', atk: 18, heal: 0 },
+        { name: '囲炉裏端の昼寝', atk: 0, heal: 13 },
+        { name: '煤けた笑顔', atk: 10, heal: 7 }
+      ],
+      skill: {
+        name: '火掻き棒の一突き', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×9のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 9, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'toudaimori', name: '潮見の灯台守', glyph: '塔', maxHp: 112, element: 'water', series: 2,
+      subTypes: ['船乗り'],
+      leaderSkill: { name: '沖の灯', text: '味方全員の最大HP+5%。', effects: [{ type: 'maxHp', scope: 'all', percent: 5 }] },
+      moves: [
+        { name: '灯の光線', atk: 14, heal: 0 },
+        { name: '霧笛の合図', atk: 0, heal: 12 },
+        { name: '高波返し', atk: 15, heal: 0 },
+        { name: '灯台の見回り', atk: 3, heal: 6 },
+        { name: '潮見の銛', atk: 16, heal: 0 },
+        { name: '油差し', atk: 0, heal: 9 },
+        { name: '大灯台の閃光', atk: 23, heal: 0 },
+        { name: '嵐の夜の暖炉', atk: 0, heal: 19 },
+        { name: '海鳴りの歌', atk: 12, heal: 10 }
+      ],
+      skill: {
+        name: '灯台の導き', cd: 3,
+        text: '確定した出目を振り直す。さらに、味方前衛全員を、それぞれ回復力×8回復する。',
+        effects: [{ type: 'reroll' }, { type: 'heal', amount: 8 }]
+      }
+    },
+    {
+      id: 'takajou', name: '紅蓮の鷹匠', glyph: '鷹', maxHp: 138, element: 'fire', series: 2,
+      subTypes: ['狩人', '鳥使い'],
+      leaderSkill: { name: '鷹匠の眼差し', text: '味方全員の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'all', value: 2 }] },
+      trait: { name: '狩りの追い打ち', text: '追撃：相手の前衛が HP3割以下なら、通常技がもう1回当たる（2回目は1回目の半分）。', effects: [{ type: 'pursuit', percent: 50, under: 30 }] },
+      moves: [
+        { name: '鷹の急襲', atk: 22, heal: 0 },
+        { name: '羽繕いの休息', atk: 0, heal: 13 },
+        { name: '炎羽の爪', atk: 21, heal: 0, fx: { type: 'multi', hits: 3 } },
+        { name: '鷹笛の癒し', atk: 4, heal: 8 },
+        { name: '火喰い鷹の嘴', atk: 24, heal: 0 },
+        { name: '止まり木の安らぎ', atk: 0, heal: 11 },
+        { name: '紅蓮の大旋回', atk: 34, heal: 0 },
+        { name: '鷹匠の秘伝膏', atk: 0, heal: 24 },
+        { name: '双鷹の舞', atk: 20, heal: 12 }
+      ],
+      skill: {
+        name: '炎鷹の群れ', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×11のダメージ（属性倍率なし・結界は有効）。さらに、このターンの通常技の攻撃の数字に4を加える（攻撃0の技には加算しない）。',
+        effects: [{ type: 'damage', amount: 11, ignoreDefense: false }, { type: 'atkBonus', value: 4 }]
+      }
+    },
+    {
+      id: 'tourou', name: '灯籠流しの娘', glyph: '籠', maxHp: 90, element: 'holy', series: 2,
+      subTypes: ['村人', '巫女'],
+      leaderSkill: { name: '灯籠の道しるべ', text: '聖光属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'holy', value: 2 }] },
+      moves: [
+        { name: '灯籠かざし', atk: 10, heal: 0 },
+        { name: '祈りの灯', atk: 0, heal: 9 },
+        { name: '川面の小石', atk: 11, heal: 0 },
+        { name: '川辺の祈り', atk: 0, heal: 6 },
+        { name: '灯の舞', atk: 11, heal: 0 },
+        { name: '笹舟流し', atk: 2, heal: 5 },
+        { name: '千の灯籠', atk: 17, heal: 0 },
+        { name: '送り火の祈り', atk: 0, heal: 13 },
+        { name: '灯籠の行列', atk: 9, heal: 8 }
+      ],
+      skill: {
+        name: '送り火', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
+    },
+    {
+      id: 'sennenju', name: '千年樹の古精', glyph: '樹', maxHp: 174, element: 'nature', series: 2,
+      subTypes: ['精霊', '樹木'],
+      leaderSkill: { name: '茨の森', text: '敵の通常技で味方の前衛がダメージを受けると、その技を使った敵に、受けたダメージの合計の15%が返る（棘では倒れない。HP1で止まる）。', effects: [{ type: 'thorns', percent: 15 }] },
+      trait: { name: '根を張る', text: '根性：1戦に1回、倒れるダメージを受けても HP1 で耐える（HP が2以上のとき）。', effects: [{ type: 'guts' }] },
+      moves: [
+        { name: '根の鞭打ち', atk: 26, heal: 0 },
+        { name: '樹液の癒し', atk: 0, heal: 20 },
+        { name: '茨の棘', atk: 20, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
+        { name: '千年の木漏れ日', atk: 10, heal: 18 },
+        { name: '大枝の薙ぎ', atk: 28, heal: 0 },
+        { name: '年輪の守り', atk: 0, heal: 14, fx: { type: 'guard' } },
+        { name: '千年の大樹撃', atk: 42, heal: 0 },
+        { name: '森の再誕', atk: 0, heal: 34 },
+        { name: '芽吹きの嵐', atk: 26, heal: 18 }
+      ],
+      skill: {
+        name: '茨の縛め', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×8のダメージ（属性倍率なし・結界は有効）。さらに敵前衛全員を毒にする（ターンの始めに攻撃力×3のダメージを3回。毒では倒れない・毒に強い敵には効かない）。',
+        effects: [{ type: 'damage', amount: 8, ignoreDefense: false }, { type: 'poison', value: 3, turns: 3 }]
+      }
+    },
+    {
+      id: 'chouchin', name: '墓場の提灯お化け', glyph: '提', maxHp: 87, element: 'dark', series: 2,
+      subTypes: ['妖怪'],
+      leaderSkill: { name: '夜の提灯行列', text: '呪闇属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 2 }] },
+      moves: [
+        { name: '提灯の火', atk: 11, heal: 0 },
+        { name: 'ぼんやり灯り', atk: 0, heal: 7 },
+        { name: 'うらめし驚かし', atk: 12, heal: 0 },
+        { name: 'ゆらゆら浮遊', atk: 0, heal: 6 },
+        { name: '舌べろ叩き', atk: 10, heal: 0 },
+        { name: '古びた蝋', atk: 2, heal: 5 },
+        { name: '百鬼の灯火', atk: 17, heal: 0 },
+        { name: '墓場の休み処', atk: 0, heal: 12 },
+        { name: '夜回りの灯', atk: 9, heal: 7 }
+      ],
+      skill: {
+        name: 'お化け提灯の脅し', cd: 3,
+        text: 'このターンの通常技の攻撃の数字に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
+        effects: [{ type: 'atkBonus', value: 5 }]
+      }
     }
   ];
+
 
   /* ---------- 経済（ガチャ・ログインボーナス・報酬） ---------- */
   const ECONOMY = {

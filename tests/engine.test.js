@@ -637,6 +637,56 @@ test('暁星の占星術師：出目を選ぶ（1〜6の検証・1回だけ・CP
   assert.ok(res.ok);
 });
 
+// 星4「千年樹の古精」（2026-11-22）：毒のスキル（poison）と、棘のリーダー（thorns）
+test('千年樹の古精：スキルで敵前衛全員にダメージと毒（毒に強い敵には効かない）', () => {
+  const team = ['sennenju', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'];
+  const s = oldScale(E.createBattle(team, ['raimei', 'mukai', 'gessen', 'kohaku', 'suiju', 'ryogen']));
+  assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], null).ok);
+  assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
+  assert.ok(E.rollInitiative(s, playerFirst()).ok);
+  assert.ok(E.roll(s, 'player', fixed(3)).ok);
+  const pv = E.previewSkill(s, 'player', 0);
+  assert.deepEqual(pv.map(p => p.type), ['damage', 'poison']);
+  assert.equal(pv[1].amount, 3);
+  assert.deepEqual(pv[1].targets.map(t => t.resist), [false, true, false], '霧海の旅人は毒に強い');
+  const r = E.useSkill(s, 'player', 0, null);
+  assert.ok(r.ok);
+  const cpu = s.teams.cpu;
+  assert.deepEqual(cpu[0].poison, { amount: 3, turns: 3 });
+  assert.equal(cpu[1].poison, undefined);
+  assert.deepEqual(cpu[2].poison, { amount: 3, turns: 3 });
+  const dmg = r.events.filter(e => e.type === 'damage');
+  assert.deepEqual(dmg.map(e => e.status), ['poison', 'resist', 'poison'], 'ダメージの表示に毒を添える');
+});
+
+test('千年樹の古精（リーダー）：通常技で受けたダメージの15%が、使った敵に返る（HP1で止まる）', () => {
+  const team = ['sennenju', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'];
+  const s = oldScale(E.createBattle(C, team));
+  assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], null).ok);
+  assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], 0).ok);
+  assert.ok(E.rollInitiative(s, playerFirst()).ok);
+  // 翠樹の薬師の攻撃の技の出目を探す
+  const d = [1, 2, 3, 4, 5, 6].find(x => E.unitMove(s.teams.player[0], x).atk > 0);
+  assert.ok(E.roll(s, 'player', fixed(d)).ok);
+  const pv = E.previewMove(s, 'player', 0);
+  const total = pv.attacks.reduce((a, x) => a + x.damage, 0);
+  const hp0 = s.teams.player[0].hp;
+  const r = E.useMove(s, 'player', 0);
+  assert.ok(r.ok);
+  const back = Math.min(Math.floor(total * 15 / 100), hp0 - 1);
+  assert.equal(hp0 - s.teams.player[0].hp, back);
+  if (back > 0) assert.ok(r.events.some(e => e.type === 'damage' && e.side === 'player' && e.thorns && e.amount === back));
+  // HP1 では返らない（棘では倒れない）
+  const t = oldScale(E.createBattle(C, team));
+  assert.ok(E.chooseFormation(t, 'player', [0, 1, 2], null).ok);
+  assert.ok(E.chooseFormation(t, 'cpu', [0, 1, 2], 0).ok);
+  assert.ok(E.rollInitiative(t, playerFirst()).ok);
+  t.teams.player[0].hp = 1;
+  assert.ok(E.roll(t, 'player', fixed(d)).ok);
+  assert.ok(E.useMove(t, 'player', 0).ok);
+  assert.equal(t.teams.player[0].hp, 1);
+});
+
 // 技の効果（2026-11-09）：吸収・毒・弱体・連撃・ピンチ・4分の1結界
 const FXT = ['kyuuketsu', 'senpu', 'kokuyou', 'kohaku', 'mukai', 'sabakuou'];
 function fxBattle(front) {

@@ -767,6 +767,19 @@
         state.dice = rollDie(rng);
         addLog(state, ctx, `出目を振り直した：${before} → ${state.dice}`, 'dice');
         ctx.events.push({ type: 'roll', side, value: state.dice, reroll: true });
+      } else if (eff.type === 'poison') {
+        // 毒（固有スキル）：敵の生存前衛全員を毒にする（攻撃力×value を turns 回。毒に強い敵には効かない）
+        const parts = frontAlive(state, targetSide).filter(i => state.teams[targetSide][i].hp > 0).map(i => {
+          const t = state.teams[targetSide][i];
+          const resist = !!traitOf(t, 'poisonResist');
+          if (!resist) t.poison = { amount: eff.value * unitAtk(user), turns: eff.turns };
+          // 直前のダメージの表示に「毒」を添える（無ければ毒だけの印）
+          const ev = ctx.events.slice().reverse().find(e => e.type === 'damage' && e.side === targetSide && e.idx === i && !e.poison);
+          if (ev) ev.status = resist ? 'resist' : 'poison';
+          else ctx.events.push({ type: 'status', side: targetSide, idx: i, status: resist ? 'resist' : 'poison' });
+          return `${unitName(t)}${resist ? '（毒に強い）' : ''}`;
+        });
+        addLog(state, ctx, `［${skill.name}・毒］${team(state, targetSide)}前衛全員を毒にした（ターンの始めに${eff.value * unitAtk(user)}ダメージ×${eff.turns}回）：${parts.join('、') || '対象なし'}`, 'damage');
       } else if (eff.type === 'damage') {
         const targets = frontAlive(state, targetSide); // 処理開始時の敵前衛だけが対象
         const parts = targets.map(i => {
@@ -834,6 +847,16 @@
       const boostNote = (boost.mult !== 1 || boost.bonus) ? `・強化後×${move.atk * boost.mult + boost.bonus}` : '';
       addLog(state, ctx, `［${move.name}・攻撃力${boost.power}×${move.atk}${boostNote}${boost.pinch ? '・反撃で2倍' : ''}${boost.firstStrike ? '・先手で1.5倍' : ''}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、')}`, 'damage');
       attacked = targets.length > 0;
+      // 棘（相手のリーダースキル thorns）：通常技で与えたダメージの percent% が、使ったキャラに返る（棘では倒れない。HP1で止まる）
+      const th = leaderEffects(state, targetSide).filter(e => e.type === 'thorns').reduce((a, e) => a + (e.percent || 0), 0);
+      if (th > 0 && total > 0 && unit.hp > 1) {
+        const back = Math.max(0, Math.min(Math.floor(total * th / 100), unit.hp - 1));
+        if (back > 0) {
+          unit.hp -= back;
+          ctx.events.push({ type: 'damage', side, idx, amount: back, thorns: true });
+          addLog(state, ctx, `［棘・${unitChar(state.teams[targetSide][state.leader[targetSide]]).leaderSkill.name}］${team(state, side)}の${unitName(unit)}に${back}ダメージが返った（HP ${unit.hp}/${unit.maxHp}）`, 'damage');
+        }
+      }
       // 吸収：与えたダメージの一部で自分を回復
       if (fx && fx.type === 'drain' && total > 0 && unit.hp > 0) {
         const got = Math.min(Math.floor(total * fx.percent / 100), unit.maxHp - unit.hp);
@@ -928,6 +951,10 @@
         const base = (e.amount + leaderSum(state, side, 'skillDamageBonus')) * unitAtk(unit);
         return { type: 'damage', base, ignoreDefense: !!e.ignoreDefense,
           targets: frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; const r = computeSkillDamage(base, e.ignoreDefense, t); return { idx: i, name: unitName(t), damage: r.damage, barrier: r.barrier }; }) };
+      }
+      if (e.type === 'poison') {
+        return { type: 'poison', amount: e.value * unitAtk(unit), turns: e.turns,
+          targets: frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; return { idx: i, name: unitName(t), resist: !!traitOf(t, 'poisonResist') }; }) };
       }
       if (e.type === 'barrier') {
         return { type: 'barrier', targets: frontAlive(state, side).map(i => ({ idx: i, name: unitName(state.teams[side][i]), already: !!state.teams[side][i].barrier })) };
