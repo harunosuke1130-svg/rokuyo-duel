@@ -1999,7 +1999,7 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bt-dice-btn.ready::before, .die-sparks i, .die-pop.glow::after { animation: none !important; }
+  .bt-dice-btn.ready::before, .die-sparks i, .die-pop.glow::after, .die-pop.glow-big::after, .die-pop.glow-big::before { animation: none !important; }
   .bt-dice-btn.ready::before { opacity: .7; }
   .bt-dice-btn.glide { transition: none; }
 }
@@ -2027,6 +2027,18 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   animation: popGlow .6s ease-out forwards;
 }
 @keyframes popGlow { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+/* 目押しが当たったとき：強い金色の光と、外へ広がる光の輪（文字は出さない） */
+.die-pop.glow-big::after {
+  content: ""; position: absolute; inset: -8px; border-radius: 16%; pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(255, 230, 150, .95), 0 0 34px 12px rgba(255, 200, 80, .75), 0 0 70px 24px rgba(255, 170, 60, .35);
+  animation: popGlow 1s ease-out forwards;
+}
+.die-pop.glow-big::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  border: 3px solid rgba(255, 226, 140, .95); box-shadow: 0 0 14px rgba(255, 200, 80, .8);
+  animation: popRing .75s ease-out forwards;
+}
+@keyframes popRing { 0% { transform: scale(.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
 
 /* ======================================================================
  * 固有スキルの確認画面（キャラの絵と技名が主役。羊皮紙・水彩・布・控えめな金）
@@ -2833,7 +2845,6 @@ body[data-screen="gacha"] .topbar {
 .ga-series-ico { font-size: 44px; color: #b8862a; }
 /* ---------- 目押し（2026-11-14・11-15 にサイコロ自体が回る形に）：止めた瞬間に光る ---------- */
 .bt-dice-btn.aim-locked .die-body { filter: drop-shadow(0 0 8px #ffe27a); }
-.fx-num.fx-aim { color: #ffe27a; font-size: 22px; font-weight: 800; text-shadow: 0 0 8px rgba(255, 200, 60, .8), 0 2px 3px #000; }
 /* 目押しの間は、盤面の中央で大きく回す（2026-11-15） */
 #screen-battle .dice-layer.aim-big { --die: 76px; }
 @media (min-width: 960px) and (orientation: landscape) {
@@ -7790,15 +7801,16 @@ body[data-screen="gacha"] .topbar {
   }
 
   // 出目が決まって面が飛び出す瞬間の、短く明るい音
-  function chime() {
+  function chime(big) {
     const ac = audio();
     if (!ac || ac.state !== 'running') return;
     try {
       const t = ac.currentTime;
-      [[880, 0.12], [1320, 0.07]].forEach(([f, v]) => {
+      (big ? [[880, 0.13], [1320, 0.09], [1760, 0.07], [2640, 0.04]] : [[880, 0.12], [1320, 0.07]]).forEach(([f, v], i) => {
         const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
-        const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-        o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.24);
+        const s = t + (big ? i * 0.05 : 0), len = big ? 0.42 : 0.22;
+        const g = ac.createGain(); g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(v, s + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, s + len);
+        o.connect(g).connect(ac.destination); o.start(s); o.stop(s + len + 0.02);
       });
     } catch (e) { /* 音は飾り */ }
   }
@@ -7918,7 +7930,7 @@ body[data-screen="gacha"] .topbar {
     const [x, y] = anchor('center'), S = popSize();
     D.pop.getAnimations().forEach(a => a.cancel());
     D.pop.dataset.n = n;
-    D.pop.classList.remove('glow');
+    D.pop.classList.remove('glow', 'glow-big');
     Object.assign(D.pop.style, { left: x.toFixed(1) + 'px', top: y.toFixed(1) + 'px', width: S + 'px', height: S + 'px', transform: 'translate(-50%, -50%)' });
     setFlat(true);
   }
@@ -7978,27 +7990,6 @@ body[data-screen="gacha"] .topbar {
     const endAll = () => { settleFinal(); callDone(); };
     if (!D.stage) { callDone(); return; }
 
-    // 目押しでタップした：その場でピタッと止まる。狙いが当たればそのまま、外れたら短く転がって別の目に
-    if (opts.stop && !opts.still) {
-      D.anim = { token, finish: () => { D.layer.classList.remove('aim-big'); endAll(); }, stop: true };
-      const aimed = Number(opts.stop);
-      const faces = aimed === value ? [] : [1 + (aimed % 6), 1 + ((aimed + 2) % 6), value].filter((n, k, arr) => arr.indexOf(n) === k);
-      let k = 0;
-      const next = () => {
-        if (!D.anim || D.anim.token !== token) return;
-        if (k < faces.length) {
-          const n = faces[k++];
-          draw(qMul(qAxis(1, -1, 0.4, 40), restQ(n, 0)), 0, 0, 4);
-          setTimeout(next, 90);
-          return;
-        }
-        draw(restQ(value, 0), 0, 0, 0);
-        D.btn.animate([{ transform: D.btn.style.transform + ' scale(1.25)' }, { transform: D.btn.style.transform }], { duration: 220, easing: 'ease-out' });
-        setTimeout(() => { if (D.anim && D.anim.token === token) { D.layer.classList.remove('aim-big'); endAll(); } }, aimed === value ? 380 : 300);
-      };
-      next();
-      return;
-    }
     // 動きを減らす：転がり・急な拡大はせず、平らな出目を短いフェードで出す
     if (opts.still) {
       D.anim = { token, finish: endAll };
@@ -8009,6 +8000,7 @@ body[data-screen="gacha"] .topbar {
       return;
     }
 
+    D.layer.classList.remove('aim-big');
     const S = size(), half = S / 2;
     const t = opts.throw || null;
     const power = clamp(t && Number.isFinite(t.power) ? t.power : STD_POWER + (opts.tap ? 0 : (Math.random() - 0.5) * 0.3), 0.1, 1);
@@ -8097,7 +8089,7 @@ body[data-screen="gacha"] .topbar {
     const finishNow = () => { stopAll(); endAll(); };
     D.anim = { token, finish: finishNow };
     // 描画が止まっても（裏に回ったなど）必ず結果を出す
-    const guard = setTimeout(finishNow, tStop + T.hold + T.pop + 900);
+    const guard = setTimeout(finishNow, tStop + T.hold + T.pop * 1.6 + 900);
 
     // 停止 → 上の面を少し見せる → その面だけが盤面の中央へ移りながら、平らな大きな正方形に「バンッ」と（行き過ぎて戻る）。そのまま残す
     function popOut() {
@@ -8112,16 +8104,20 @@ body[data-screen="gacha"] .topbar {
       Object.assign(D.pop.style, { left: px.toFixed(1) + 'px', top: py.toFixed(1) + 'px', width: B + 'px', height: B + 'px', transform: popTf(0, 0, 2000, 0, 0, 1) });
       setFlat(true);
       const sc0 = Math.max(face.width, face.height) / B;
+      // 目押しが当たった（big）：大きく行き過ぎて戻り、光の輪が広がる・音も華やかに（文字は出さない）
+      const big = !!opts.big, tPop = big ? Math.round(T.pop * 1.6) : T.pop;
       D.pop.animate([
         { transform: popTf(fx - px, fy - py, 260, TILT, yaw, sc0), offset: 0, easing: 'cubic-bezier(.15, .7, .3, 1)' },
-        { transform: popTf(0, 0, 2000, 0, 0, 1.13), offset: 0.52, easing: 'cubic-bezier(.4, 0, .3, 1)' },
+        { transform: popTf(0, 0, 2000, 0, 0, big ? 1.38 : 1.13), offset: big ? 0.42 : 0.52, easing: 'cubic-bezier(.4, 0, .3, 1)' },
+        ...(big ? [{ transform: popTf(0, 0, 2000, 0, 0, 0.94), offset: 0.72, easing: 'ease-in-out' }] : []),
         { transform: popTf(0, 0, 2000, 0, 0, 1), offset: 1 }
-      ], { duration: T.pop, fill: 'none' });
-      D.pop.classList.remove('glow'); void D.pop.offsetWidth; D.pop.classList.add('glow');
-      chime();
+      ], { duration: tPop, fill: 'none' });
+      D.pop.classList.remove('glow', 'glow-big'); void D.pop.offsetWidth; D.pop.classList.add(big ? 'glow-big' : 'glow');
+      chime(big);
+      if (big) knock(1);
       $value().textContent = `出目 ${value}`;
       // 拡大しきったら、ゲームは次へ（技を選べる）。大きな面はそのターンの間、中央に残す（押しても下のカード・技に届く）
-      later(() => { stopAll(); settleFinal(); callDone(); }, T.pop);
+      later(() => { stopAll(); settleFinal(); callDone(); }, tPop);
     }
 
     function frame(now) {
@@ -8174,7 +8170,7 @@ body[data-screen="gacha"] .topbar {
 
   /* ---------- 目押し（2026-11-14〜・11-15 にサイコロ自体が回る形に） ---------- */
   // 振れる間は、サイコロが 1→2→…→6→1 の順に目を変えながらくるくる回る（1 つの目は DICE_AIM.stepMs）。
-  // 押した（つかんだ）瞬間にピタッと止まり、その目を狙う（Engine が CONFIG.DICE_AIM.chance で決める）
+  // 押した（つかんだ）瞬間の目を狙い、盤面を転がって出目が出る（当たりは Engine が CONFIG.DICE_AIM.chance で決める。2026-11-22〜 ピタッと止めずに転がす）
   const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 200; };
   function aimTick() {
     requestAnimationFrame(aimTick);
@@ -8663,8 +8659,6 @@ body[data-screen="gacha"] .topbar {
         bt.lastRoll = rollEv;
         if (rollEv.reroll && !rollEv.chosen) windAtDice();
         animateDice(rollEv, () => {
-          // 目押し：狙った目が出たら知らせる（相手の目押しも）
-          if (rollEv.aimHit) floatAt(document.querySelector('.die-pop') || $('#btn-roll'), rollEv.side === bt.me ? '目押し成功！' : '相手の目押し成功', 'fx-aim', -70);
           afterAction(r, rollEv.side === bt.me && !rollEv.reroll ? 0 : undefined);
         });
         return;
@@ -8972,7 +8966,7 @@ body[data-screen="gacha"] .topbar {
     else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
     else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
-    else if (s.phase === 'roll') { phase = 'サイコロを止める'; sub = '回っているサイコロを、出したい目でタップ（目押し）'; }
+    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = '回っているサイコロを、出したい目でタップ（目押し）'; }
     else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
     else { phase = '技を選ぶ'; sub = '使う技を選んでください'; }
@@ -8991,7 +8985,7 @@ body[data-screen="gacha"] .topbar {
     if (s.phase === 'over') { btn.disabled = !!U.ui.modal; cap = '結果を見る'; }
     else {
       btn.disabled = bt.locked || bt.waiting || bt.diceAnim || s.turnSide !== bt.me || s.phase !== 'roll';
-      cap = btn.disabled ? '' : 'タップで止める・スワイプで投げる';
+      cap = btn.disabled ? '' : 'タップで振る・スワイプで投げる';
     }
     $('#roll-cap').textContent = cap;
     btn.classList.toggle('ready', !btn.disabled && s.phase !== 'over');
@@ -9601,10 +9595,11 @@ body[data-screen="gacha"] .topbar {
     const fast = U.FAST;
     try {
       Dice.roll({
-        value: ev.value, from: ev.reroll ? 'center' : ev.side === bt.me ? 'me' : 'foe',
+        value: ev.value,
         throw: ev.throw || null, tap: !ev.throw && ev.side === bt.me && !ev.reroll,
-        // 目押しでタップ（投げていない）：その場でピタッと止める
-        stop: !ev.throw && ev.aim && ev.side === bt.me && !ev.reroll ? ev.aim : 0,
+        // 目押しでタップ（投げていない）：回っていた中央から盤面を転がり、出目が大きく出る。当たったら演出を大きく（文字は出さない）
+        from: ev.reroll || (!ev.throw && ev.aim && ev.side === bt.me) ? 'center' : ev.side === bt.me ? 'me' : 'foe',
+        big: !!ev.aimHit,
         still: fast || reduced(), instant: fast,
         onDone: () => (fast ? schedule(done, DELAY.roll) : done())
       });
@@ -11553,7 +11548,7 @@ body[data-screen="gacha"] .topbar {
       <ol class="help-list">
         <li>持っているキャラから異なる6体でチームを作ります。戦闘前に前衛3体・後衛3体と<b>リーダー</b>を決めます。</li>
         <li><b>先攻・後攻はサイコロ</b>で決めます。大きい数を出した方が先攻、同じ数なら振り直しです。</li>
-        <li><b>目押し</b>：自分の番になると、サイコロが 1→2→…→6 の順に目を変えながらくるくる回ります。出したい目のときにタップするとピタッと止まり、半分の確率でその目が出ます（外れたら少し転がって別の目になります。スワイプで投げたときは、つかんだ瞬間の目を狙います）。ダンジョンの敵と CPU 対戦の相手は目押しをしません。対人戦はお互いに使えます。</li>
+        <li><b>目押し</b>：自分の番になると、サイコロが 1→2→…→6 の順に目を変えながらくるくる回ります。出したい目のときにタップすると、サイコロが盤面を転がり、半分の確率でその目が出ます（狙いどおりの目が出たときは、出目が大きく光ります。スワイプで投げたときは、つかんだ瞬間の目を狙います）。ダンジョンの敵と CPU 対戦の相手は目押しをしません。対人戦はお互いに使えます。</li>
         <li>自分のターンは「数字を出す」→（必要なら交代1回・固有スキル1回。どちらが先でもよい）→ 前衛から1体の「出目に対応する技」を1つ使う、の順です。交代や選び直しで数字は変わりません（振り直しスキルだけ例外）。</li>
         <li>攻撃は<b>敵前衛全員</b>、回復は<b>味方前衛全員</b>にそれぞれ全量。後衛は攻撃も回復も受けません。固有スキルは後衛のキャラも使えます。</li>
         <li>前衛が倒れたら後衛から補充します。6体すべてが戦闘不能になったら負けです。</li>

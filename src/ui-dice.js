@@ -103,15 +103,16 @@
   }
 
   // 出目が決まって面が飛び出す瞬間の、短く明るい音
-  function chime() {
+  function chime(big) {
     const ac = audio();
     if (!ac || ac.state !== 'running') return;
     try {
       const t = ac.currentTime;
-      [[880, 0.12], [1320, 0.07]].forEach(([f, v]) => {
+      (big ? [[880, 0.13], [1320, 0.09], [1760, 0.07], [2640, 0.04]] : [[880, 0.12], [1320, 0.07]]).forEach(([f, v], i) => {
         const o = ac.createOscillator(); o.type = 'triangle'; o.frequency.value = f;
-        const g = ac.createGain(); g.gain.setValueAtTime(0.0001, t); g.gain.exponentialRampToValueAtTime(v, t + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, t + 0.22);
-        o.connect(g).connect(ac.destination); o.start(t); o.stop(t + 0.24);
+        const s = t + (big ? i * 0.05 : 0), len = big ? 0.42 : 0.22;
+        const g = ac.createGain(); g.gain.setValueAtTime(0.0001, s); g.gain.exponentialRampToValueAtTime(v, s + 0.01); g.gain.exponentialRampToValueAtTime(0.0001, s + len);
+        o.connect(g).connect(ac.destination); o.start(s); o.stop(s + len + 0.02);
       });
     } catch (e) { /* 音は飾り */ }
   }
@@ -231,7 +232,7 @@
     const [x, y] = anchor('center'), S = popSize();
     D.pop.getAnimations().forEach(a => a.cancel());
     D.pop.dataset.n = n;
-    D.pop.classList.remove('glow');
+    D.pop.classList.remove('glow', 'glow-big');
     Object.assign(D.pop.style, { left: x.toFixed(1) + 'px', top: y.toFixed(1) + 'px', width: S + 'px', height: S + 'px', transform: 'translate(-50%, -50%)' });
     setFlat(true);
   }
@@ -291,27 +292,6 @@
     const endAll = () => { settleFinal(); callDone(); };
     if (!D.stage) { callDone(); return; }
 
-    // 目押しでタップした：その場でピタッと止まる。狙いが当たればそのまま、外れたら短く転がって別の目に
-    if (opts.stop && !opts.still) {
-      D.anim = { token, finish: () => { D.layer.classList.remove('aim-big'); endAll(); }, stop: true };
-      const aimed = Number(opts.stop);
-      const faces = aimed === value ? [] : [1 + (aimed % 6), 1 + ((aimed + 2) % 6), value].filter((n, k, arr) => arr.indexOf(n) === k);
-      let k = 0;
-      const next = () => {
-        if (!D.anim || D.anim.token !== token) return;
-        if (k < faces.length) {
-          const n = faces[k++];
-          draw(qMul(qAxis(1, -1, 0.4, 40), restQ(n, 0)), 0, 0, 4);
-          setTimeout(next, 90);
-          return;
-        }
-        draw(restQ(value, 0), 0, 0, 0);
-        D.btn.animate([{ transform: D.btn.style.transform + ' scale(1.25)' }, { transform: D.btn.style.transform }], { duration: 220, easing: 'ease-out' });
-        setTimeout(() => { if (D.anim && D.anim.token === token) { D.layer.classList.remove('aim-big'); endAll(); } }, aimed === value ? 380 : 300);
-      };
-      next();
-      return;
-    }
     // 動きを減らす：転がり・急な拡大はせず、平らな出目を短いフェードで出す
     if (opts.still) {
       D.anim = { token, finish: endAll };
@@ -322,6 +302,7 @@
       return;
     }
 
+    D.layer.classList.remove('aim-big');
     const S = size(), half = S / 2;
     const t = opts.throw || null;
     const power = clamp(t && Number.isFinite(t.power) ? t.power : STD_POWER + (opts.tap ? 0 : (Math.random() - 0.5) * 0.3), 0.1, 1);
@@ -410,7 +391,7 @@
     const finishNow = () => { stopAll(); endAll(); };
     D.anim = { token, finish: finishNow };
     // 描画が止まっても（裏に回ったなど）必ず結果を出す
-    const guard = setTimeout(finishNow, tStop + T.hold + T.pop + 900);
+    const guard = setTimeout(finishNow, tStop + T.hold + T.pop * 1.6 + 900);
 
     // 停止 → 上の面を少し見せる → その面だけが盤面の中央へ移りながら、平らな大きな正方形に「バンッ」と（行き過ぎて戻る）。そのまま残す
     function popOut() {
@@ -425,16 +406,20 @@
       Object.assign(D.pop.style, { left: px.toFixed(1) + 'px', top: py.toFixed(1) + 'px', width: B + 'px', height: B + 'px', transform: popTf(0, 0, 2000, 0, 0, 1) });
       setFlat(true);
       const sc0 = Math.max(face.width, face.height) / B;
+      // 目押しが当たった（big）：大きく行き過ぎて戻り、光の輪が広がる・音も華やかに（文字は出さない）
+      const big = !!opts.big, tPop = big ? Math.round(T.pop * 1.6) : T.pop;
       D.pop.animate([
         { transform: popTf(fx - px, fy - py, 260, TILT, yaw, sc0), offset: 0, easing: 'cubic-bezier(.15, .7, .3, 1)' },
-        { transform: popTf(0, 0, 2000, 0, 0, 1.13), offset: 0.52, easing: 'cubic-bezier(.4, 0, .3, 1)' },
+        { transform: popTf(0, 0, 2000, 0, 0, big ? 1.38 : 1.13), offset: big ? 0.42 : 0.52, easing: 'cubic-bezier(.4, 0, .3, 1)' },
+        ...(big ? [{ transform: popTf(0, 0, 2000, 0, 0, 0.94), offset: 0.72, easing: 'ease-in-out' }] : []),
         { transform: popTf(0, 0, 2000, 0, 0, 1), offset: 1 }
-      ], { duration: T.pop, fill: 'none' });
-      D.pop.classList.remove('glow'); void D.pop.offsetWidth; D.pop.classList.add('glow');
-      chime();
+      ], { duration: tPop, fill: 'none' });
+      D.pop.classList.remove('glow', 'glow-big'); void D.pop.offsetWidth; D.pop.classList.add(big ? 'glow-big' : 'glow');
+      chime(big);
+      if (big) knock(1);
       $value().textContent = `出目 ${value}`;
       // 拡大しきったら、ゲームは次へ（技を選べる）。大きな面はそのターンの間、中央に残す（押しても下のカード・技に届く）
-      later(() => { stopAll(); settleFinal(); callDone(); }, T.pop);
+      later(() => { stopAll(); settleFinal(); callDone(); }, tPop);
     }
 
     function frame(now) {
@@ -487,7 +472,7 @@
 
   /* ---------- 目押し（2026-11-14〜・11-15 にサイコロ自体が回る形に） ---------- */
   // 振れる間は、サイコロが 1→2→…→6→1 の順に目を変えながらくるくる回る（1 つの目は DICE_AIM.stepMs）。
-  // 押した（つかんだ）瞬間にピタッと止まり、その目を狙う（Engine が CONFIG.DICE_AIM.chance で決める）
+  // 押した（つかんだ）瞬間の目を狙い、盤面を転がって出目が出る（当たりは Engine が CONFIG.DICE_AIM.chance で決める。2026-11-22〜 ピタッと止めずに転がす）
   const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 200; };
   function aimTick() {
     requestAnimationFrame(aimTick);

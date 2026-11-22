@@ -1991,7 +1991,7 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 }
 
 @media (prefers-reduced-motion: reduce) {
-  .bt-dice-btn.ready::before, .die-sparks i, .die-pop.glow::after { animation: none !important; }
+  .bt-dice-btn.ready::before, .die-sparks i, .die-pop.glow::after, .die-pop.glow-big::after, .die-pop.glow-big::before { animation: none !important; }
   .bt-dice-btn.ready::before { opacity: .7; }
   .bt-dice-btn.glide { transition: none; }
 }
@@ -2019,6 +2019,18 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
   animation: popGlow .6s ease-out forwards;
 }
 @keyframes popGlow { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
+/* 目押しが当たったとき：強い金色の光と、外へ広がる光の輪（文字は出さない） */
+.die-pop.glow-big::after {
+  content: ""; position: absolute; inset: -8px; border-radius: 16%; pointer-events: none;
+  box-shadow: 0 0 0 3px rgba(255, 230, 150, .95), 0 0 34px 12px rgba(255, 200, 80, .75), 0 0 70px 24px rgba(255, 170, 60, .35);
+  animation: popGlow 1s ease-out forwards;
+}
+.die-pop.glow-big::before {
+  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
+  border: 3px solid rgba(255, 226, 140, .95); box-shadow: 0 0 14px rgba(255, 200, 80, .8);
+  animation: popRing .75s ease-out forwards;
+}
+@keyframes popRing { 0% { transform: scale(.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
 
 /* ======================================================================
  * 固有スキルの確認画面（キャラの絵と技名が主役。羊皮紙・水彩・布・控えめな金）
@@ -2825,7 +2837,6 @@ body[data-screen="gacha"] .topbar {
 .ga-series-ico { font-size: 44px; color: #b8862a; }
 /* ---------- 目押し（2026-11-14・11-15 にサイコロ自体が回る形に）：止めた瞬間に光る ---------- */
 .bt-dice-btn.aim-locked .die-body { filter: drop-shadow(0 0 8px #ffe27a); }
-.fx-num.fx-aim { color: #ffe27a; font-size: 22px; font-weight: 800; text-shadow: 0 0 8px rgba(255, 200, 60, .8), 0 2px 3px #000; }
 /* 目押しの間は、盤面の中央で大きく回す（2026-11-15） */
 #screen-battle .dice-layer.aim-big { --die: 76px; }
 @media (min-width: 960px) and (orientation: landscape) {
