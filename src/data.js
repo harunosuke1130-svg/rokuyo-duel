@@ -1732,7 +1732,7 @@
   ];
   const GACHAS = [
     { id: 'all', series: 1, name: '旅立ちの星泉ガチャ', text: '第1弾のキャラが同じ確率で出ます。' },
-    { id: 's2', series: 2, name: '魂と毒の宴ガチャ', feature: ['tamakui', 'dokujahime'], text: '第2弾のキャラだけが出ます（その中では全員同じ確率）。主役は★4の虚ろの魂喰らいと腐れ沼の毒蛇姫。' }
+    { id: 's2', series: 2, name: '魂と毒の宴ガチャ', feature: ['tamakui', 'dokujahime'], art: 's2', text: '第2弾のキャラだけが出ます（その中では全員同じ確率）。主役は★4の虚ろの魂喰らいと腐れ沼の毒蛇姫。' }
   ].concat(Object.keys(ELEMENTS).map(el => ({
     id: el, element: el, name: ELEMENTS[el].name + 'ガチャ', text: `${ELEMENTS[el].name}属性のキャラだけが出ます（すべての弾から。その中では全員同じ確率）。`
   })));

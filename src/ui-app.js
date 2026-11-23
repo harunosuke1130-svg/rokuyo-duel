@@ -1265,7 +1265,10 @@
     const newSeries = !el && g.id !== 'all';   // 第2弾以降（絵はまだ無いので、文字の札）
     $('#screen-gacha').dataset.kind = g.element || (newSeries ? 'series' : 'all');
     // 上の絵：星泉ガチャは利用者の絵（題名・キャラ名は絵の中）。属性召喚は属性の色の札
-    $('#gacha-hero').innerHTML = newSeries
+    // 弾に絵（GACHAS の art。src/img/gacha-<art>.webp を style.css で使う）があれば、その絵を上に出す（下の「タップして開く」の行は切って見せない）
+    $('#gacha-hero').innerHTML = newSeries && g.art
+      ? `<div class="ga-art-wrap"><h2 class="sr-only">${esc(g.name)}</h2><div class="ga-hero-art ga-hero-series" data-art="${esc(g.art)}" role="img" aria-label="${esc(g.name)}${(g.feature || []).length ? '（' + g.feature.map(id => esc(E.getChar(id).name)).join('・') + '）' : ''}"></div><button type="button" class="ga-back" data-gacha-kind="all" aria-label="旅立ちの星泉ガチャへ">‹ 星泉ガチャへ</button></div>`
+      : newSeries
       ? `<div class="ga-el-hero ga-series-hero">${(g.feature || []).length ? `<span class="ga-feature" aria-hidden="true">${g.feature.map(id => `<span class="emblem ga-feature-face" data-char="${esc(id)}">${esc(E.getChar(id).glyph)}</span>`).join('')}</span>` : '<span class="ga-el-ico ga-series-ico" aria-hidden="true">✦</span>'}<h2>${esc(g.name)}</h2><p>${esc(g.text)}</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
       : el
       ? `<div class="ga-el-hero" data-el="${g.element}"><span class="ga-el-ico"><span class="el-ico" data-el="${g.element}" aria-hidden="true"></span></span><h2>${esc(el.name)}の召喚</h2><p>${esc(el.name)}属性のキャラだけが出ます</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
@@ -1297,7 +1300,7 @@
     $('#gacha-pool-title').textContent = `${g.name}で呼び出せるキャラ（${pool.length}体・所持${owned}体）`;
     $('#gacha-pool').innerHTML = pool.map(id => E.getChar(id)).map(ch => `<div class="pool-item${P.owns(p, ch.id) ? '' : ' missing'}">${emblem(ch, P.owns(p, ch.id) ? null : { hp: 0 }, 'small')}<span>${esc(ch.name)}${starsHtml(ch)}</span><span class="muted">${P.owns(p, ch.id) ? 'Lv' + P.levelOf(p, ch.id) : '未所持'}</span></div>`).join('');
     // ★4の注目キャラ（このガチャで出るものだけ）
-    const feat = FEATURED.filter(id => pool.indexOf(id) >= 0).map(id => E.getChar(id)).filter(Boolean);
+    const feat = (g.feature || FEATURED).filter(id => pool.indexOf(id) >= 0).map(id => E.getChar(id)).filter(Boolean);
     $('#gacha-featured').innerHTML = feat.length ? `<h3 class="ga-sec"><span>★4の注目キャラクター</span></h3><div class="ga-feat-row">${feat.map(ch => `<div class="ga-feat" data-el="${ch.element}">${emblem(ch, null, 'small')}<span class="ga-feat-main"><b>${esc(ch.name)}</b>${starsHtml(ch)}<small>${esc(ch.skill.name)}：${esc(ch.skill.text)}</small></span><span class="ga-feat-own">${P.owns(p, ch.id) ? '所持' : '未所持'}</span></div>`).join('')}</div><p class="ga-note">注目キャラも、ほかのキャラと同じ確率です。</p>` : '';
     // 種類：星泉ガチャと、5つの属性召喚
     // 弾ごとのガチャ（キャラがまだいない弾は「準備中」）
@@ -1309,7 +1312,9 @@
       const n = P.gachaPool(k.id).length;
       return `<button type="button" class="gk-btn ga-kind" data-gacha-kind="${k.id}" aria-pressed="${k.id === gachaKind}" data-el="${k.element}"><span class="el-ico" data-el="${k.element}" aria-hidden="true"></span><b>${esc(D.ELEMENTS[k.element].name)}</b><small>${n}体</small></button>`;
     }).join('');
-    $('#gacha-kinds').innerHTML = `<h3 class="ga-sec"><span>弾ごとの召喚</span></h3><div class="ga-kind-row ga-series-row">${seriesBtns}</div>`
+    // 星泉ガチャの画面では、絵のある弾をバナーで案内する（押すとその弾のガチャへ）
+    const banners = gachaKind === 'all' ? D.GACHAS.filter(k => k.art && P.gachaPool(k.id).length).map(k => `<button type="button" class="ga-banner" data-gacha-kind="${esc(k.id)}" data-art="${esc(k.art)}" aria-label="${esc(k.name)}を開く"></button>`).join('') : '';
+    $('#gacha-kinds').innerHTML = banners + `<h3 class="ga-sec"><span>弾ごとの召喚</span></h3><div class="ga-kind-row ga-series-row">${seriesBtns}</div>`
       + `<h3 class="ga-sec"><span>属性召喚</span></h3><div class="ga-kind-row">${elBtns}</div><p class="ga-note">値段はどれも同じです。弾ごとの召喚はその弾のキャラだけ、属性召喚はすべての弾からその属性のキャラだけが出ます。</p>`;
   }
   let gachaBusy = false;
