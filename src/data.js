@@ -1638,6 +1638,51 @@
         text: 'このターンの通常技の攻撃の数字に5を加える（敵前衛全員・攻撃0の技には加算しない）。',
         effects: [{ type: 'atkBonus', value: 5 }]
       }
+    },
+    // ---- 手で追加 2026-11-23（★4・尖った2体：全部の技が吸収／全部の技が毒） ----
+    {
+      id: 'tamakui', name: '虚ろの魂喰らい', glyph: '魂', maxHp: 180, element: 'dark', series: 2,
+      subTypes: ['魔人', '亡霊'],
+      leaderSkill: { name: '渇きの契り', text: '味方全員の通常技に吸収がつく：与えたダメージの合計の5%だけ、使ったキャラが回復する（吸収の技なら、その割合に5%を足す）。', effects: [{ type: 'leech', percent: 5 }] },
+      trait: { name: '飢えた追い打ち', text: '追撃：相手の前衛がピンチ（HP3割以下）なら、通常技がもう1回当たる（2回目は1回目の半分）。', effects: [{ type: 'pursuit', percent: 50, under: 30 }] },
+      moves: [
+        { name: '魂啜り', atk: 14, heal: 0, fx: { type: 'drain', percent: 25 } },
+        { name: '影喰いの牙', atk: 18, heal: 0, fx: { type: 'drain', percent: 15 } },
+        { name: '命吸いの手', atk: 12, heal: 0, fx: { type: 'drain', percent: 30 } },
+        { name: '虚ろの抱擁', atk: 15, heal: 0, fx: { type: 'drain', percent: 20 } },
+        { name: '闇喰み', atk: 20, heal: 0, fx: { type: 'drain', percent: 10 } },
+        { name: '生気の簒奪', atk: 17, heal: 0, fx: { type: 'drain', percent: 20 } },
+        { name: '魂の晩餐', atk: 24, heal: 0, fx: { type: 'drain', percent: 20 } },
+        { name: '冥き渇き', atk: 14, heal: 0, fx: { type: 'drain', percent: 35 } },
+        { name: '千の魂喰い', atk: 27, heal: 0, fx: { type: 'drain', percent: 20 } }
+      ],
+      skill: {
+        name: '魂の宴', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。与えたダメージの合計の15%だけ、味方前衛全員がそれぞれ回復する（回復疲労の影響なし）。',
+        effects: [{ type: 'siphon', amount: 10, percent: 15 }]
+      }
+    },
+    {
+      id: 'dokujahime', name: '腐れ沼の毒蛇姫', glyph: '蛇', maxHp: 176, element: 'water', series: 2,
+      subTypes: ['蛇', '魔女'],
+      leaderSkill: { name: '瘴気の沼地', text: '味方が与える毒（通常技・スキル）の1回のダメージが1.5倍になる。', effects: [{ type: 'poisonBoost', percent: 50 }] },
+      trait: { name: '毒の主', text: '毒に強い：毒にならない。', effects: [{ type: 'poisonResist' }] },
+      moves: [
+        { name: '毒蛇の牙', atk: 22, heal: 0, fx: { type: 'poison', value: 4, turns: 3 } },
+        { name: '沼の瘴気', atk: 14, heal: 0, fx: { type: 'poison', value: 2, turns: 10 } },
+        { name: '腐食の吐息', atk: 18, heal: 0, fx: { type: 'poison', value: 3, turns: 6 } },
+        { name: '大蛇の締めつけ', atk: 26, heal: 0, fx: { type: 'poison', value: 5, turns: 2 } },
+        { name: '澱みの雫', atk: 10, heal: 14, fx: { type: 'poison', value: 2, turns: 10 } },
+        { name: '毒霧の舞', atk: 20, heal: 0, fx: { type: 'poison', value: 3, turns: 5 } },
+        { name: '腐れ沼の大顎', atk: 34, heal: 0, fx: { type: 'poison', value: 6, turns: 3 } },
+        { name: '永劫の猛毒', atk: 16, heal: 0, fx: { type: 'poison', value: 3, turns: 12 } },
+        { name: '千年の蠱毒', atk: 30, heal: 0, fx: { type: 'poison', value: 4, turns: 8 } }
+      ],
+      skill: {
+        name: '毒の開花', cd: 4,
+        text: '毒になっている敵前衛全員に、それぞれ残っている毒のダメージ（1回の量×残りの回数）の3倍を、まとめて与える（防御・結界を無視。このダメージでは倒れる）。その敵の毒は消える。',
+        effects: [{ type: 'venomBurst', mult: 3 }]
+      }
     }
   ];
 

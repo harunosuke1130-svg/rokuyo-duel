@@ -1095,8 +1095,8 @@
           schedule(() => { rowRing(actEv.side, actEl); trail(caster(), $(actEv.side === bt.me ? '#ally-front' : '#enemy-front'), actEl, Math.max(1, tTrail), 'boost'); }, at);
           schedule(() => { releaseBoostedMoves(); popBoostedMoves(); }, at + tTrail);
           t = at + tTrail + gap;
-        } else if (eff.type === 'heal' || eff.type === 'barrier' || eff.type === 'damage') {
-          const g = takeGroup(eff.type);
+        } else if (eff.type === 'heal' || eff.type === 'barrier' || eff.type === 'damage' || eff.type === 'siphon' || eff.type === 'venomBurst') {
+          const g = takeGroup(eff.type === 'heal' || eff.type === 'barrier' ? eff.type : 'damage');
           if (!g) return;
           const at = t;
           if (!quick) schedule(() => g.list.forEach(ev => trail(caster(), cardOf(ev.side, ev.idx), eff.type === 'heal' ? 'heal' : actEl, tTrail, eff.type)), at);
@@ -1375,6 +1375,8 @@
       if (p.type === 'atkMultiplier') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 ×${p.value}（回復は変わらない）</div>`;
       if (p.type === 'atkBonus') return `<div class="pv-line"><span class="pv-range">このターンの通常技</span>攻撃 +${p.value}（攻撃0の技は除く）</div>`;
       if (p.type === 'fatigueReset') return `<div class="pv-line"><span class="pv-range heal">味方</span>${p.used ? '回復疲労はこの戦闘ではもう消せない（1戦に1回）' : p.notYet ? 'まだ回復疲労がないので、疲労を消す力は取っておく（疲労してから使うと消せる）' : `回復疲労をなくす（今の回復${p.percent}%→${p.after}%・1戦に1回）`}</div>`;
+      if (p.type === 'siphon') return `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">${p.base}ダメージ（属性倍率なし・結界有効）</span></div><div class="chips">${p.targets.map(t => `<span class="chip dmg">${esc(t.name)} <b>-${t.damage}</b>${t.barrier ? ' <i class="adv">結界で半減</i>' : ''}</span>`).join('')}</div><div class="pv-line"><span class="pv-range heal">味方前衛全員</span><span class="pv-base">与えた合計の${p.percent}%（${p.heal}）をそれぞれ回復</span></div><div class="chips">${p.allies.map(t => `<span class="chip heal">${esc(t.name)} <b>+${t.effective}</b></span>`).join('')}</div>`;
+      if (p.type === 'venomBurst') return `<div class="pv-line"><span class="pv-range dmg">毒の敵前衛</span><span class="pv-base">残りの毒の${p.mult}倍をまとめて与える（防御・結界無視・毒は消える）</span></div><div class="chips">${p.targets.map(t => `<span class="chip dmg">${esc(t.name)} ${t.poisoned ? `<b>-${t.damage}</b>` : '（毒なし）'}</span>`).join('')}</div>`;
       if (p.type === 'poison') return `<div class="pv-line"><span class="pv-range dmg">敵前衛全員</span><span class="pv-base">毒（ターンの始めに${p.amount}ダメージ×${p.turns}回・毒では倒れない）</span></div><div class="chips">${p.targets.map(t => `<span class="chip dmg">${esc(t.name)} ${t.resist ? '（毒に強い）' : '<b>毒</b>'}</span>`).join('')}</div>`;
       if (p.type === 'reroll') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} を振り直す（同じ数字の可能性あり）</div>`;
       if (p.type === 'chooseDice') return `<div class="pv-line"><span class="pv-range">出目</span>${s.dice || '？'} → 下で選んだ数字</div>`;
@@ -1383,7 +1385,7 @@
   }
   // 対象範囲を短く
   function skillRange(ch) {
-    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目', chooseDice: '出目', fatigueReset: '味方の回復疲労', poison: '敵前衛全員' }[e.type]) || '');
+    const t = ch.skill.effects.map(e => ({ damage: '敵前衛全員', heal: '味方前衛全員', barrier: '味方前衛全員', atkMultiplier: 'このターンの通常技', atkBonus: 'このターンの通常技', reroll: '出目', chooseDice: '出目', fatigueReset: '味方の回復疲労', poison: '敵前衛全員', siphon: '敵前衛全員・味方前衛全員', venomBurst: '毒の敵前衛' }[e.type]) || '');
     return t.filter((x, i) => x && t.indexOf(x) === i).join('・');
   }
 
@@ -1407,7 +1409,8 @@
     atkMultiplier: { icon: '⚔', when: 'このターンだけ' }, atkBonus: { icon: '⚔', when: 'このターンだけ' },
     heal: { icon: '✚', when: 'すぐ（その場で回復）' }, barrier: { icon: '◈', when: '防げるダメージを1回受けるまで' },
     damage: { icon: '✦', when: 'すぐ（その場でダメージ）' }, reroll: { icon: '⟳', when: 'すぐ' }, chooseDice: { icon: '✧', when: 'すぐ（このターンの出目）' }, fatigueReset: { icon: '❖', when: 'この戦闘で1回だけ' },
-    poison: { icon: '☠', when: '敵のターンの始めごと' }
+    poison: { icon: '☠', when: '敵のターンの始めごと' },
+    siphon: { icon: '✦', when: 'すぐ（ダメージと回復）' }, venomBurst: { icon: '☠', when: 'すぐ（毒をまとめて）' }
   };
   function skillHeadline(side, idx) {
     const s = bt.state;
@@ -1422,6 +1425,8 @@
       else if (p.type === 'damage') { big = `ダメージ ${p.base}`; sub = p.ignoreDefense ? '敵前衛全員・防御と属性を無視' : '敵前衛全員・属性倍率なし・結界は有効'; }
       else if (p.type === 'chooseDice') { big = '出目を選ぶ'; sub = mine && s.dice ? `今の出目 ${s.dice} を、1〜6の好きな数字に変える` : '確定した出目を、1〜6の好きな数字に変える'; }
       else if (p.type === 'reroll') { big = '振り直し'; sub = mine && s.dice ? `今の出目 ${s.dice} を振り直す` : '確定した出目を振り直す'; }
+      else if (p.type === 'siphon') { big = `ダメージ ${p.base}`; sub = `敵前衛全員・与えた合計の${p.percent}%で味方前衛全員が回復`; }
+      else if (p.type === 'venomBurst') { const tot = p.targets.reduce((a, t) => a + t.damage, 0); big = tot ? `毒の開花 ${tot}` : '毒の開花'; sub = p.targets.some(t => t.poisoned) ? `毒の敵前衛に、残りの毒の${p.mult}倍をまとめて（毒は消える）` : '今は毒の敵前衛がいない'; }
       else if (p.type === 'poison') { big = `毒 ${p.amount}×${p.turns}`; sub = '敵前衛全員・ターンの始めにダメージ（毒では倒れない）'; }
       else if (p.type === 'fatigueReset') { big = '疲労回復'; sub = p.used ? 'この戦闘ではもう使えない（1戦に1回）' : p.notYet ? 'まだ疲労なし（使わずに取っておく）' : `回復${p.percent}% → ${p.after}%`; }
       return { type: p.type, big, sub, icon: (SKILL_KIND[p.type] || {}).icon || '✦', when: (SKILL_KIND[p.type] || {}).when || '' };

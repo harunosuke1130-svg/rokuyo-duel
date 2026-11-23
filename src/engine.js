@@ -209,6 +209,16 @@
   function leaderSum(state, side, type) {
     return leaderEffects(state, side).filter(e => e.type === type).reduce((a, e) => a + (e.value || 0), 0);
   }
+  // 毒の1回の量（リーダースキル poisonBoost で増える。2026-11-23〜）
+  function poisonAmount(state, side, value, user) {
+    const pct = leaderEffects(state, side).filter(e => e.type === 'poisonBoost').reduce((a, e) => a + (e.percent || 0), 0);
+    return Math.floor(value * unitAtk(user) * (100 + pct) / 100);
+  }
+  // 通常技の吸収の割合（技の吸収＋リーダースキル leech。2026-11-23〜）
+  function drainPercent(state, side, move) {
+    const own = move.fx && move.fx.type === 'drain' ? move.fx.percent : 0;
+    return own + leaderEffects(state, side).filter(e => e.type === 'leech').reduce((a, e) => a + (e.percent || 0), 0);
+  }
   function leaderAtkBonus(state, side, attackerChar) {
     return leaderEffects(state, side)
       .filter(e => e.type === 'atkBonus' && (e.scope === 'all' || (e.scope === 'element' && e.element === attackerChar.element)))
@@ -772,14 +782,48 @@
         const parts = frontAlive(state, targetSide).filter(i => state.teams[targetSide][i].hp > 0).map(i => {
           const t = state.teams[targetSide][i];
           const resist = !!traitOf(t, 'poisonResist');
-          if (!resist) t.poison = { amount: eff.value * unitAtk(user), turns: eff.turns };
+          if (!resist) t.poison = { amount: poisonAmount(state, side, eff.value, user), turns: eff.turns };
           // 直前のダメージの表示に「毒」を添える（無ければ毒だけの印）
           const ev = ctx.events.slice().reverse().find(e => e.type === 'damage' && e.side === targetSide && e.idx === i && !e.poison);
           if (ev) ev.status = resist ? 'resist' : 'poison';
           else ctx.events.push({ type: 'status', side: targetSide, idx: i, status: resist ? 'resist' : 'poison' });
           return `${unitName(t)}${resist ? '（毒に強い）' : ''}`;
         });
-        addLog(state, ctx, `［${skill.name}・毒］${team(state, targetSide)}前衛全員を毒にした（ターンの始めに${eff.value * unitAtk(user)}ダメージ×${eff.turns}回）：${parts.join('、') || '対象なし'}`, 'damage');
+        addLog(state, ctx, `［${skill.name}・毒］${team(state, targetSide)}前衛全員を毒にした（ターンの始めに${poisonAmount(state, side, eff.value, user)}ダメージ×${eff.turns}回）：${parts.join('、') || '対象なし'}`, 'damage');
+      } else if (eff.type === 'siphon') {
+        // 魂の宴（2026-11-23〜）：敵前衛全員にダメージ、与えた合計の percent% だけ味方前衛全員がそれぞれ回復（回復疲労なし）
+        let total = 0;
+        const parts = frontAlive(state, targetSide).map(i => {
+          const t = state.teams[targetSide][i];
+          const r = computeSkillDamage((eff.amount + leaderSum(state, side, 'skillDamageBonus')) * unitAtk(user), false, t);
+          damageUnit(state, ctx, targetSide, i, r.damage, r.barrier);
+          total += r.damage;
+          return `${unitName(t)} ${r.damage}${r.barrier ? '（結界で半減）' : ''}（HP ${t.hp}/${t.maxHp}）`;
+        });
+        addLog(state, ctx, `［${skill.name}］${team(state, targetSide)}前衛全員にダメージ：${parts.join('、') || '対象なし'}`, 'damage');
+        const amount = Math.floor(total * eff.percent / 100);
+        if (amount > 0) {
+          const hp = frontAlive(state, side).map(i => {
+            const u = state.teams[side][i];
+            const got = Math.min(amount, u.maxHp - u.hp);
+            u.hp += got;
+            ctx.events.push({ type: 'heal', side, idx: i, amount: got });
+            return `${unitName(u)} +${got}（HP ${u.hp}/${u.maxHp}）`;
+          });
+          addLog(state, ctx, `［${skill.name}・吸収］${team(state, side)}前衛全員を回復：${hp.join('、')}`, 'heal');
+        }
+        damaged = true;
+      } else if (eff.type === 'venomBurst') {
+        // 毒の開花（2026-11-23〜）：毒の敵前衛に、残りの毒（1回の量×残り回数）の mult 倍をまとめて与えて毒を消す（防御・結界無視。これでは倒れる）
+        const parts = frontAlive(state, targetSide).filter(i => state.teams[targetSide][i].poison).map(i => {
+          const t = state.teams[targetSide][i];
+          const dmg = Math.floor(t.poison.amount * t.poison.turns * (eff.mult || 1));
+          delete t.poison;
+          damageUnit(state, ctx, targetSide, i, dmg, false);
+          return `${unitName(t)} ${dmg}（HP ${t.hp}/${t.maxHp}）`;
+        });
+        addLog(state, ctx, `［${skill.name}］${parts.length ? `毒が一気に回った：${parts.join('、')}` : '毒になっている敵前衛がいない'}`, 'damage');
+        if (parts.length) damaged = true;
       } else if (eff.type === 'damage') {
         const targets = frontAlive(state, targetSide); // 処理開始時の敵前衛だけが対象
         const parts = targets.map(i => {
@@ -839,7 +883,7 @@
         // 毒・弱体（当たった敵に）
         if (t.hp > 0 && fx && fx.type === 'poison') {
           if (traitOf(t, 'poisonResist')) { notes.push('毒に強い'); dev.status = 'resist'; }
-          else { t.poison = { amount: fx.value * unitAtk(unit), turns: fx.turns }; notes.push('毒'); dev.status = 'poison'; }
+          else { t.poison = { amount: poisonAmount(state, side, fx.value, unit), turns: fx.turns }; notes.push('毒'); dev.status = 'poison'; }
         }
         if (t.hp > 0 && fx && fx.type === 'weaken') { t[fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'] = { percent: fx.percent, turns: fx.turns }; notes.push(fx.stat === 'heal' ? '回復力ダウン' : '攻撃力ダウン'); dev.status = fx.stat === 'heal' ? 'weakHeal' : 'weakAtk'; }
         return `${unitName(t)} ${r.damage}${notes.length ? '（' + notes.join('・') + '）' : ''}（HP ${t.hp}/${t.maxHp}）`;
@@ -858,8 +902,9 @@
         }
       }
       // 吸収：与えたダメージの一部で自分を回復
-      if (fx && fx.type === 'drain' && total > 0 && unit.hp > 0) {
-        const got = Math.min(Math.floor(total * fx.percent / 100), unit.maxHp - unit.hp);
+      const dpct = drainPercent(state, side, move);
+      if (dpct > 0 && total > 0 && unit.hp > 0) {
+        const got = Math.min(Math.floor(total * dpct / 100), unit.maxHp - unit.hp);
         unit.hp += got;
         if (got > 0) ctx.events.push({ type: 'heal', side, idx, amount: got, drain: true, from: targets.slice() });
         addLog(state, ctx, `［吸収］${unitName(unit)}は${got}回復（HP ${unit.hp}/${unit.maxHp}）`, 'heal');
@@ -921,9 +966,11 @@
       const t = state.teams[side][i];
       return { idx: i, name: unitName(t), amount, effective: Math.min(amount, t.maxHp - t.hp) };
     }) : [];
-    const fx = move.fx ? Object.assign({}, move.fx, move.fx.type === 'poison' ? { amount: move.fx.value * unitAtk(unit) } : {},
-      move.fx.type === 'drain' ? { amount: Math.min(Math.floor(attacks.reduce((a, x) => a + x.damage, 0) * move.fx.percent / 100), unit.maxHp - unit.hp) } : {},
-      move.fx.type === 'pinch' ? { active: !!boost.pinch } : {}) : null;
+    const dpct = move.atk > 0 ? drainPercent(state, side, move) : 0;
+    const fxSrc = move.fx || (dpct > 0 ? { type: 'drain', percent: dpct, leader: true } : null);
+    const fx = fxSrc ? Object.assign({}, fxSrc, fxSrc.type === 'poison' ? { amount: poisonAmount(state, side, fxSrc.value, unit) } : {},
+      fxSrc.type === 'drain' ? { percent: dpct, amount: Math.min(Math.floor(attacks.reduce((a, x) => a + x.damage, 0) * dpct / 100), unit.maxHp - unit.hp) } : {},
+      fxSrc.type === 'pinch' ? { active: !!boost.pinch } : {}) : null;
     return { dice: d, move, user: idx, attacks, heals, healBase, healPercent: healPercent(round), atkPow: unitAtk(unit), healPow: unitHeal(unit), fx,
       boosted: attacks.length ? attacks[0].boosted : (move.atk * boost.mult + boost.bonus) * boost.power };
   }
@@ -952,8 +999,19 @@
         return { type: 'damage', base, ignoreDefense: !!e.ignoreDefense,
           targets: frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; const r = computeSkillDamage(base, e.ignoreDefense, t); return { idx: i, name: unitName(t), damage: r.damage, barrier: r.barrier }; }) };
       }
+      if (e.type === 'siphon') {
+        const base = (e.amount + leaderSum(state, side, 'skillDamageBonus')) * unitAtk(unit);
+        const targets = frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; const r = computeSkillDamage(base, false, t); return { idx: i, name: unitName(t), damage: r.damage, barrier: r.barrier }; });
+        const heal = Math.floor(targets.reduce((a, t) => a + t.damage, 0) * e.percent / 100);
+        return { type: 'siphon', base, percent: e.percent, heal, targets,
+          allies: frontAlive(state, side).map(i => { const t = state.teams[side][i]; return { idx: i, name: unitName(t), effective: Math.min(heal, t.maxHp - t.hp) }; }) };
+      }
+      if (e.type === 'venomBurst') {
+        return { type: 'venomBurst', mult: e.mult || 1,
+          targets: frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; return { idx: i, name: unitName(t), damage: t.poison ? Math.floor(t.poison.amount * t.poison.turns * (e.mult || 1)) : 0, poisoned: !!t.poison }; }) };
+      }
       if (e.type === 'poison') {
-        return { type: 'poison', amount: e.value * unitAtk(unit), turns: e.turns,
+        return { type: 'poison', amount: poisonAmount(state, side, e.value, unit), turns: e.turns,
           targets: frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; return { idx: i, name: unitName(t), resist: !!traitOf(t, 'poisonResist') }; }) };
       }
       if (e.type === 'barrier') {

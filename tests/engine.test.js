@@ -687,6 +687,84 @@ test('千年樹の古精（リーダー）：通常技で受けたダメージ�
   assert.equal(t.teams.player[0].hp, 1);
 });
 
+// 星4「虚ろの魂喰らい」「腐れ沼の毒蛇姫」（2026-11-23）：吸収（leech・siphon）と毒（poisonBoost・venomBurst）
+function star4Battle(team, leader) {
+  const s = oldScale(E.createBattle(team, C));
+  assert.ok(E.chooseFormation(s, 'player', [0, 1, 2], leader).ok);
+  assert.ok(E.chooseFormation(s, 'cpu', [0, 1, 2], null).ok);
+  assert.ok(E.rollInitiative(s, playerFirst()).ok);
+  return s;
+}
+test('虚ろの魂喰らい：全部の技が吸収で、星4', () => {
+  const ch = E.getChar('tamakui');
+  assert.equal(E.starsOf('tamakui'), 4);
+  assert.ok(ch.moves.every(m => m.fx && m.fx.type === 'drain' && m.atk > 0));
+  assert.equal(E.loadoutError('tamakui', E.defaultLoadout('tamakui')), null);
+});
+test('虚ろの魂喰らい（リーダー）：吸収の無い技にも5%の吸収がつく', () => {
+  const s = star4Battle(['ryogen', 'tamakui', 'gessen', 'kohaku', 'yoiyami', 'mukai'], 1);
+  s.teams.player[0].hp = 50;
+  const d = [1, 2, 3, 4, 5, 6].find(x => { const m = E.unitMove(s.teams.player[0], x); return m.atk > 0 && !m.fx; });
+  assert.ok(E.roll(s, 'player', fixed(d)).ok);
+  const pv = E.previewMove(s, 'player', 0);
+  const total = pv.attacks.reduce((a, x) => a + x.damage, 0);
+  assert.equal(pv.fx.type, 'drain');
+  assert.equal(pv.fx.percent, 5);
+  const r = E.useMove(s, 'player', 0);
+  assert.ok(r.ok);
+  assert.equal(s.teams.player[0].hp, 50 + Math.floor(total * 5 / 100));
+});
+test('虚ろの魂喰らい：スキルで敵前衛全員にダメージ、合計の15%で味方前衛全員が回復', () => {
+  const s = star4Battle(['tamakui', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'], null);
+  s.teams.player.slice(0, 3).forEach(u => { u.hp = 20; });
+  assert.ok(E.roll(s, 'player', fixed(3)).ok);
+  const pv = E.previewSkill(s, 'player', 0);
+  assert.equal(pv[0].type, 'siphon');
+  const total = pv[0].targets.reduce((a, t) => a + t.damage, 0);
+  assert.equal(pv[0].heal, Math.floor(total * 15 / 100));
+  const hpC = s.teams.cpu.slice(0, 3).map(u => u.hp);
+  assert.ok(E.useSkill(s, 'player', 0, null).ok);
+  assert.deepEqual(s.teams.cpu.slice(0, 3).map((u, i) => hpC[i] - u.hp), pv[0].targets.map(t => t.damage));
+  s.teams.player.slice(0, 3).forEach(u => assert.equal(u.hp, Math.min(u.maxHp, 20 + pv[0].heal)));
+});
+test('腐れ沼の毒蛇姫：全部の技が毒で、長い毒は新しい毒で上書きされる', () => {
+  const ch = E.getChar('dokujahime');
+  assert.equal(E.starsOf('dokujahime'), 4);
+  assert.ok(ch.moves.every(m => m.fx && m.fx.type === 'poison' && m.atk > 0));
+  assert.equal(E.loadoutError('dokujahime', E.defaultLoadout('dokujahime')), null);
+  assert.ok(ch.moves.some(m => m.fx.turns >= 10), '長く効く毒がある');
+  const s = star4Battle(['dokujahime', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'], null);
+  assert.ok(E.roll(s, 'player', fixed(2)).ok);   // 沼の瘴気：毒2×10回
+  assert.ok(E.useMove(s, 'player', 0).ok);
+  assert.deepEqual(s.teams.cpu[1].poison, { amount: 2, turns: 9 }, '翠樹の薬師は毒に強いので雷鳴の渡り鳥で。相手のターンの始めに1回減る');
+  s.turnSide = 'player'; s.phase = 'roll'; s.moveUsed = false; s.dice = null;
+  assert.ok(E.roll(s, 'player', fixed(1)).ok);   // 毒蛇の牙：毒4×3回で上書き
+  assert.ok(E.useMove(s, 'player', 0).ok);
+  assert.deepEqual(s.teams.cpu[1].poison, { amount: 4, turns: 2 });
+});
+test('腐れ沼の毒蛇姫（リーダー）：味方の毒の1回の量が1.5倍', () => {
+  const s = star4Battle(['dokujahime', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'], 0);
+  assert.ok(E.roll(s, 'player', fixed(2)).ok);
+  assert.equal(E.previewMove(s, 'player', 0).fx.amount, 3);
+  assert.ok(E.useMove(s, 'player', 0).ok);
+  assert.deepEqual(s.teams.cpu[1].poison, { amount: 3, turns: 9 });
+});
+test('腐れ沼の毒蛇姫：毒の開花で残りの毒の3倍をまとめて与え、毒は消える（これでは倒れる）', () => {
+  const s = star4Battle(['dokujahime', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'], null);
+  const cpu = s.teams.cpu;
+  cpu[0].poison = { amount: 2, turns: 5 };
+  cpu[1].hp = 10; cpu[1].poison = { amount: 4, turns: 3 };
+  assert.ok(E.roll(s, 'player', fixed(3)).ok);
+  const pv = E.previewSkill(s, 'player', 0);
+  assert.deepEqual(pv[0].targets.map(t => t.damage), [30, 36, 0]);
+  const hp0 = cpu[0].hp, hp2 = cpu[2].hp;
+  assert.ok(E.useSkill(s, 'player', 0, null).ok);
+  assert.equal(hp0 - cpu[0].hp, 30);
+  assert.equal(cpu[0].poison, undefined);
+  assert.equal(cpu[1].hp, 0, '毒の開花では倒れる');
+  assert.equal(cpu[2].hp, hp2, '毒の無い敵には何もしない');
+});
+
 // 技の効果（2026-11-09）：吸収・毒・弱体・連撃・ピンチ・4分の1結界
 const FXT = ['kyuuketsu', 'senpu', 'kokuyou', 'kohaku', 'mukai', 'sabakuou'];
 function fxBattle(front) {
@@ -787,7 +865,9 @@ test('技の効果：効果の分だけ技力に数え、★の決め方（攻�
   const m = E.getChar('kyuuketsu').moves[0];
   assert.equal(E.movePower(m), m.atk + m.heal + D_COST().drain);
   E.CHARACTERS.forEach(c => assert.equal(E.loadoutError(c.id, E.defaultLoadout(c.id)), null, c.name));
-  E.CHARACTERS.forEach(c => assert.ok(c.moves.filter(x => x.fx).length <= 2, c.name + 'の効果付きの技は2つまで'));
+  // 全部の技が同じ効果の★4（虚ろの魂喰らい・腐れ沼の毒蛇姫。2026-11-23・利用者の希望）だけは別
+  const ALL_FX = ['tamakui', 'dokujahime'];
+  E.CHARACTERS.filter(c => !ALL_FX.includes(c.id)).forEach(c => assert.ok(c.moves.filter(x => x.fx).length <= 2, c.name + 'の効果付きの技は2つまで'));
 });
 function D_COST() { return E.CONFIG.MOVE_FX_COST; }
 
