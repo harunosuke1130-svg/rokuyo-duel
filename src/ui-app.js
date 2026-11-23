@@ -1266,7 +1266,7 @@
     $('#screen-gacha').dataset.kind = g.element || (newSeries ? 'series' : 'all');
     // 上の絵：星泉ガチャは利用者の絵（題名・キャラ名は絵の中）。属性召喚は属性の色の札
     $('#gacha-hero').innerHTML = newSeries
-      ? `<div class="ga-el-hero ga-series-hero"><span class="ga-el-ico ga-series-ico" aria-hidden="true">✦</span><h2>${esc(g.name)}</h2><p>${esc(g.text)}</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
+      ? `<div class="ga-el-hero ga-series-hero">${(g.feature || []).length ? `<span class="ga-feature" aria-hidden="true">${g.feature.map(id => `<span class="emblem ga-feature-face" data-char="${esc(id)}">${esc(E.getChar(id).glyph)}</span>`).join('')}</span>` : '<span class="ga-el-ico ga-series-ico" aria-hidden="true">✦</span>'}<h2>${esc(g.name)}</h2><p>${esc(g.text)}</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
       : el
       ? `<div class="ga-el-hero" data-el="${g.element}"><span class="ga-el-ico"><span class="el-ico" data-el="${g.element}" aria-hidden="true"></span></span><h2>${esc(el.name)}の召喚</h2><p>${esc(el.name)}属性のキャラだけが出ます</p><button type="button" class="ga-back" data-gacha-kind="all">‹ 旅立ちの星泉ガチャへ</button></div>`
       : `<h2 class="sr-only">${esc(g.name)}</h2><div class="ga-hero-art" role="img" aria-label="旅立ちの星泉ガチャ（蒼泉の聖女・暁星の占星術師）"></div>`;

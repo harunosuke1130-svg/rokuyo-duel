@@ -685,6 +685,8 @@ body[data-screen="home"] { background: #2a1d14; }
 [data-char="rekka"] { --cx: 55%; --cy: 8%; --ex: 53%; --ey: 10%; --es: 440%; }
 [data-char="yoigarasu"] { --cx: 44%; --cy: 0%; --ex: 46%; --ey: 0%; --es: 440%; }
 [data-char="tenma"] { --cx: 60%; --cy: 30%; --ex: 54%; --ey: 26%; --es: 440%; }
+[data-char="tamakui"] { --cx: 54%; --cy: 0%; --ex: 53%; --ey: 3%; --es: 440%; }
+[data-char="dokujahime"] { --cx: 44%; --cy: 4%; --ex: 42%; --ey: 6%; --es: 440%; }
 [data-char="kinokotori"] { --cx: 34%; --cy: 5%; --ex: 40%; --ey: 9%; --es: 440%; }
 [data-char="kanetsuki"] { --cx: 40%; --cy: 0%; --ex: 43%; --ey: 2%; --es: 440%; }
 [data-char="kikori"] { --cx: 52%; --cy: 0%; --ex: 51%; --ey: 3%; --es: 440%; }
@@ -697,7 +699,8 @@ body[data-screen="home"] { background: #2a1d14; }
 [data-char="b-witch"] { --cx: 50%; --cy: 8%; --ex: 50%; --ey: 10%; --es: 280%; }
 [data-char="b-maou"] { --cx: 70%; --cy: 10%; --ex: 73%; --ey: 12%; --es: 280%; }
 [data-char="b-salamander"] { --cx: 70%; --cy: 50%; --ex: 88%; --ey: 53%; --es: 200%; }
-[data-char="b-golem"] { --cx: 50%; --cy: 10%; --ex: 50%; --ey: 9%; --es: 200%; }
+[data-char="b-golem"] { --cx: 50%; --cy: 10%; --ex: 50%; --ey: 14%; --es: 200%; }
+[data-char="b-jelly"] { --ex: 50%; --ey: 36%; --es: 220%; }
 [data-char="b-dragon"] { --cx: 80%; --cy: 14%; --ex: 98%; --ey: 12%; --es: 240%; }
 .portrait.zoom { background-size: 200% auto; background-position: var(--cx, 50%) var(--cy, 0%); }
 .portrait i {
@@ -2203,7 +2206,8 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 .fx-cutin.foe .ci-art { order: 2; }
 .ci-art { position: relative; align-self: stretch; height: 100%; overflow: hidden; -webkit-mask-image: linear-gradient(90deg, #000 70%, transparent); mask-image: linear-gradient(90deg, #000 70%, transparent); }
 .fx-cutin.foe .ci-art { -webkit-mask-image: linear-gradient(270deg, #000 70%, transparent); mask-image: linear-gradient(270deg, #000 70%, transparent); }
-.ci-art .portrait { position: absolute; inset: 0; width: 100%; height: 100%; background-size: 190% auto; background-position: var(--ex, 50%) max(0%, calc(var(--ey, 0%) - 6%)); border-radius: 0; animation: ciArt .76s ease-out both; }
+/* 必殺技の帯の絵：丸い紋章と同じ「顔の位置」（--ex/--ey/--es）を、帯の大きさに合わせて少し引いて使う（2026-11-23〜。背景なしの敵の絵でも顔が映る） */
+.ci-art .portrait { position: absolute; inset: 0; width: 100%; height: 100%; background-size: max(100%, calc(var(--es, 330%) * var(--ci-k, .6))) auto; background-position: var(--ex, 50%) var(--ey, 0%); background-repeat: no-repeat; border-radius: 0; animation: ciArt .76s ease-out both; }
 .ci-name { position: relative; padding: 0 14px; text-align: center; color: var(--cloth-ink); }
 .ci-name small { display: block; font-size: 12px; opacity: .9; letter-spacing: .1em; }
 .ci-name b { display: block; font-family: var(--mincho); font-weight: 900; font-size: clamp(30px, 9.5vw, 54px); line-height: 1.1; letter-spacing: .08em; text-shadow: 0 2px 0 rgba(0, 0, 0, .35), 0 0 18px var(--mote); animation: ciName .76s cubic-bezier(.2, 1.4, .3, 1) both; }
@@ -2226,7 +2230,7 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 @media (min-width: 960px) and (orientation: landscape) {
   .ci-band { height: 190px; max-width: 1100px; grid-template-columns: 34% minmax(0, 1fr); }
   .fx-cutin.foe .ci-band { grid-template-columns: minmax(0, 1fr) 34%; }
-  .ci-art .portrait { background-size: 120% auto; }
+  .ci-art { --ci-k: .36; }
 }
 /* 届く粒・輪・火の粉・風 */
 .fx-mote { position: fixed; width: 9px; height: 9px; border-radius: 50%; pointer-events: none; background: var(--fx, #ffd86a); box-shadow: 0 0 8px var(--fx, #ffd86a); }
@@ -2835,6 +2839,9 @@ body[data-screen="gacha"] .topbar {
 .ga-series-hero { --fx: #c9a24a; }
 .ga-series-hero h2 { font-size: clamp(26px, 7.5vw, 40px); }
 .ga-series-ico { font-size: 44px; color: #b8862a; }
+/* 主役の2体の顔（GACHAS の feature。2026-11-23〜） */
+.ga-feature { display: flex; gap: 14px; justify-content: center; margin-top: 34px; }
+.ga-feature .ga-feature-face { width: 92px; height: 92px; font-size: 40px; border-width: 3px; box-shadow: 0 0 0 3px rgba(255, 236, 180, .7), 0 6px 14px rgba(0, 0, 0, .35); }
 /* ---------- 目押し（2026-11-14・11-15 にサイコロ自体が回る形に）：止めた瞬間に光る ---------- */
 .bt-dice-btn.aim-locked .die-body { filter: drop-shadow(0 0 8px #ffe27a); }
 /* スロット風のリール（2026-11-23〜）：回っている間だけ、立体のサイコロの代わりに出す */

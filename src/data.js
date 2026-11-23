@@ -1728,11 +1728,11 @@
   //   limit：その弾に入れるキャラの数の目安（毎日のキャラ作りは、ここまで来たら止める）
   const SERIES = [
     { id: 1, name: '旅立ちの星泉', gacha: 'all' },
-    { id: 2, name: '暁の新星', gacha: 's2', limit: 40 }
+    { id: 2, name: '魂と毒の宴', gacha: 's2', limit: 40 }   // 2026-11-23 に「暁の新星」から改名（利用者の希望）
   ];
   const GACHAS = [
     { id: 'all', series: 1, name: '旅立ちの星泉ガチャ', text: '第1弾のキャラが同じ確率で出ます。' },
-    { id: 's2', series: 2, name: '暁の新星ガチャ', text: '第2弾のキャラだけが出ます（その中では全員同じ確率）。' }
+    { id: 's2', series: 2, name: '魂と毒の宴ガチャ', feature: ['tamakui', 'dokujahime'], text: '第2弾のキャラだけが出ます（その中では全員同じ確率）。主役は★4の虚ろの魂喰らいと腐れ沼の毒蛇姫。' }
   ].concat(Object.keys(ELEMENTS).map(el => ({
     id: el, element: el, name: ELEMENTS[el].name + 'ガチャ', text: `${ELEMENTS[el].name}属性のキャラだけが出ます（すべての弾から。その中では全員同じ確率）。`
   })));
