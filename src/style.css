@@ -2837,6 +2837,28 @@ body[data-screen="gacha"] .topbar {
 .ga-series-ico { font-size: 44px; color: #b8862a; }
 /* ---------- 目押し（2026-11-14・11-15 にサイコロ自体が回る形に）：止めた瞬間に光る ---------- */
 .bt-dice-btn.aim-locked .die-body { filter: drop-shadow(0 0 8px #ffe27a); }
+/* スロット風のリール（2026-11-23〜）：回っている間だけ、立体のサイコロの代わりに出す */
+.die-reel {
+  position: absolute; left: 50%; top: 50%; width: calc(var(--die) * 1.12); height: calc(var(--die) * 1.5);
+  transform: translate(-50%, -50%); display: none; overflow: hidden; pointer-events: none;
+  border-radius: calc(var(--die) * .16); background: linear-gradient(#1a130a, #3a2a14 50%, #1a130a);
+  box-shadow: 0 0 0 2px #b8862a, 0 0 0 4px rgba(40, 26, 8, .8), 0 6px 16px rgba(0, 0, 0, .55);
+  -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+  mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
+}
+.die-reel-strip { position: absolute; left: calc(var(--die) * .06); top: 0; width: var(--die); will-change: transform; }
+.die-reel-tile {
+  display: block; width: var(--die); height: var(--die); margin-bottom: calc(var(--die) * .08); border-radius: 13%;
+  background: #e9dcc0 center / 100% 100% no-repeat; box-shadow: inset 0 0 0 1px rgba(120, 88, 34, .55);
+}
+.die-reel-tile[data-n="1"] { background-image: url("img/dice/face-1.webp"); }
+.die-reel-tile[data-n="2"] { background-image: url("img/dice/face-2.webp"); }
+.die-reel-tile[data-n="3"] { background-image: url("img/dice/face-3.webp"); }
+.die-reel-tile[data-n="4"] { background-image: url("img/dice/face-4.webp"); }
+.die-reel-tile[data-n="5"] { background-image: url("img/dice/face-5.webp"); }
+.die-reel-tile[data-n="6"] { background-image: url("img/dice/face-6.webp"); }
+.bt-dice-btn.aiming .die-reel { display: block; }
+.bt-dice-btn.aiming .die-world { visibility: hidden; }
 /* 目押しの間は、盤面の中央で大きく回す（2026-11-15） */
 #screen-battle .dice-layer.aim-big { --die: 76px; }
 @media (min-width: 960px) and (orientation: landscape) {

@@ -119,7 +119,7 @@
 
   /* ---------- 部品 ---------- */
   const D = {
-    stage: null, layer: null, btn: null, body: null, shadow: null, fx: null, pop: null, faces: {},
+    stage: null, layer: null, btn: null, body: null, shadow: null, fx: null, pop: null, reel: null, faces: {},
     pose: { at: 'center', value: 1, q: restQ(1, 0) },
     anim: null,       // 再生中の演出 { token, finish }
     token: 0,
@@ -147,7 +147,7 @@
         <span class="die-fx" aria-hidden="true"></span>
         <span class="die-body" id="dice" aria-hidden="true">${[1, 2, 3, 4, 5, 6].map(n => `<span class="die-face" data-n="${n}"></span>`).join('')}
           <span class="die-core x"></span><span class="die-core y"></span><span class="die-core z"></span></span>
-      </span></span><span class="sr-only" id="dice-value" aria-live="polite"></span>`;
+      </span></span><span class="die-reel" aria-hidden="true"><span class="die-reel-strip">${REEL.map(n => `<span class="die-reel-tile" data-n="${n}"></span>`).join('')}</span></span><span class="sr-only" id="dice-value" aria-live="polite"></span>`;
     const cap = stage.querySelector('#roll-cap');
     if (cap) D.btn.appendChild(cap);   // 案内はサイコロについて動く
     D.pop = document.createElement('span');
@@ -157,6 +157,7 @@
     D.body = D.btn.querySelector('.die-body');
     D.shadow = D.btn.querySelector('.die-shadow');
     D.fx = D.btn.querySelector('.die-fx');
+    D.reel = D.btn.querySelector('.die-reel-strip');
     D.body.querySelectorAll('.die-face').forEach(f => { D.faces[f.dataset.n] = f; });
     // 目押し：振れる間はサイコロが目を変えながらくるくる回る（aimTick）
     D.aim.el = D.btn;
@@ -471,8 +472,23 @@
   }
 
   /* ---------- 目押し（2026-11-14〜・11-15 にサイコロ自体が回る形に） ---------- */
-  // 振れる間は、サイコロが 1→2→…→6→1 の順に目を変えながらくるくる回る（1 つの目は DICE_AIM.stepMs）。
+  // 振れる間は、スロットのリールのように 1→2→…→6→1 の順に目が上から流れる（1 つの目は DICE_AIM.stepMs。2026-11-23〜）。
   // 押した（つかんだ）瞬間の目を狙い、盤面を転がって出目が出る（当たりは Engine が CONFIG.DICE_AIM.chance で決める。2026-11-22〜 ピタッと止めずに転がす）
+  // スロット風のリール（2026-11-23〜）：目は上から下へ流れる（上に次の目が並ぶ）。上から k 番目（-1〜7）の目は REEL[k+1]
+  const REEL = [-1, 0, 1, 2, 3, 4, 5, 6, 7].map(k => ((((6 - k) % 6) + 6) % 6) + 1);
+  const REEL_PITCH = 1.08, REEL_H = 1.5;   // 目の間隔・窓の高さ（サイコロの大きさに対して）
+  const backOut = x => { const c = 1.9; return 1 + (c + 1) * Math.pow(x - 1, 3) + c * Math.pow(x - 1, 2); };
+  function drawReel(t) {
+    if (!D.reel) return;
+    const S = size(), f = t - Math.floor(t);
+    // 目が切り替わるたびに、次の目が上から降りてきて少し行き過ぎて止まる（目が読める時間を長めに）
+    const e = f < 0.42 ? backOut(f / 0.42) : 1;
+    const p = ((Math.floor(t) - 1 + e) % 6 + 6) % 6;   // 0 で 1 の目、1 で 2 の目…
+    const k = 6 - p;
+    const y = S * REEL_H / 2 - ((k + 1) * S * REEL_PITCH + S / 2);
+    D.reel.style.transform = `translateY(${y.toFixed(1)}px)`;
+    D.reel.style.filter = e < 1 && f < 0.3 ? `blur(${(S * 0.025).toFixed(1)}px)` : '';
+  }
   const aimStep = () => { const C = window.RikuyouData && window.RikuyouData.CONFIG; return (C && C.DICE_AIM && C.DICE_AIM.stepMs) || 200; };
   function aimTick() {
     requestAnimationFrame(aimTick);
@@ -491,11 +507,9 @@
     const n = 1 + Math.floor(t) % 6, f = t - Math.floor(t);
     a.lit = n;
     D.pose.value = n;
-    // 目が切り替わるたびに、ななめの軸でくるっと転がって次の目が正面に来る（目が読める時間を長めに）
-    const spin = f < 0.45 ? (1 - f / 0.45) * 70 : 0;
-    const q = qMul(qAxis(1, -1, 0.4, spin), restQ(n, 0));
+    // 回っている間はスロットのリールを見せる（立体のサイコロは押した目で待つ）
     D.pose.q = restQ(n, 0);
-    draw(q, 0, 0, spin ? 3 : 0);
+    drawReel(t);
   }
   // 押した瞬間の目で止める（ポインター・キーボード共通）
   function lockAim() {
