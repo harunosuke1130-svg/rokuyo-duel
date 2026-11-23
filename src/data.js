@@ -1683,6 +1683,135 @@
         text: '毒になっている敵前衛全員に、それぞれ残っている毒のダメージ（1回の量×残りの回数）の3倍を、まとめて与える（防御・結界を無視。このダメージでは倒れる）。その敵の毒は消える。',
         effects: [{ type: 'venomBurst', mult: 3 }]
       }
+    },
+    // ---- 自動追加 2026-11-23（第2弾「魂と毒の宴」・★は無作為 2 4 2 3 1 1）----
+    {
+      id: 'kagaribi', name: '篝火の番人', glyph: '篝', maxHp: 106, element: 'fire', series: 2,
+      subTypes: ['番人'],
+      leaderSkill: { name: '夜通しの篝火', text: '猛火属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 3 }] },
+      moves: [
+        { name: '篝火の一撃', atk: 17, heal: 0 },
+        { name: '火の番の休息', atk: 0, heal: 11 },
+        { name: '薪割りの斧', atk: 16, heal: 0 },
+        { name: '夜番の温もり', atk: 3, heal: 7 },
+        { name: '火の粉の雨', atk: 18, heal: 0 },
+        { name: '灰掻き', atk: 0, heal: 8 },
+        { name: '大篝火', atk: 25, heal: 0 },
+        { name: '夜明けの焚き火', atk: 0, heal: 18 },
+        { name: '炎の見張り', atk: 13, heal: 9 }
+      ],
+      skill: {
+        name: '篝火の火柱', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'daishisai', name: '天穹の大司祭', glyph: '穹', maxHp: 174, element: 'holy', series: 2,
+      subTypes: ['聖職者', '賢者'],
+      leaderSkill: { name: '天の裁光', text: '味方が通常技で回復すると、実際に回復した量の合計の15%を、敵前衛全員にそれぞれダメージとして与える（属性倍率なし・結界は有効）。', effects: [{ type: 'radiance', percent: 15 }] },
+      trait: { name: '不屈の祈り', text: '根性：1戦に1回、倒れるダメージを受けても HP1 で耐える（HP が2以上のとき）。', effects: [{ type: 'guts' }] },
+      moves: [
+        { name: '天穹の光槍', atk: 24, heal: 0 },
+        { name: '大いなる祝福', atk: 0, heal: 22 },
+        { name: '聖印の裁き', atk: 20, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 30, turns: 2 } },
+        { name: '光輪の癒し', atk: 8, heal: 20 },
+        { name: '天啓の雷', atk: 26, heal: 0 },
+        { name: '聖域の祈り', atk: 0, heal: 18, fx: { type: 'guard' } },
+        { name: '天穹の審判', atk: 40, heal: 0 },
+        { name: '万象の祝祷', atk: 0, heal: 34 },
+        { name: '光満ちる聖堂', atk: 22, heal: 20 }
+      ],
+      skill: {
+        name: '聖なる浄化', cd: 4,
+        text: '味方前衛全員の毒・攻撃力ダウン・回復力ダウンを消し、それぞれ回復力×14回復する。',
+        effects: [{ type: 'cleanse' }, { type: 'heal', amount: 14 }]
+      }
+    },
+    {
+      id: 'noichigo', name: '野苺摘みの少年', glyph: '苺', maxHp: 110, element: 'nature', series: 2,
+      subTypes: ['村人'],
+      leaderSkill: { name: '野苺の甘み', text: '味方全員の通常技の回復の数字+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      moves: [
+        { name: '蔓の投げ縄', atk: 13, heal: 0 },
+        { name: '野苺のおすそ分け', atk: 0, heal: 12 },
+        { name: '小枝の鞭', atk: 14, heal: 0 },
+        { name: '草笛の音', atk: 2, heal: 7 },
+        { name: '石つぶて', atk: 15, heal: 0 },
+        { name: '木陰のひと休み', atk: 0, heal: 8 },
+        { name: '茂みの奇襲', atk: 22, heal: 0 },
+        { name: '山盛りの野苺', atk: 0, heal: 19 },
+        { name: '藪こぎ', atk: 11, heal: 9 }
+      ],
+      skill: {
+        name: '甘い野苺籠', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×11回復する。',
+        effects: [{ type: 'heal', amount: 11 }]
+      }
+    },
+    {
+      id: 'shiryou', name: '骨笛の死霊術師', glyph: '骨', maxHp: 142, element: 'dark', series: 2,
+      subTypes: ['魔術師', '亡霊'],
+      leaderSkill: { name: '死霊の行進', text: '呪闇属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 4 }] },
+      trait: { name: '先駆けの死霊', text: '先手：自分の陣営の最初のターンだけ、通常技の攻撃が1.5倍。', effects: [{ type: 'firstStrike', mult: 1.5 }] },
+      moves: [
+        { name: '骨笛の呪音', atk: 21, heal: 0 },
+        { name: '屍の衣', atk: 0, heal: 13 },
+        { name: '怨霊の爪', atk: 17, heal: 0, fx: { type: 'weaken', stat: 'heal', percent: 30, turns: 2 } },
+        { name: '冥火の灯', atk: 4, heal: 8 },
+        { name: '骸骨兵の槍', atk: 23, heal: 0 },
+        { name: '墓土の眠り', atk: 0, heal: 11 },
+        { name: '死者の大行列', atk: 33, heal: 0 },
+        { name: '魂鎮めの調べ', atk: 0, heal: 23 },
+        { name: '亡者の合唱', atk: 19, heal: 12 }
+      ],
+      skill: {
+        name: '死霊の嘆き', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 12, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'mizukumi', name: '井戸の水汲み娘', glyph: '汲', maxHp: 90, element: 'water', series: 2,
+      subTypes: ['村人'],
+      leaderSkill: { name: '井戸端の和み', text: '味方全員の最大HP+4%。', effects: [{ type: 'maxHp', scope: 'all', percent: 4 }] },
+      moves: [
+        { name: '桶の水かけ', atk: 10, heal: 0 },
+        { name: '冷たい井戸水', atk: 0, heal: 9 },
+        { name: 'つるべ落とし', atk: 11, heal: 0 },
+        { name: '水撒き', atk: 2, heal: 5 },
+        { name: '天秤棒の一振り', atk: 12, heal: 0 },
+        { name: '湧き水の雫', atk: 0, heal: 7 },
+        { name: '大桶ひっくり返し', atk: 17, heal: 0 },
+        { name: '清らかな湧水', atk: 0, heal: 14 },
+        { name: '水汲みの歌', atk: 8, heal: 8 }
+      ],
+      skill: {
+        name: '井戸の恵み', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
+    },
+    {
+      id: 'yakiguri', name: '焼き栗売りの娘', glyph: '栗', maxHp: 88, element: 'fire', series: 2,
+      subTypes: ['商人'],
+      leaderSkill: { name: '焼きたての香り', text: '味方全員の通常技の回復の数字+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
+      moves: [
+        { name: '弾け栗', atk: 12, heal: 0 },
+        { name: 'ほくほく焼き栗', atk: 0, heal: 8 },
+        { name: '炭火あおぎ', atk: 11, heal: 0 },
+        { name: '紙袋のぬくもり', atk: 0, heal: 6 },
+        { name: 'いが栗投げ', atk: 13, heal: 0 },
+        { name: '呼び込みの声', atk: 2, heal: 4 },
+        { name: '大鍋の爆ぜ栗', atk: 18, heal: 0 },
+        { name: '甘栗のおまけ', atk: 0, heal: 13 },
+        { name: '屋台の火加減', atk: 10, heal: 6 }
+      ],
+      skill: {
+        name: '爆ぜる栗の雨', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×9のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 9, ignoreDefense: false }]
+      }
     }
   ];
 

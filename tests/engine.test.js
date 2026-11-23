@@ -765,6 +765,51 @@ test('腐れ沼の毒蛇姫：毒の開花で残りの毒の3倍をまとめて�
   assert.equal(cpu[2].hp, hp2, '毒の無い敵には何もしない');
 });
 
+// 星4「天穹の大司祭」（2026-11-23）：浄化のスキル（cleanse）と、癒しの光のリーダー（radiance）
+test('天穹の大司祭：星4で、初期構成が技力の上限内', () => {
+  assert.equal(E.starsOf('daishisai'), 4);
+  assert.equal(E.loadoutError('daishisai', E.defaultLoadout('daishisai')), null);
+});
+test('天穹の大司祭：スキルで味方前衛全員の毒・弱体を消して回復', () => {
+  const s = star4Battle(['daishisai', 'gessen', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'], null);
+  const pl = s.teams.player;
+  pl[0].hp = 30; pl[1].poison = { amount: 3, turns: 2 }; pl[2].weakAtk = { percent: 30, turns: 2 }; pl[2].weakHeal = { percent: 30, turns: 2 };
+  pl[3].poison = { amount: 3, turns: 2 };   // 後衛は対象外
+  assert.ok(E.roll(s, 'player', fixed(3)).ok);
+  const pv = E.previewSkill(s, 'player', 0);
+  assert.deepEqual(pv.map(p => p.type), ['cleanse', 'heal']);
+  assert.deepEqual(pv[0].targets.map(t => [t.poison, t.weak]), [[false, false], [true, false], [false, true]]);
+  const r = E.useSkill(s, 'player', 0, null);
+  assert.ok(r.ok);
+  assert.equal(pl[1].poison, undefined);
+  assert.equal(pl[2].weakAtk, undefined);
+  assert.equal(pl[2].weakHeal, undefined);
+  assert.deepEqual(pl[3].poison, { amount: 3, turns: 2 });
+  assert.equal(pl[0].hp, 30 + 14);
+  assert.deepEqual(r.events.filter(e => e.type === 'status').map(e => [e.idx, e.status]), [[1, 'cleanse'], [2, 'cleanse']]);
+});
+test('天穹の大司祭（リーダー）：通常技で回復した合計の15%が、敵前衛全員にダメージ', () => {
+  const s = star4Battle(['gessen', 'daishisai', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'], 1);
+  s.teams.player.slice(0, 3).forEach(u => { u.hp = 10; });
+  const d = [1, 2, 3, 4, 5, 6].find(x => { const m = E.unitMove(s.teams.player[0], x); return m.heal > 0 && m.atk === 0; });
+  assert.ok(E.roll(s, 'player', fixed(d)).ok);
+  const hpC = s.teams.cpu.slice(0, 3).map(u => u.hp);
+  const r = E.useMove(s, 'player', 0);
+  assert.ok(r.ok);
+  const healed = r.events.filter(e => e.type === 'heal' && e.side === 'player').reduce((a, e) => a + e.amount, 0);
+  const dmg = Math.floor(healed * 15 / 100);
+  assert.ok(dmg > 0);
+  assert.deepEqual(s.teams.cpu.slice(0, 3).map((u, i) => hpC[i] - u.hp), [dmg, dmg, dmg]);
+  assert.ok(r.events.some(e => e.type === 'damage' && e.side === 'cpu' && e.radiance));
+  // リーダーでなければ光は出ない
+  const t = star4Battle(['gessen', 'daishisai', 'gyakufu', 'kohaku', 'yoiyami', 'ryogen'], null);
+  t.teams.player.slice(0, 3).forEach(u => { u.hp = 10; });
+  assert.ok(E.roll(t, 'player', fixed(d)).ok);
+  const hpT = t.teams.cpu.map(u => u.hp);
+  assert.ok(E.useMove(t, 'player', 0).ok);
+  assert.deepEqual(t.teams.cpu.map(u => u.hp), hpT);
+});
+
 // 技の効果（2026-11-09）：吸収・毒・弱体・連撃・ピンチ・4分の1結界
 const FXT = ['kyuuketsu', 'senpu', 'kokuyou', 'kohaku', 'mukai', 'sabakuou'];
 function fxBattle(front) {

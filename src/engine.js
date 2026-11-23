@@ -457,22 +457,26 @@
 
   /* ---------- 内部処理 ---------- */
   // 味方の生存前衛全員を回復（後衛・戦闘不能は対象外）
+  // 戻り値：実際に回復した量の合計
   function healFront(state, ctx, side, base, sourceLabel) {
-    if (base <= 0) return;
+    if (base <= 0) return 0;
     const fr = fatigueRound(state, side);
     const pct = healPercent(fr);
     const amount = fatiguedHeal(base, fr);
     const parts = [];
+    let total = 0;
     frontAlive(state, side).forEach(i => {
       const unit = state.teams[side][i];
       const before = unit.hp;
       unit.hp = Math.min(unit.maxHp, unit.hp + amount);
       const gained = unit.hp - before;
+      total += gained;
       parts.push(`${unitName(unit)} +${gained}（HP ${unit.hp}/${unit.maxHp}）`);
       ctx.events.push({ type: 'heal', side, idx: i, amount: gained });
     });
     const pctText = pct < 100 ? `・回復疲労${pct}%：${base}→${amount}` : '';
     addLog(state, ctx, `［${sourceLabel}${pctText}］${team(state, side)}前衛全員を回復：${parts.join('、') || '対象なし'}`, 'heal');
+    return total;
   }
 
   // 1体にダメージ（戦闘不能の判定は呼び出し側で一連の処理後に行う）
@@ -790,6 +794,15 @@
           return `${unitName(t)}${resist ? '（毒に強い）' : ''}`;
         });
         addLog(state, ctx, `［${skill.name}・毒］${team(state, targetSide)}前衛全員を毒にした（ターンの始めに${poisonAmount(state, side, eff.value, user)}ダメージ×${eff.turns}回）：${parts.join('、') || '対象なし'}`, 'damage');
+      } else if (eff.type === 'cleanse') {
+        // 浄化（2026-11-23〜）：味方前衛全員の毒・攻撃力ダウン・回復力ダウンを消す
+        const parts = frontAlive(state, side).filter(i => { const u = state.teams[side][i]; return u.poison || u.weakAtk || u.weakHeal; }).map(i => {
+          const u = state.teams[side][i];
+          delete u.poison; delete u.weakAtk; delete u.weakHeal;
+          ctx.events.push({ type: 'status', side, idx: i, status: 'cleanse' });
+          return unitName(u);
+        });
+        addLog(state, ctx, `［${skill.name}・浄化］${parts.length ? `${team(state, side)}前衛の毒・弱体を消した：${parts.join('、')}` : '消す毒・弱体はなかった'}`, 'skill');
       } else if (eff.type === 'siphon') {
         // 魂の宴（2026-11-23〜）：敵前衛全員にダメージ、与えた合計の percent% だけ味方前衛全員がそれぞれ回復（回復疲労なし）
         let total = 0;
@@ -916,7 +929,22 @@
       ctx.events.push({ type: 'barrier', side, idx, quarter: true });
       addLog(state, ctx, `${team(state, side)}の${unitName(unit)}に4分の1結界（次に受ける防げるダメージ1回を4分の1に）`, 'barrier');
     }
-    if (move.heal > 0) healFront(state, ctx, side, moveHealBase(state, side, move, null, unit), move.name);
+    if (move.heal > 0) {
+      const healed = healFront(state, ctx, side, moveHealBase(state, side, move, null, unit), move.name);
+      // 裁きの光（リーダースキル radiance・2026-11-23〜）：通常技で実際に回復した合計の percent% を、敵前衛全員にそれぞれ与える（属性倍率なし・結界は有効）
+      const rp = leaderEffects(state, side).filter(e => e.type === 'radiance').reduce((a, e) => a + (e.percent || 0), 0);
+      const rb = Math.floor(healed * rp / 100);
+      if (rb > 0 && frontAlive(state, targetSide).length) {
+        const parts = frontAlive(state, targetSide).map(i => {
+          const t = state.teams[targetSide][i];
+          const r = computeSkillDamage(rb, false, t);
+          damageUnit(state, ctx, targetSide, i, r.damage, r.barrier, { radiance: true });
+          return `${unitName(t)} ${r.damage}${r.barrier ? '（結界で半減）' : ''}（HP ${t.hp}/${t.maxHp}）`;
+        });
+        addLog(state, ctx, `［光・${unitChar(state.teams[side][state.leader[side]]).leaderSkill.name}］癒しの光が${team(state, targetSide)}前衛全員に：${parts.join('、')}`, 'damage');
+        attacked = true;
+      }
+    }
     if (move.atk <= 0 && move.heal <= 0) addLog(state, ctx, '何も起こらなかった', 'info');
 
     // 技の効果をすべて処理してから、戦闘不能・勝敗・補充を判定
@@ -998,6 +1026,9 @@
         const base = (e.amount + leaderSum(state, side, 'skillDamageBonus')) * unitAtk(unit);
         return { type: 'damage', base, ignoreDefense: !!e.ignoreDefense,
           targets: frontAlive(state, targetSide).map(i => { const t = state.teams[targetSide][i]; const r = computeSkillDamage(base, e.ignoreDefense, t); return { idx: i, name: unitName(t), damage: r.damage, barrier: r.barrier }; }) };
+      }
+      if (e.type === 'cleanse') {
+        return { type: 'cleanse', targets: frontAlive(state, side).map(i => { const t = state.teams[side][i]; return { idx: i, name: unitName(t), poison: !!t.poison, weak: !!(t.weakAtk || t.weakHeal) }; }) };
       }
       if (e.type === 'siphon') {
         const base = (e.amount + leaderSum(state, side, 'skillDamageBonus')) * unitAtk(unit);
