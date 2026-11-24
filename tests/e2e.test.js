@@ -1063,6 +1063,8 @@ for (const kind of ['mobile', 'desktop']) {
     // 選択中のカード：少し上がるだけ（拡大しない）。閉じると戻る
     await page.click('#ally-front > .bt-card:nth-child(2) .mo-btn');
     await page.waitForSelector('#modal:not(.hidden)');
+    // 上がる動き（0.15秒）が終わるのを待ってから測る
+    await page.$eval('#ally-front > .bt-card:nth-child(2)', c => Promise.all(c.getAnimations().map(a => a.finished.catch(() => {}))));
     const tf = await page.$eval('#ally-front > .bt-card:nth-child(2)', c => { const m = new DOMMatrix(getComputedStyle(c).transform); return [c.classList.contains('sel'), m.f, m.a]; });
     assert.ok(tf[0] && tf[1] < 0 && tf[2] === 1, '選んだカードは少し上がる・拡大しない');
     await page.click('#modal-x');
