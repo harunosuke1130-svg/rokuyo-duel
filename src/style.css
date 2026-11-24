@@ -1050,8 +1050,15 @@ body[data-screen="battle"] .topbar { display: none; }
 .mo-btn.heal { background: linear-gradient(180deg, #3f8d52, #22562f); }
 .mo-btn.both { background: linear-gradient(135deg, #a8452f 0 50%, #3a8250 50% 100%); }
 .mo-btn.none { background: linear-gradient(180deg, #5d5a55, #3a3833); }
-.mo-kind { font-size: 10.5px; opacity: .92; }
+.mo-kind { display: inline-flex; align-items: center; gap: 2px; font-size: 10.5px; opacity: .95; }
+.mo-ic { width: 11px; height: 11px; flex: none; }
 .mo-main { font-family: var(--mincho); font-size: 18px; line-height: 1.15; white-space: nowrap; }
+/* 数字がボタンの幅からはみ出さないよう、ボタンの幅に合わせて文字を小さくする（2026-11-24） */
+.mo-btn { container-type: inline-size; }
+@supports (font-size: 1cqi) {
+  .mo-main { font-size: min(18px, 17cqi); }
+  .mo-btn.both .mo-main { font-size: min(18px, 14.5cqi); letter-spacing: -.02em; }
+}
 .mo-btn .mo-name { font-size: 10.5px; opacity: .9; max-width: 100%; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .bt-range-note { margin: 4px 0 0; text-align: center; font-size: 11.5px; color: #efe6d0; text-shadow: 0 1px 2px #000; }
 
@@ -1230,13 +1237,6 @@ body[data-screen="login"] #app { max-width: none; padding-left: 0; padding-right
 .bt-card.mine .bt-info { background: linear-gradient(180deg, transparent, rgba(80, 120, 200, .07)); }
 
 /* 中央のサイコロ＝数字を出すボタン */
-.bt-dice-btn { display: flex; flex-direction: column; align-items: center; gap: 3px; padding: 2px; border: 0; background: none; color: #ffe9a8; font-family: inherit; cursor: pointer; border-radius: 12px; }
-.bt-dice-btn:disabled { cursor: default; }
-.bt-dice-btn:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
-.bt-dice-btn.ready .dice { animation: dicePulse 1.4s ease-in-out infinite; }
-.bt-dice-btn.ready:active .dice { transform: scale(.94); }
-.bt-dice-cap { font-size: 11px; font-weight: 700; white-space: nowrap; line-height: 1.2; text-shadow: 0 1px 2px #000; }
-.bt-dice-cap:empty { display: none; }
 @keyframes dicePulse { 0%, 100% { box-shadow: 0 0 0 2px rgba(255, 230, 160, .5), 0 0 8px rgba(255, 200, 90, .5); } 50% { box-shadow: 0 0 0 4px rgba(255, 230, 160, .9), 0 0 20px rgba(255, 200, 90, 1); } }
 
 /* 味方前衛カードの下部＝通常技の欄 */
@@ -1453,12 +1453,13 @@ body[data-screen="dungeon"] .topbar {
 /* 技を選ぶ場面：選べる前衛を属性の色で縁取り、技の欄を下から登場させる。後衛は控えめに */
 #ally-front.picking .bt-card.can-act { box-shadow: 0 0 0 2px var(--fx, #ffe08a), 0 0 14px color-mix(in srgb, var(--fx, #ffe08a) 55%, transparent); }
 #ally-front.picking .bt-card.can-act .mo-btn { box-shadow: inset 0 0 0 1px rgba(255, 236, 190, .55), 0 0 0 1px var(--fx, #ffe08a), 0 3px 8px rgba(0, 0, 0, .5); }
-#ally-front.pick-enter .bt-move { animation: moIn .3s cubic-bezier(.2, .8, .2, 1) both; }
-#ally-front.pick-enter > .bt-card:nth-child(2) .bt-move { animation-delay: .06s; }
-#ally-front.pick-enter > .bt-card:nth-child(3) .bt-move { animation-delay: .12s; }
+/* 出目が決まったら、技の欄を左から順に短く浮かび上がらせる（2026-11-24 に少し大きく・順番をはっきり） */
+#ally-front.pick-enter .bt-move { animation: moIn .32s cubic-bezier(.2, .9, .3, 1.25) both; }
+#ally-front.pick-enter > .bt-card:nth-child(2) .bt-move { animation-delay: .09s; }
+#ally-front.pick-enter > .bt-card:nth-child(3) .bt-move { animation-delay: .18s; }
 #ally-front.pick-enter .bt-card.can-act { animation: canAct .6s ease-out both; }
 #ally-back.dim .bt-card { filter: saturate(.7) brightness(.86); transition: filter .2s; }
-@keyframes moIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: none; } }
+@keyframes moIn { from { opacity: 0; transform: translateY(12px) scale(.9); } to { opacity: 1; transform: none; } }
 @keyframes canAct { 0% { transform: translateY(0); } 40% { transform: translateY(-4px); } 100% { transform: none; } }
 
 /* 行動したキャラ：短く前へ出る（味方は上・敵は下）／固有スキルは光の輪 */
@@ -1552,7 +1553,7 @@ body[data-screen="dungeon"] .topbar {
 
 /* 「視差効果を減らす」：動きを止め、結果は静止表示（数字・縁取り・HP）で分かるようにする */
 @media (prefers-reduced-motion: reduce) {
-  .dice.rolling, .dice.landed, .dice.landed::after, .bt-dice-btn.ready .dice,
+  .dice.rolling, .dice.landed, .dice.landed::after,
   .bt-card.act-up, .bt-card.act-down, .bt-card.act-cast, .bt-card.hit-up, .bt-card.hit-down,
   #ally-front.pick-enter .bt-move, #ally-front.pick-enter .bt-card.can-act,
   .bt-card.drop-candidate, .fm-card.drop-candidate, .fx-sweep::before { animation: none !important; }
@@ -1882,158 +1883,141 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 }
 
 /* ======================================================================
- * 戦闘の盤面と立体サイコロ（ui-dice.js）
- * 盤面（.bt-stage）は背景が見える透明な帯。サイコロは6面の立方体で、接地影と一緒に盤面の上を転がる。
- * スマホ：敵と味方の間の帯に、左に盤面・右に今することの文字を重ねる。PC 横長：盤の列に広い盤面、文字は右の欄。
+ * 戦闘のスロット（ui-dice.js・2026-11-24〜）
+ * 敵と味方の間の帯：左に今することの札、中央に 1〜6 が縦に流れるリール（枠・左右の判定の印）、右に STOP。下に一行の説明。
+ * 部品の絵は src/img/slot/（利用者の素材シートから切り出し、薄い影を消したもの）。枠・ボタンは縦横比のまま使い、伸ばさない。
+ * スマホ：この帯が今することの表示を兼ねる（右上の文字の欄は出さない）。PC 横長：盤の列の真ん中。文字は右の欄にも出る。
  * ==================================================================== */
 .sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
-.bt-stage {
-  grid-area: center; position: relative; z-index: 3; height: 108px; margin: 0 -2px;
-  pointer-events: none;
-  /* 盤の面：背景の絵は見せたまま、サイコロの転がる場所をうっすら落ち着かせる */
-  background: radial-gradient(ellipse 34% 62% at 50% 54%, rgba(236, 218, 180, .22), rgba(236, 218, 180, .08) 58%, transparent 80%);
+#screen-battle { --rw: clamp(96px, 28vw, 116px); --stop-w: clamp(100px, 30vw, 126px); }
+.bt-stage { grid-area: center; position: relative; z-index: 3; margin: 0 -2px; pointer-events: none; }
+.sl-band { position: relative; display: flex; align-items: center; justify-content: center; gap: 8px; padding: 0 4px; }
+/* 古い木の梁：リールの後ろを横切る（真鍮の細い縁） */
+.sl-band::before {
+  content: ""; position: absolute; left: 0; right: 0; top: 50%; height: calc(var(--rw) * .56); transform: translateY(-50%);
+  border-radius: 5px; border-top: 2px solid #8a6a36; border-bottom: 2px solid #8a6a36;
+  background: repeating-linear-gradient(178deg, rgba(255, 220, 160, .04) 0 3px, transparent 3px 9px), linear-gradient(180deg, #4d341d, #2b1b0d 50%, #3b2715);
+  box-shadow: 0 4px 10px rgba(0, 0, 0, .55), inset 0 1px 0 rgba(255, 220, 160, .14);
 }
-/* サイコロの層：戦闘画面全体に重ねる（カードより手前）。押せるのはサイコロだけ */
-#screen-battle { --die: 44px; --pop: 100px; }
-#screen-battle .bt-layout { position: relative; }
-.dice-layer { position: absolute; inset: 0; z-index: 20; pointer-events: none; overflow: visible; }
-.dice-layer .bt-dice-btn:disabled { pointer-events: none; }
-#screen-battle .bt-center {
-  grid-area: center; position: relative; z-index: 2; align-self: center; justify-self: end; width: 34%;
-  display: block; margin: 0; padding: 6px 10px 6px 18px; border: 0; pointer-events: none;
-  background: linear-gradient(90deg, transparent, rgba(14, 20, 32, .74) 22%, rgba(14, 20, 32, .74));
-  border-radius: 4px 0 0 4px;
+/* 左の札：今すること（狙って止めろ／技を選ぶ／相手のターン…） */
+.sl-plaque { position: relative; flex: 1 1 0; min-width: 0; max-width: 124px; display: flex; justify-content: center; }
+.sl-plaque span {
+  display: block; padding: 5px 8px 6px; border-radius: 3px; transform: rotate(-2.5deg);
+  font-family: var(--mincho); font-weight: 700; font-size: clamp(13px, 3.7vw, 16px); line-height: 1.2; text-align: center; color: #2b1a0a;
+  background: linear-gradient(180deg, #f2e6c6, #dcc79a); box-shadow: 0 2px 6px rgba(0, 0, 0, .5), inset 0 0 0 1px rgba(120, 84, 30, .45);
+  word-break: keep-all; overflow-wrap: anywhere;
 }
-#screen-battle .bt-center .bt-phase { text-align: right; }
-#screen-battle .bt-center .phase-text { font-size: 16px; line-height: 1.25; }
-#screen-battle .bt-center .bt-phase-sub { font-size: 11px; line-height: 1.3; }
-/* 文字が長くても盤面の帯の高さを変えない（画面がずれないように） */
-@media not all and (min-width: 960px) and (orientation: landscape) {
-  #screen-battle .bt-center { max-height: 100px; overflow: hidden; padding-left: 10px; }
-}
+/* 赤い筆の下線（自分が止める番だけ） */
+.sl-plaque span::after { content: ""; display: block; width: 84%; height: 3px; margin: 3px auto 0; border-radius: 2px; background: linear-gradient(90deg, transparent, #9a2a1a 14%, #b8402a 72%, transparent); opacity: 0; }
+#screen-battle.my-turn .sl-plaque span::after { opacity: 1; }
+.bt-stage.foe-turn .sl-plaque span { background: linear-gradient(180deg, #ddd3bd, #bfb294); color: #3a2c1c; }
 
-/* 押せる範囲は見た目より広く（サイコロ＋まわり14px） */
-.bt-dice-btn {
-  position: absolute; left: 0; top: 0; width: calc(var(--die) + 28px); height: calc(var(--die) + 28px);
-  margin: calc(var(--die) / -2 - 14px) 0 0 calc(var(--die) / -2 - 14px); padding: 0;
-  display: block; border: 0; border-radius: 14px; background: none; color: #ffe9a8; cursor: pointer;
-  pointer-events: auto; touch-action: none; -webkit-tap-highlight-color: transparent; will-change: transform;
-  user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+/* リール：枠の絵（217×233）の窓に数字の面が縦に流れる。窓の位置は絵に合わせた割合 */
+.sl-reel { position: relative; flex: none; width: var(--rw); aspect-ratio: 217 / 233; background: url("img/slot/reel.webp") center / 100% 100% no-repeat; filter: drop-shadow(0 5px 8px rgba(0, 0, 0, .55)); }
+.sl-window {
+  position: absolute; left: 24.4%; right: 23.5%; top: 20.2%; bottom: 15.5%; overflow: hidden; border-radius: 3px;
+  background: linear-gradient(180deg, #2a1d10, #4a3820 50%, #2a1d10);
+  -webkit-mask-image: linear-gradient(transparent, #000 13%, #000 87%, transparent); mask-image: linear-gradient(transparent, #000 13%, #000 87%, transparent);
 }
-.bt-dice-btn.ready { cursor: grab; }
-.bt-dice-btn.dragging { cursor: grabbing; }
-.bt-dice-btn.dragging::before, .bt-dice-btn.dragging .bt-dice-cap { display: none; }
-.bt-dice-btn.glide { transition: transform .38s cubic-bezier(.3, .7, .3, 1); }
-.bt-dice-btn:disabled { cursor: default; }
-.bt-dice-btn:focus-visible { outline: 3px solid #ffe08a; outline-offset: -2px; }
-.bt-dice-btn .bt-dice-cap {
-  position: absolute; left: 6px; top: calc(100% - 6px);
-  font-size: 11px; font-weight: 700; line-height: 1.2; white-space: nowrap; color: #ffe9a8; text-shadow: 0 1px 2px #000, 0 0 6px #000;
-}
-.bt-dice-btn .bt-dice-cap:empty { display: none; }
-.die-cam { position: absolute; inset: 0; perspective: 560px; perspective-origin: 50% 50%; pointer-events: none; }
-.die-world { position: absolute; left: 50%; top: 50%; width: 0; height: 0; transform-style: preserve-3d; transform: rotateX(17deg); }
-.die-body {
-  position: absolute; left: calc(var(--die) / -2); top: calc(var(--die) / -2); width: var(--die); height: var(--die);
-  transform-style: preserve-3d; will-change: transform;
-}
-/* 面：象牙色の地・古金の縁・琥珀の目（src/img/dice/face-1〜6）。角を少し丸める */
-.die-face {
-  position: absolute; inset: 0; border-radius: 13%; backface-visibility: hidden;
-  background: #e9dcc0 center / 100% 100% no-repeat;
-  box-shadow: inset 0 0 0 1px rgba(120, 88, 34, .55), inset 0 0 calc(var(--die) * .18) rgba(120, 90, 40, .22);
-}
-.die-face[data-n="1"] { background-image: url("img/dice/face-1.webp"); transform: translateZ(calc(var(--die) / 2)); }
-.die-face[data-n="6"] { background-image: url("img/dice/face-6.webp"); transform: rotateY(180deg) translateZ(calc(var(--die) / 2)); }
-.die-face[data-n="2"] { background-image: url("img/dice/face-2.webp"); transform: rotateY(90deg) translateZ(calc(var(--die) / 2)); }
-.die-face[data-n="5"] { background-image: url("img/dice/face-5.webp"); transform: rotateY(-90deg) translateZ(calc(var(--die) / 2)); }
-.die-face[data-n="3"] { background-image: url("img/dice/face-3.webp"); transform: rotateX(90deg) translateZ(calc(var(--die) / 2)); }
-.die-face[data-n="4"] { background-image: url("img/dice/face-4.webp"); transform: rotateX(-90deg) translateZ(calc(var(--die) / 2)); }
-/* 角を丸めた分のすき間を埋める芯（外からは象牙色の厚みに見える） */
-.die-core { position: absolute; inset: 2%; background: #d8c8a4; border-radius: 4%; pointer-events: none; }
-.die-core.y { transform: rotateX(90deg); }
-.die-core.z { transform: rotateY(90deg); }
-/* 接地影：浮くほど大きく薄く、着地で小さく濃く（ui-dice.js が毎フレーム動かす） */
-.die-shadow {
-  position: absolute; left: calc(var(--die) * -.8); top: calc(var(--die) * -.8); width: calc(var(--die) * 1.6); height: calc(var(--die) * 1.6);
-  border-radius: 50%; pointer-events: none; opacity: .6;
-  background: radial-gradient(circle, rgba(0, 0, 0, .9) 0, rgba(0, 0, 0, .62) 34%, rgba(0, 0, 0, 0) 70%);
-}
-/* 着地の小さな光の粒 */
-.die-fx { position: absolute; left: 0; top: 0; transform-style: preserve-3d; }
-.die-sparks i {
-  position: absolute; width: 4px; height: 4px; margin: -2px 0 0 -2px; border-radius: 50%; pointer-events: none;
-  background: #ffe4a0; box-shadow: 0 0 5px rgba(255, 200, 100, .9); opacity: 0;
-  animation: dieSpark .48s ease-out forwards;
-}
-@keyframes dieSpark { 0% { opacity: var(--o); transform: translate(0, 0) scale(1); } 100% { opacity: 0; transform: translate(var(--dx), var(--dy)) scale(.4); } }
-/* 振る前：そっと待つ。押せるときだけ、ゆっくり淡い輪で知らせる */
-.bt-dice-btn.ready::before {
-  content: ""; position: absolute; left: 50%; top: 50%; width: calc(var(--die) * 1.5); height: calc(var(--die) * 1.5);
-  margin: calc(var(--die) * -.75) 0 0 calc(var(--die) * -.75); border-radius: 50%; pointer-events: none;
-  border: 2px solid rgba(255, 226, 150, .7); animation: dieReady 1.6s ease-in-out infinite;
-}
-@keyframes dieReady { 0%, 100% { opacity: .25; transform: scale(.92); } 50% { opacity: .85; transform: scale(1.04); } }
-.bt-dice-btn.ready:active .die-world { transform: rotateX(17deg) scale(.95); }
-.die-body.fade { animation: dieFade .2s ease-out both; }
-@keyframes dieFade { from { opacity: 0; } to { opacity: 1; } }
-
-/* PC・横長：盤の列の真ん中に広い盤面。文字は右の欄 */
-@media (min-width: 960px) and (orientation: landscape) {
-  #screen-battle { --die: 46px; --pop: 112px; }
-  .bt-layout { grid-template-areas: "head head" "conn conn" "enemy side" "stage side" "ally side"; }
-  .bt-stage {
-    grid-area: stage; height: 76px; margin: -8px 0;
-    background: radial-gradient(ellipse 50% 70% at 50% 52%, rgba(236, 218, 180, .24), rgba(236, 218, 180, .09) 58%, transparent 80%);
-  }
-  #screen-battle .bt-center {
-    width: auto; justify-self: stretch; padding: 10px 14px; border: 1px solid rgba(214, 178, 94, .65); border-radius: 6px;
-    background: rgba(14, 20, 32, .88); pointer-events: auto;
-  }
-  #screen-battle .bt-center .bt-phase { text-align: center; }
-}
-
-@media (prefers-reduced-motion: reduce) {
-  .bt-dice-btn.ready::before, .die-sparks i, .die-pop.glow::after, .die-pop.glow-big::after, .die-pop.glow-big::before { animation: none !important; }
-  .bt-dice-btn.ready::before { opacity: .7; }
-  .bt-dice-btn.glide { transition: none; }
-}
-
-/* 出目の面：立体の上の面を、画面と平行な正方形（1:1）にしたもの。停止直後に「バンッ」と拡大し、中央の小さな出目に収まる */
+.sl-strip { position: absolute; left: 0; right: 0; top: 0; will-change: transform; }
+.sl-tile { display: block; width: 70%; aspect-ratio: 1; margin: 0 auto 6%; background: center / contain no-repeat; }
+.sl-tile[data-n="1"], .die-pop[data-n="1"] { background-image: url("img/slot/n1.webp"); }
+.sl-tile[data-n="2"], .die-pop[data-n="2"] { background-image: url("img/slot/n2.webp"); }
+.sl-tile[data-n="3"], .die-pop[data-n="3"] { background-image: url("img/slot/n3.webp"); }
+.sl-tile[data-n="4"], .die-pop[data-n="4"] { background-image: url("img/slot/n4.webp"); }
+.sl-tile[data-n="5"], .die-pop[data-n="5"] { background-image: url("img/slot/n5.webp"); }
+.sl-tile[data-n="6"], .die-pop[data-n="6"] { background-image: url("img/slot/n6.webp"); }
+.bt-stage.foe-turn .sl-window { filter: saturate(.75) brightness(.85); }
+/* 判定の印：窓の左右から中央の数字を指す（絵は下向きの三角を回して使う） */
+.sl-mark { position: absolute; top: calc(20.2% + 32.15%); width: calc(var(--rw) * .14); aspect-ratio: 54 / 44; background: url("img/slot/marker.webp") center / 100% 100% no-repeat; filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .7)); }
+.sl-mark.l { left: 22%; transform: translate(-50%, -50%) rotate(-90deg); }
+.sl-mark.r { right: 21%; transform: translate(50%, -50%) rotate(90deg); }
+/* 確定した数字：四角い面を中央に大きく（そのターンの間ずっと）。押しても何も起きない飾り */
 .die-pop {
-  position: absolute; left: 0; top: 0; z-index: 4; display: none; pointer-events: none; aspect-ratio: 1 / 1;
-  border-radius: 12%; background: #e9dcc0 center / 100% 100% no-repeat;
-  box-shadow: inset 0 0 0 1px rgba(120, 88, 34, .55), 0 5px 12px rgba(0, 0, 0, .5);
-  transform-origin: 50% 50%; will-change: transform;
+  position: absolute; left: 50%; top: calc(20.2% + 32.15%); z-index: 2; display: none; width: calc(var(--rw) * .8); aspect-ratio: 1;
+  transform: translate(-50%, -50%); pointer-events: none; background: center / contain no-repeat; will-change: transform;
+  filter: drop-shadow(0 6px 10px rgba(0, 0, 0, .65));
 }
-.die-pop[data-n="1"] { background-image: url("img/dice/face-1.webp"); }
-.die-pop[data-n="2"] { background-image: url("img/dice/face-2.webp"); }
-.die-pop[data-n="3"] { background-image: url("img/dice/face-3.webp"); }
-.die-pop[data-n="4"] { background-image: url("img/dice/face-4.webp"); }
-.die-pop[data-n="5"] { background-image: url("img/dice/face-5.webp"); }
-.die-pop[data-n="6"] { background-image: url("img/dice/face-6.webp"); }
-/* 立体と平らな面は、どちらか一方だけを出す */
-.dice-layer.flat .die-pop { display: block; }
-.dice-layer.flat .die-cam { visibility: hidden; }
-/* 飛び出した瞬間だけ、控えめな金色の光 */
-.die-pop.glow::after {
-  content: ""; position: absolute; inset: -6px; border-radius: 16%; pointer-events: none;
-  box-shadow: 0 0 0 2px rgba(255, 222, 140, .85), 0 0 22px 6px rgba(255, 196, 90, .55);
-  animation: popGlow .6s ease-out forwards;
+.sl-reel.popped .die-pop { display: block; }
+.sl-reel.popped .sl-mark { opacity: 0; }
+/* 飛び出した瞬間だけ、控えめな光（常には光らせない） */
+.die-pop.glow::after, .die-pop.glow-big::after {
+  content: ""; position: absolute; inset: 6%; border-radius: 12%; pointer-events: none;
+  box-shadow: 0 0 0 2px rgba(255, 222, 140, .8), 0 0 20px 6px rgba(255, 196, 90, .5); animation: popGlow .6s ease-out forwards;
+}
+.die-pop.glow-big::after { box-shadow: 0 0 0 3px rgba(255, 230, 150, .95), 0 0 30px 10px rgba(255, 200, 80, .7), 0 0 60px 20px rgba(255, 170, 60, .3); animation-duration: 1s; }
+.die-pop.glow-big::before {
+  content: ""; position: absolute; inset: 4%; border-radius: 50%; pointer-events: none;
+  border: 3px solid rgba(255, 226, 140, .95); box-shadow: 0 0 14px rgba(255, 200, 80, .8); animation: popRing .75s ease-out forwards;
 }
 @keyframes popGlow { 0% { opacity: 0; } 18% { opacity: 1; } 100% { opacity: 0; } }
-/* 目押しが当たったとき：強い金色の光と、外へ広がる光の輪（文字は出さない） */
-.die-pop.glow-big::after {
-  content: ""; position: absolute; inset: -8px; border-radius: 16%; pointer-events: none;
-  box-shadow: 0 0 0 3px rgba(255, 230, 150, .95), 0 0 34px 12px rgba(255, 200, 80, .75), 0 0 70px 24px rgba(255, 170, 60, .35);
-  animation: popGlow 1s ease-out forwards;
+@keyframes popRing { 0% { transform: scale(.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: scale(2.2); opacity: 0; } }
+
+/* STOP：赤褐色の札（通常／押した／押せない の3枚の絵）。押すと少し沈む */
+.sl-stop-wrap { position: relative; flex: none; width: var(--stop-w); display: flex; flex-direction: column; align-items: center; gap: 1px; }
+.sl-stop {
+  position: relative; display: block; width: 100%; aspect-ratio: 253 / 119; padding: 0; border: 0; border-radius: 16px; cursor: pointer;
+  background: url("img/slot/stop.webp") center / 100% 100% no-repeat; pointer-events: auto;
+  touch-action: manipulation; -webkit-tap-highlight-color: transparent; user-select: none; -webkit-user-select: none; -webkit-touch-callout: none;
+  filter: drop-shadow(0 4px 5px rgba(0, 0, 0, .55)); transition: transform .07s ease-out, filter .07s;
 }
-.die-pop.glow-big::before {
-  content: ""; position: absolute; inset: 0; border-radius: 50%; pointer-events: none;
-  border: 3px solid rgba(255, 226, 140, .95); box-shadow: 0 0 14px rgba(255, 200, 80, .8);
-  animation: popRing .75s ease-out forwards;
+.sl-stop-label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; }
+.sl-stop:disabled { cursor: default; background-image: url("img/slot/stop-off.webp"); }
+.sl-stop.pressed, .sl-stop.ready:active { background-image: url("img/slot/stop-press.webp"); transform: translateY(3px) scale(.97); filter: drop-shadow(0 1px 2px rgba(0, 0, 0, .6)); }
+.sl-stop:focus-visible { outline: 3px solid #ffe08a; outline-offset: 2px; }
+/* 決着後は「結果を見る」 */
+.sl-stop.result {
+  aspect-ratio: auto; min-height: 46px; border: 2px solid #b8862a; border-radius: 10px;
+  background: linear-gradient(180deg, #4a321c, #24170b); color: #f6e7c4; font-family: var(--mincho); font-weight: 700; font-size: 15px;
 }
-@keyframes popRing { 0% { transform: scale(.6); opacity: 0; } 15% { opacity: 1; } 100% { transform: scale(2.6); opacity: 0; } }
+.sl-stop.result .sl-stop-label { position: static; width: auto; height: auto; clip: auto; overflow: visible; }
+.sl-stop-sub { min-height: 1.25em; font-size: 10.5px; line-height: 1.25; color: #f1e4c3; text-shadow: 0 1px 2px #000, 0 0 5px #000; white-space: nowrap; }
+/* 下の一行：説明（止まった数字で技を選ぶ など）。高さを変えない */
+.sl-cap {
+  width: fit-content; max-width: 100%; min-height: 1.5em; margin: 2px auto 0; padding: 1px 20px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+  font-size: 12px; line-height: 1.5; color: #f6e7c4; text-align: center;
+  background: linear-gradient(90deg, transparent, rgba(18, 12, 6, .85) 14%, rgba(18, 12, 6, .85) 86%, transparent);
+  border-top: 1px solid rgba(214, 178, 94, .5); border-bottom: 1px solid rgba(214, 178, 94, .5);
+}
+.sl-cap:empty { visibility: hidden; }
+/* スマホ：今することはスロットの札と説明に出すので、右の文字の欄は出さない */
+@media not all and (min-width: 960px) and (orientation: landscape) {
+  #screen-battle .bt-center { display: none; }
+}
+/* PC・横長：盤の列の真ん中に少し大きく */
+@media (min-width: 960px) and (orientation: landscape) {
+  #screen-battle { --rw: 112px; --stop-w: 138px; }
+  .bt-layout { grid-template-areas: "head head" "conn conn" "enemy side" "stage side" "ally side"; }
+  .bt-stage { grid-area: stage; margin: 0; }
+  .sl-band { max-width: 600px; margin: 0 auto; gap: 14px; }
+  .sl-plaque { max-width: 150px; }
+  /* 技のボタンまで1画面に収まるよう、PC のカードの絵は少し横長に */
+  .bt-ally .bt-front-row .bt-art { aspect-ratio: 1 / .56; }
+  .bt-enemy .bt-front-row .bt-art { aspect-ratio: 1 / .5; }
+  .bt-enemy .bt-back-row { grid-template-columns: repeat(3, minmax(0, 66px)); }
+  #screen-battle .bt-center { padding: 10px 14px; border: 1px solid rgba(214, 178, 94, .65); border-radius: 6px; background: rgba(14, 20, 32, .88); }
+}
+/* 背の低いスマホ（iPhone SE など・高さ 720px 以下）：技のボタンまで1画面に収まるよう、絵とリールを少し小さく */
+@media not all and (min-width: 960px) and (orientation: landscape) {
+  @media (max-height: 720px) {
+    #screen-battle { --rw: 86px; --stop-w: 104px; }
+    #screen-battle .bt-card.boss-stage .bt-art.bs-art { height: clamp(140px, 25svh, 200px); }
+    .bt-enemy .bt-front-row .bt-art { aspect-ratio: 1 / .44; }
+    .bt-ally .bt-front-row .bt-art { aspect-ratio: 1 / .52; }
+    .bt-enemy .bt-back-row { grid-template-columns: repeat(3, minmax(0, 48px)); }
+    #screen-battle .bt-label { margin: 1px auto 2px; }
+  }
+}
+/* 低めの PC 画面（高さ 820px 以下）：さらに詰める */
+@media (min-width: 960px) and (orientation: landscape) and (max-height: 820px) {
+  .bt-ally .bt-front-row .bt-art { aspect-ratio: 1 / .48; }
+  .bt-enemy .bt-front-row .bt-art { aspect-ratio: 1 / .44; }
+  #screen-battle .bt-card.boss-stage .bt-art.bs-art { height: clamp(200px, 33vh, 320px); }
+}
+@media (prefers-reduced-motion: reduce) {
+  .die-pop.glow::after, .die-pop.glow-big::after, .die-pop.glow-big::before { animation: none !important; opacity: 0; }
+  .sl-stop { transition: none; }
+}
 
 /* ======================================================================
  * 固有スキルの確認画面（キャラの絵と技名が主役。羊皮紙・水彩・布・控えめな金）
@@ -2701,7 +2685,7 @@ body[data-screen="gacha"] .topbar {
 .bs-head .bt-tags { position: absolute; left: 4px; top: calc(100% + 4px); flex-direction: row; flex-wrap: wrap; }
 /* 敵の絵：枠なし・ふちをぼかして背景になじませる・大きく */
 .bt-card.boss-stage .bt-art.bs-art {
-  position: relative; display: block; width: 100%; height: clamp(230px, 40svh, 470px); aspect-ratio: auto; margin-top: -6px;
+  position: relative; display: block; width: 100%; height: clamp(190px, 31svh, 440px); aspect-ratio: auto; margin-top: -6px;
   border: 0; border-radius: 0; overflow: visible; cursor: pointer;
 }
 .bs-art .portrait {
@@ -2775,7 +2759,7 @@ body[data-screen="gacha"] .topbar {
 }
 @media (min-width: 960px) and (orientation: landscape) {
   .bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 520px); }
-  .bt-card.boss-stage .bt-art.bs-art { height: clamp(300px, 56vh, 600px); }
+  .bt-card.boss-stage .bt-art.bs-art { height: clamp(200px, 30vh, 500px); }
 }
 
 /* ---- dungeon-art: tomb（scripts/dungeon-art.js が書く。顔の位置は art/tomb/art.json の emblem で直す） ---- */
@@ -2850,33 +2834,3 @@ body[data-screen="gacha"] .topbar {
 /* 主役の2体の顔（GACHAS の feature。2026-11-23〜） */
 .ga-feature { display: flex; gap: 14px; justify-content: center; margin-top: 34px; }
 .ga-feature .ga-feature-face { width: 92px; height: 92px; font-size: 40px; border-width: 3px; box-shadow: 0 0 0 3px rgba(255, 236, 180, .7), 0 6px 14px rgba(0, 0, 0, .35); }
-/* ---------- 目押し（2026-11-14・11-15 にサイコロ自体が回る形に）：止めた瞬間に光る ---------- */
-.bt-dice-btn.aim-locked .die-body { filter: drop-shadow(0 0 8px #ffe27a); }
-/* スロット風のリール（2026-11-23〜）：回っている間だけ、立体のサイコロの代わりに出す */
-.die-reel {
-  position: absolute; left: 50%; top: 50%; width: calc(var(--die) * 1.12); height: calc(var(--die) * 1.5);
-  transform: translate(-50%, -50%); display: none; overflow: hidden; pointer-events: none;
-  border-radius: calc(var(--die) * .16); background: linear-gradient(#1a130a, #3a2a14 50%, #1a130a);
-  box-shadow: 0 0 0 2px #b8862a, 0 0 0 4px rgba(40, 26, 8, .8), 0 6px 16px rgba(0, 0, 0, .55);
-  -webkit-mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
-  mask-image: linear-gradient(transparent, #000 22%, #000 78%, transparent);
-}
-.die-reel-strip { position: absolute; left: calc(var(--die) * .06); top: 0; width: var(--die); will-change: transform; }
-.die-reel-tile {
-  display: block; width: var(--die); height: var(--die); margin-bottom: calc(var(--die) * .08); border-radius: 13%;
-  background: #e9dcc0 center / 100% 100% no-repeat; box-shadow: inset 0 0 0 1px rgba(120, 88, 34, .55);
-}
-.die-reel-tile[data-n="1"] { background-image: url("img/dice/face-1.webp"); }
-.die-reel-tile[data-n="2"] { background-image: url("img/dice/face-2.webp"); }
-.die-reel-tile[data-n="3"] { background-image: url("img/dice/face-3.webp"); }
-.die-reel-tile[data-n="4"] { background-image: url("img/dice/face-4.webp"); }
-.die-reel-tile[data-n="5"] { background-image: url("img/dice/face-5.webp"); }
-.die-reel-tile[data-n="6"] { background-image: url("img/dice/face-6.webp"); }
-.bt-dice-btn.aiming .die-reel { display: block; }
-.bt-dice-btn.aiming .die-world { visibility: hidden; }
-/* 目押しの間は、盤面の中央で大きく回す（2026-11-15） */
-#screen-battle .dice-layer.aim-big { --die: 76px; }
-@media (min-width: 960px) and (orientation: landscape) {
-  /* PC は右の欄に案内があるので、中央で回るサイコロの下の文字は出さない（味方の見出しと重なる） */
-  #screen-battle .dice-layer.aim-big .bt-dice-cap { display: none; }
-}

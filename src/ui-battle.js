@@ -411,6 +411,11 @@
   const hpState = u => (u.hp <= 0 ? 'ko' : u.hp / u.maxHp <= 0.25 ? 'low' : u.hp / u.maxHp <= 0.5 ? 'mid' : '');
   const hpNum = u => `<span class="bt-hp"><b>${u.hp}</b>/${u.maxHp}</span>`;
 
+  // 技の種類のしるし（攻撃＝剣・回復＝しずく）。毒・吸収・3段などは fxTag のしるし
+  const MO_ICON = {
+    atk: '<svg class="mo-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M13.5 1.5l1 1-7.2 7.2-1-1z" fill="currentColor"/><path d="M4.2 8.3l3.5 3.5-1 1-1.2-.6-2.2 2.2-1-1 2.2-2.2-.6-1.2z" fill="currentColor"/></svg>',
+    heal: '<svg class="mo-ic" viewBox="0 0 16 16" aria-hidden="true"><path d="M8 1.5C6 4.6 3.6 7 3.6 9.8a4.4 4.4 0 0 0 8.8 0C12.4 7 10 4.6 8 1.5z" fill="currentColor"/></svg>'
+  };
   // 出目の通常技（味方の前衛カードの下部に出す。押すと確認画面）
   function moveArea(i) {
     const s = bt.state;
@@ -421,6 +426,7 @@
     const healVal = p.heals.length ? p.heals[0].amount : p.healBase;
     const kind = atk && heal ? 'both' : atk ? 'atk' : heal ? 'heal' : 'none';
     const head = { both: '攻撃＋回復', atk: '攻撃技', heal: '回復技', none: p.move.fx ? '効果の技' : '効果なし' }[kind];
+    const ico = { both: MO_ICON.atk + MO_ICON.heal, atk: MO_ICON.atk, heal: MO_ICON.heal, none: '' }[kind];
     const main = kind === 'both' ? `攻${atkNum(p.boosted)}＋回${healVal}` : kind === 'atk' ? `攻撃 ${atkNum(p.boosted)}` : kind === 'heal' ? `回復 ${healVal}` : '—';
     // 攻撃と回復を分けて描く（固有スキルの強化で光らせるのは攻撃の数字だけ）
     const atkTxt = kind === 'both' ? `攻${atkNum(p.boosted)}` : `攻撃 ${atkNum(p.boosted)}`;
@@ -428,7 +434,7 @@
       : kind === 'atk' ? `<span class="mo-atk">${esc(atkTxt)}</span>` : esc(main);
     const boosted = atk && s.turnSide === bt.me && (s.boost.mult > 1 || s.boost.bonus > 0);
     return `<button type="button" class="mo-btn ${kind}${boosted ? ' boosted' : ''}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} data-el="${esc(boostEl() || ch.element)}" aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
-      <span class="mo-kind">${head}</span><b class="mo-main">${mainHtml}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span>${p.move.fx ? `<span class="mo-fx">${fxTag(p.move.fx)}</span>` : ''}</button>`;
+      <span class="mo-kind">${ico}${head}</span><b class="mo-main">${mainHtml}</b><span class="mo-name">${s.dice}「${esc(p.move.name)}」</span>${p.move.fx ? `<span class="mo-fx">${fxTag(p.move.fx)}</span>` : ''}</button>`;
   }
 
   // カード：絵（押すと詳細）＋名前・★・HP＋（味方前衛で出目確定後は）通常技。枠は属性色×ランクの濃さ
@@ -522,7 +528,16 @@
       const picking = myActing(s) && !bt.waiting;
       const key = picking ? [s.round, s.dice, s.front[side].join(','), s.skillUsed, s.swapUsed].join('|') : '';
       fr.classList.toggle('picking', picking);
-      fr.classList.toggle('pick-enter', picking && key !== bt.pickKey);
+      const entering = picking && key !== bt.pickKey;
+      fr.classList.toggle('pick-enter', entering);
+      if (entering) {
+        bt.revealAt = Date.now();
+        // 技のボタンが画面の下に隠れていたら、見える所まで送る（背の低い画面・横向きのスマホ）
+        requestAnimationFrame(() => {
+          const mv = fr.querySelector('.bt-move');
+          if (mv && mv.getBoundingClientRect().bottom > window.innerHeight) mv.scrollIntoView({ block: 'nearest', behavior: reduced() || U.FAST ? 'auto' : 'smooth' });
+        });
+      }
       bt.pickKey = key;
       $('#' + pre + '-back').classList.toggle('dim', picking);
     }
@@ -550,10 +565,10 @@
     else if (s.phase === 'initiative') { phase = '先攻・後攻'; sub = 'サイコロで決めています…'; }
     else if (s.phase === 'over') { phase = s.winner === bt.me ? '勝利！' : '敗北…'; sub = '結果を表示します（サイコロで何度でも見られます）'; }
     else if (s.phase === 'replace') { phase = s.pendingReplace.side === bt.me ? '前衛の補充' : '相手のターン'; sub = s.pendingReplace.side === bt.me ? '後衛から前衛に出すキャラを選んでください' : `${foe}が前衛を補充しています…`; }
-    else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
+    else if (s.turnSide === bt.foe) { phase = '相手のターン'; sub = s.phase === 'roll' || bt.diceAnim ? `${foe}が数字を出しています…` : `${foe}の出目 ${s.dice}：行動を考えています…`; }
     else if (bt.waiting) { phase = 'あなたのターン'; sub = '相手の端末に送信中…'; }
-    else if (s.phase === 'roll') { phase = 'サイコロを振る'; sub = '回っているサイコロを、出したい目でタップ（目押し）'; }
-    else if (bt.diceAnim) { phase = 'サイコロを振る'; sub = 'サイコロが転がっています…'; }
+    else if (s.phase === 'roll') { phase = '狙って止めろ'; sub = '止まった数字で技を選ぶ（STOP で目押し）'; }
+    else if (bt.diceAnim) { phase = '狙って止めろ'; sub = '数字が決まります…'; }
     else if (s.moveUsed) { phase = 'あなたのターン'; sub = '行動しました'; }
     else { phase = '技を選ぶ'; sub = '使う技を選んでください'; }
     $('#phase-text').textContent = phase;
@@ -566,16 +581,27 @@
       const at = s.phase === 'roll' && s.turnSide !== bt.me ? 'foe' : 'center';
       Dice.show({ at, value: s.phase === 'roll' ? null : s.dice, glide: !reduced() && !U.FAST });
     }
+    // スロット：左の札＝今すること、下の一行＝説明、右＝STOP（決着後は「結果を見る」）
     const btn = $('#btn-roll');
-    let cap = '';
-    if (s.phase === 'over') { btn.disabled = !!U.ui.modal; cap = '結果を見る'; }
-    else {
-      btn.disabled = bt.locked || bt.waiting || bt.diceAnim || s.turnSide !== bt.me || s.phase !== 'roll';
-      cap = btn.disabled ? '' : 'タップで振る・スワイプで投げる';
+    const over = s.phase === 'over';
+    if (over) btn.disabled = !!U.ui.modal;
+    else btn.disabled = bt.locked || bt.waiting || bt.diceAnim || s.turnSide !== bt.me || s.phase !== 'roll';
+    btn.classList.toggle('result', over);
+    btn.querySelector('.sl-stop-label').textContent = over ? '結果を見る' : 'STOP';
+    $('#sl-plaque-text').textContent = phase;
+    $('#roll-cap').textContent = sub;
+    const canStop = !btn.disabled && !over;
+    $('#sl-stop-sub').textContent = canStop ? (matchMedia('(hover: hover) and (pointer: fine)').matches ? 'クリック・スペースで止める' : 'タップで止める') : '';
+    // 自分が止める番になったとき、STOP が画面の外（横向きのスマホなど）なら見える所まで送る
+    const rollKey = canStop ? `${s.round}|${s.turnSide}|${s.log.length}` : '';
+    if (rollKey && rollKey !== bt.rollKey) {
+      requestAnimationFrame(() => {
+        const r = btn.getBoundingClientRect();
+        if (r.bottom > window.innerHeight || r.top < 0) $('#dice-stage').scrollIntoView({ block: 'nearest', behavior: reduced() || U.FAST ? 'auto' : 'smooth' });
+      });
     }
-    $('#roll-cap').textContent = cap;
-    btn.classList.toggle('ready', !btn.disabled && s.phase !== 'over');
-    btn.setAttribute('aria-label', s.phase === 'over' ? '結果を見る' : !btn.disabled ? 'サイコロを振る（つかんで投げる・Enter で振る）' : (s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません'));
+    bt.rollKey = rollKey;
+    btn.setAttribute('aria-label', over ? '結果を見る' : canStop ? 'リールを止める（STOP・Enter かスペースでも止まる）' : (s.dice ? `出目 ${s.dice}` : '数字はまだ出ていません'));
     // 交代できるか（できない理由）を短く出す
     const hint = $('#drag-hint');
     const swapReason = bt.locked || bt.waiting ? '処理中' : E.swapBlockReason(s, bt.me);
@@ -595,13 +621,19 @@
     if (s.initiative && s.round <= 1) flags.push(`先攻：${whoName(s.firstSide)}（${s.initiative[bt.me]} 対 ${s.initiative[bt.foe]}）`);
     $('#turn-flags').textContent = flags.join('・');
 
-    const last = bt.lastLogs.filter(l => l.kind !== 'turn').slice(-2);
+    const last = bt.lastLogs.filter(l => l.kind !== 'turn' && !(bt.diceAnim && l.kind === 'dice')).slice(-2);
     $('#last-action').innerHTML = last.length
       ? last.map(l => `<div class="lk-${l.kind}">${esc(l.text)}</div>`).join('')
       : '<div class="muted">直近の行動がここに表示されます</div>';
   }
 
-  const logHtml = () => bt.state.log.slice().reverse().map(l => `<li class="lk-${l.kind}">${esc(l.text)}</li>`).join('');
+  // リールが止まるまでは、いま出た出目の記録を出さない（先に結果が分からないように）
+  const logHtml = () => {
+    const log = bt.state.log;
+    let hide = -1;
+    if (bt.diceAnim) for (let i = log.length - 1; i >= 0; i--) if (log[i].kind === 'dice') { hide = i; break; }
+    return log.filter((l, i) => i !== hide).reverse().map(l => `<li class="lk-${l.kind}">${esc(l.text)}</li>`).join('');
+  };
   function renderLog() {
     $('#log').innerHTML = logHtml();
   }
@@ -861,8 +893,8 @@
   // 振り直し：風が今の出目を巻き上げる
   function windAtDice() {
     if (reduced() || U.FAST) return;
-    const pop = document.querySelector('#dice-layer .die-pop');
-    const c = fxRect(pop && pop.offsetParent ? pop : $('#dice-stage'));
+    const pop = document.querySelector('#dice-stage .sl-reel.popped .die-pop');
+    const c = fxRect(pop || $('#dice-stage .sl-reel') || $('#dice-stage'));
     if (!c) return;
     const n = document.createElement('div');
     n.className = 'fx-wind';
@@ -1178,8 +1210,7 @@
     });
   }
 
-  // サイコロ：Engine が決めた出目を、立体のサイコロを投げて見せる（ここでは抽選しない。演出が失敗・中断しても出目を出して進める）
-  // ev.throw は投げ方（自分・対人戦の相手がスワイプしたとき）。無ければ標準の勢いで見せる
+  // 出目：Engine が決めた出目を、スロットのリールで見せる（ここでは抽選しない。演出が失敗・中断しても出目を出して進める）
   function animateDice(ev, then) {
     const token = bt.session;
     bt.diceAnim = true;
@@ -1196,9 +1227,8 @@
     try {
       Dice.roll({
         value: ev.value,
-        throw: ev.throw || null, tap: !ev.throw && ev.side === bt.me && !ev.reroll,
-        // 目押しでタップ（投げていない）：回っていた中央から盤面を転がり、出目が大きく出る。当たったら演出を大きく（文字は出さない）
-        from: ev.reroll || (!ev.throw && ev.aim && ev.side === bt.me) ? 'center' : ev.side === bt.me ? 'me' : 'foe',
+        // 自分が STOP で止めた：押した位置から確定した数字へ短く送る。相手・振り直し：速く回してから止める。当たったら演出を大きく（文字は出さない）
+        from: ev.side === bt.me ? 'me' : 'foe', reroll: !!ev.reroll,
         big: !!ev.aimHit,
         still: fast || reduced(), instant: fast,
         onDone: () => (fast ? schedule(done, DELAY.roll) : done())
@@ -1555,21 +1585,23 @@
   /* ---------- イベント登録 ---------- */
   function bind() {
     Dice.mount($('#dice-stage'));
-    // 中央のサイコロ＝数字を出す（決着後は結果を見る）
-    // 振る：サイコロをつかんで投げる（スワイプ・フリック）か、タップ・クリック（標準の勢い）。投げ方は Engine に渡して出目を決める
+    // 中央のスロット：STOP で数字を出す（決着後は結果を見る）
     const canThrow = () => {
       const s = bt.state;
       return !!s && bt.active && !bt.locked && !bt.waiting && !bt.diceAnim && !U.ui.modal
         && s.turnSide === bt.me && s.phase === 'roll';
     };
-    // 目押し：投げた（押した）瞬間に光っていた目を aim として渡す
+    // 目押し：押した瞬間に光っていた目を aim として渡す（当たるかどうかは Engine が CONFIG.DICE_AIM.chance で決める）
     const rollArgs = (t, aim) => Object.assign(t ? { throw: t } : {}, aim ? { aim } : {});
     Dice.bindThrow({ canThrow, onThrow: (t, aim) => perform('roll', rollArgs(t, aim)) });
-    // キーボード（Enter・スペース）は標準の勢いで振る。指・マウスの操作は上で扱うので、ここでは受けない
+    // キーボード（Enter・スペース）で止める。指・マウスは押した瞬間に ui-dice が扱うので、ここでは受けない
     $('#btn-roll').addEventListener('click', e => {
       if (!bt.state) return;
       if (bt.state.phase === 'over') { if (bt.opts && bt.opts.onShowResult) bt.opts.onShowResult(); return; }
-      if (e.detail === 0 && canThrow()) perform('roll', rollArgs(null, Dice.takeAim()));
+      if (e.detail === 0 && canThrow()) {
+        perform('roll', rollArgs(null, Dice.takeAim()));
+        if (canThrow() && !Dice.playing()) Dice.cancelAim();   // 送れなかったときは押す前に戻す
+      }
     });
     $('#btn-battle-menu').addEventListener('click', showBattleMenu);
     // 前衛⇄後衛のドラッグ交代（判定はすべて Engine。対人戦のゲストはホストに依頼し、結果の状態で描き直す）
@@ -1598,6 +1630,8 @@
       if (U.tapGuarded() || dragger.suppressed() || !bt.state) return;
       const mv = e.target.closest('[data-move]');
       if (mv) {
+        // 技が順番に浮かび上がっている間（約0.35秒）は押しても反応しない（出目が出た直後の誤操作を防ぐ）
+        if (!U.FAST && !reduced() && Date.now() - (bt.revealAt || 0) < 350) return;
         if (!mv.disabled && !bt.locked && !bt.waiting) showMoveConfirm(Number(mv.dataset.move));
         return;
       }

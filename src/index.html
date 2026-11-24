@@ -205,10 +205,22 @@
         <div class="bt-leader" id="enemy-leader"></div>
       </div>
 
-      <!-- 盤面：敵と味方の間をサイコロが転がる場所。サイコロ自体を押して振る（中身は ui-dice.js が作る） -->
+      <!-- 盤面：敵と味方の間のスロット。1〜6 が縦に流れるリールと STOP ボタン（動きは ui-dice.js） -->
       <div class="bt-stage" id="dice-stage">
-        <button type="button" class="bt-dice-btn" id="btn-roll" aria-describedby="roll-cap"></button>
-        <span class="bt-dice-cap" id="roll-cap"></span>
+        <div class="sl-band">
+          <div class="sl-plaque" aria-hidden="true"><span id="sl-plaque-text">狙って止めろ</span></div>
+          <div class="sl-reel" id="sl-reel" aria-hidden="true">
+            <span class="sl-window"><span class="sl-strip"></span></span>
+            <span class="sl-mark l"></span><span class="sl-mark r"></span>
+            <span class="die-pop"></span>
+          </div>
+          <div class="sl-stop-wrap">
+            <button type="button" class="sl-stop" id="btn-roll" aria-describedby="roll-cap"><span class="sl-stop-label">STOP</span></button>
+            <small class="sl-stop-sub" id="sl-stop-sub" aria-hidden="true"></small>
+          </div>
+        </div>
+        <p class="sl-cap" id="roll-cap"></p>
+        <span class="sr-only" id="dice-value" aria-live="polite"></span>
       </div>
 
       <div class="bt-side">

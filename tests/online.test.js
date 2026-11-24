@@ -125,7 +125,7 @@ test('離れた2人のプレイヤー対戦（ルーム作成→コードで参�
   await H.joinRoom(Bp.page, code);
   await H.pvpFormation(A.page, [0, 1, 2], 0);
   await H.pvpFormation(Bp.page, [3, 4, 5], 2);
-  // ゲストがサイコロをスワイプで投げる → 投げ方がホストに届き、ホストが1回だけ出目を決める（ゲストは結果を受け取る）
+  // ゲストがスロットを STOP で止める → 押した目（aim）がホストに届き、ホストが1回だけ出目を決める（ゲストは結果を受け取る）
   const guestRoll = () => Bp.page.evaluate(() => { const s = window.RikuyouApp.getState(); return !!s && s.phase === 'roll' && s.turnSide === window.RikuyouBattle.me() && !window.RikuyouBattle.isLocked() && !window.RikuyouDice.playing(); });
   for (let i = 0; i < 400 && !(await guestRoll()); i++) {
     const ra = await H.step(A.page);
@@ -136,16 +136,12 @@ test('離れた2人のプレイヤー対戦（ルーム作成→コードで参�
   assert.ok(await guestRoll(), 'ゲストが振る番になる');
   await Bp.page.waitForTimeout(500);
   await Bp.page.$eval('#dice-stage', e => e.scrollIntoView({ block: 'center' }));
-  const db = await (await Bp.page.$('#btn-roll')).boundingBox();
-  const gx = db.x + db.width / 2, gy = db.y + db.height / 2;
-  await Bp.page.mouse.move(gx, gy); await Bp.page.mouse.down();
-  for (let i = 1; i <= 5; i++) { await Bp.page.mouse.move(gx + i * 16, gy - i * 7); await Bp.page.waitForTimeout(10); }
-  await Bp.page.mouse.up();
-  const thrown = await Bp.page.evaluate(() => window.RikuyouDice.lastThrow());
-  assert.ok(thrown, 'ゲストの投げ方');
-  await A.page.waitForFunction(() => { const r = window.RikuyouBattle.lastRoll(); return r && r.side === 'cpu' && r.throw; }, null, { timeout: 15000 });
+  await Bp.page.click('#btn-roll');
+  const aimed = await Bp.page.evaluate(() => window.RikuyouDice.aimed());
+  assert.ok(aimed >= 1 && aimed <= 6, 'ゲストが押した目 ' + aimed);
+  await A.page.waitForFunction(() => { const r = window.RikuyouBattle.lastRoll(); return r && r.side === 'cpu' && r.aim; }, null, { timeout: 15000 });
   const hostRoll = await A.page.evaluate(() => window.RikuyouBattle.lastRoll());
-  assert.deepEqual(hostRoll.throw, thrown, 'ホストがゲストの投げ方で出目を決めた');
+  assert.equal(hostRoll.aim, aimed, 'ホストがゲストの押した目で出目を決めた');
   await Bp.page.waitForFunction(v => window.RikuyouApp.getState().dice === v, hostRoll.value, { timeout: 15000 });
   const guestLast = await Bp.page.evaluate(() => window.RikuyouBattle.lastRoll());
   assert.deepEqual(guestLast, hostRoll, 'ゲストは同じ結果を受け取る（別に抽選しない）');
