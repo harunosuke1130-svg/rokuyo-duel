@@ -1812,6 +1812,134 @@
         text: '敵前衛全員に、それぞれ攻撃力×9のダメージ（属性倍率なし・結界は有効）。',
         effects: [{ type: 'damage', amount: 9, ignoreDefense: false }]
       }
+    },
+    // ---- 自動追加 2026-11-24（第2弾「魂と毒の宴」・★は無作為 2 2 1 3 2 1）----
+    {
+      id: 'shahonshi', name: '聖典の写本師', glyph: '写', maxHp: 110, element: 'holy', series: 2,
+      subTypes: ['聖職者', '学者'],
+      leaderSkill: { name: '写本の加護', text: '味方の固有スキルの回復の数字+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
+      moves: [
+        { name: '羽ペンの一閃', atk: 13, heal: 0 },
+        { name: '祈祷文の朗読', atk: 0, heal: 12 },
+        { name: '分厚い聖典', atk: 15, heal: 0 },
+        { name: '金泥の挿絵', atk: 3, heal: 7 },
+        { name: '光る頭文字', atk: 16, heal: 0 },
+        { name: '書見台の静寂', atk: 0, heal: 9 },
+        { name: '聖句の連なり', atk: 23, heal: 0 },
+        { name: '写本の祝福', atk: 0, heal: 19 },
+        { name: '頁めくりの光', atk: 11, heal: 9 }
+      ],
+      skill: {
+        name: '聖典の頁風', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×11回復する。',
+        effects: [{ type: 'heal', amount: 11 }]
+      }
+    },
+    {
+      id: 'niwashi', name: '花守の庭師', glyph: '庭', maxHp: 112, element: 'nature', series: 2,
+      subTypes: ['村人'],
+      leaderSkill: { name: '手入れの行き届いた庭', text: '味方全員の最大HP+5%。', effects: [{ type: 'maxHp', scope: 'all', percent: 5 }] },
+      moves: [
+        { name: '剪定ばさみ', atk: 14, heal: 0 },
+        { name: '如雨露の恵み', atk: 0, heal: 11 },
+        { name: '熊手の払い', atk: 13, heal: 0 },
+        { name: '花壇の香り', atk: 2, heal: 8 },
+        { name: '鋤の一撃', atk: 16, heal: 0 },
+        { name: '腐葉土の床', atk: 0, heal: 8 },
+        { name: '生け垣の迷路', atk: 22, heal: 0 },
+        { name: '満開の庭園', atk: 0, heal: 19 },
+        { name: '接ぎ木の技', atk: 11, heal: 9 }
+      ],
+      skill: {
+        name: '花吹雪の庭', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×9のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 9, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'hasumori', name: '蓮池の子守り', glyph: '蓮', maxHp: 92, element: 'water', series: 2,
+      subTypes: ['村人'],
+      leaderSkill: { name: '子守唄の水面', text: '味方全員の通常技の回復の数字+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
+      moves: [
+        { name: '蓮の葉はたき', atk: 11, heal: 0 },
+        { name: '水面の子守唄', atk: 0, heal: 9 },
+        { name: '蛙跳ね', atk: 10, heal: 0 },
+        { name: '睡蓮のゆりかご', atk: 0, heal: 6 },
+        { name: '池の小石', atk: 12, heal: 0 },
+        { name: '泥んこ遊び', atk: 3, heal: 4 },
+        { name: '大きな水しぶき', atk: 17, heal: 0 },
+        { name: '蓮の花の目覚め', atk: 0, heal: 14 },
+        { name: '池めぐり', atk: 9, heal: 7 }
+      ],
+      skill: {
+        name: '蓮池のさざ波', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
+    },
+    {
+      id: 'yamabiko', name: '山彦の弓守', glyph: '彦', maxHp: 146, element: 'nature', series: 2,
+      subTypes: ['狩人', '精霊'],
+      leaderSkill: { name: '木霊の返し矢', text: '自然属性の味方の通常技の攻撃の数字+4（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'nature', value: 4 }] },
+      trait: { name: '山彦の二の矢', text: '追撃：相手の前衛がピンチ（HP3割以下）なら、通常技がもう1回当たる（2回目は1回目の半分）。', effects: [{ type: 'pursuit', percent: 50, under: 30 }] },
+      moves: [
+        { name: '木霊の矢', atk: 21, heal: 0 },
+        { name: '山の清水', atk: 0, heal: 13 },
+        { name: '毒苔の鏃', atk: 13, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
+        { name: '峰渡りの風', atk: 4, heal: 8 },
+        { name: '岩穿ちの矢', atk: 23, heal: 0 },
+        { name: '尾根の休息', atk: 0, heal: 11 },
+        { name: '千本の木霊矢', atk: 33, heal: 0 },
+        { name: '深山の息吹', atk: 0, heal: 23 },
+        { name: '山彦の呼び声', atk: 18, heal: 12 }
+      ],
+      skill: {
+        name: '谺の矢嵐', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 12, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'hifuki', name: '火吹きの大道芸人', glyph: '芸', maxHp: 106, element: 'fire', series: 2,
+      subTypes: ['芸人'],
+      leaderSkill: { name: '大道芸の熱気', text: '味方の固有スキルのダメージの数字+3（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 3 }] },
+      moves: [
+        { name: '火吹きの芸', atk: 16, heal: 0 },
+        { name: '投げ銭の喝采', atk: 0, heal: 10 },
+        { name: '松明のお手玉', atk: 15, heal: 0 },
+        { name: '道化のおどけ', atk: 2, heal: 7 },
+        { name: '火の輪くぐり', atk: 18, heal: 0 },
+        { name: '幕間のひと息', atk: 0, heal: 8 },
+        { name: '火竜の大見得', atk: 25, heal: 0 },
+        { name: 'アンコールの拍手', atk: 0, heal: 17 },
+        { name: '炎の綱渡り', atk: 13, heal: 8 }
+      ],
+      skill: {
+        name: '大火炎の見せ場', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'inorigo', name: '野辺の祈り子', glyph: '祈', maxHp: 90, element: 'holy', series: 2,
+      subTypes: ['聖職者'],
+      leaderSkill: { name: '小さな祈り', text: '味方全員の最大HP+4%。', effects: [{ type: 'maxHp', scope: 'all', percent: 4 }] },
+      moves: [
+        { name: '野花の礫', atk: 11, heal: 0 },
+        { name: '道端の祈り', atk: 0, heal: 9 },
+        { name: '杖のひと振り', atk: 10, heal: 0 },
+        { name: '朝露のしずく', atk: 2, heal: 5 },
+        { name: '祠の光', atk: 12, heal: 0 },
+        { name: '野辺の微笑み', atk: 0, heal: 7 },
+        { name: '天への願い', atk: 17, heal: 0 },
+        { name: '野辺送りの灯', atk: 0, heal: 14 },
+        { name: '祈りの花輪', atk: 8, heal: 8 }
+      ],
+      skill: {
+        name: '祈り子の願い', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
     }
   ];
 
