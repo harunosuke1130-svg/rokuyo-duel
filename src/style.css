@@ -2007,7 +2007,8 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 @media not all and (min-width: 960px) and (orientation: landscape) {
   @media (max-height: 720px) {
     #screen-battle { --rw: 86px; --stop-w: 104px; }
-    #screen-battle .bt-card.boss-stage .bt-art.bs-art { height: clamp(140px, 25svh, 200px); }
+    #screen-battle .bt-card.boss-stage .bt-art.bs-art { height: clamp(120px, 19svh, 200px); }
+    .bt-card.back .bt-art { aspect-ratio: 2 / 1; }
     .bt-enemy .bt-front-row .bt-art { aspect-ratio: 1 / .44; }
     .bt-ally .bt-front-row .bt-art { aspect-ratio: 1 / .52; }
     .bt-enemy .bt-back-row { grid-template-columns: repeat(3, minmax(0, 48px)); }
@@ -2016,9 +2017,10 @@ body[data-screen="team"] .topbar, body[data-screen="zukan"] .topbar { display: n
 }
 /* 低めの PC 画面（高さ 820px 以下）：さらに詰める */
 @media (min-width: 960px) and (orientation: landscape) and (max-height: 820px) {
-  .bt-ally .bt-front-row .bt-art { aspect-ratio: 1 / .48; }
+  .bt-ally .bt-front-row .bt-art { aspect-ratio: 1 / .42; }
+  .bt-range-note { display: none; }
   .bt-enemy .bt-front-row .bt-art { aspect-ratio: 1 / .44; }
-  #screen-battle .bt-card.boss-stage .bt-art.bs-art { height: clamp(200px, 33vh, 320px); }
+  #screen-battle .bt-card.boss-stage .bt-art.bs-art { height: clamp(160px, 23vh, 320px); }
 }
 @media (prefers-reduced-motion: reduce) {
   .die-pop.glow::after, .die-pop.glow-big::after, .die-pop.glow-big::before { animation: none !important; opacity: 0; }
@@ -2691,7 +2693,7 @@ body[data-screen="gacha"] .topbar {
 .bs-head .bt-tags { position: absolute; left: 4px; top: calc(100% + 4px); flex-direction: row; flex-wrap: wrap; }
 /* 敵の絵：枠なし・ふちをぼかして背景になじませる・大きく */
 .bt-card.boss-stage .bt-art.bs-art {
-  position: relative; display: block; width: 100%; height: clamp(190px, 31svh, 440px); aspect-ratio: auto; margin-top: -6px;
+  position: relative; display: block; width: 100%; height: clamp(170px, 26svh, 440px); aspect-ratio: auto; margin-top: -6px;
   border: 0; border-radius: 0; overflow: visible; cursor: pointer;
 }
 .bs-art .portrait {
@@ -2765,7 +2767,7 @@ body[data-screen="gacha"] .topbar {
 }
 @media (min-width: 960px) and (orientation: landscape) {
   .bt-front-row[data-count="1"] { grid-template-columns: minmax(0, 520px); }
-  .bt-card.boss-stage .bt-art.bs-art { height: clamp(200px, 30vh, 500px); }
+  .bt-card.boss-stage .bt-art.bs-art { height: clamp(180px, 27vh, 500px); }
 }
 
 /* ---- dungeon-art: tomb（scripts/dungeon-art.js が書く。顔の位置は art/tomb/art.json の emblem で直す） ---- */
@@ -2840,3 +2842,90 @@ body[data-screen="gacha"] .topbar {
 /* 主役の2体の顔（GACHAS の feature。2026-11-23〜） */
 .ga-feature { display: flex; gap: 14px; justify-content: center; margin-top: 34px; }
 .ga-feature .ga-feature-face { width: 92px; height: 92px; font-size: 40px; border-width: 3px; box-shadow: 0 0 0 3px rgba(255, 236, 180, .7), 0 6px 14px rgba(0, 0, 0, .35); }
+
+/* ======================================================================
+ * 味方・敵のカード（2026-11-24・スロット式の画面に合わせて作り直し）
+ * 正面向きで横一列・同じ幅。木の地に細い真鍮の線＋属性色の細い縁。
+ * 上から「絵 → 名前の札 → HP → 技の欄」。技の欄は数字が出るまで待機の表示（高さは同じ）
+ * ==================================================================== */
+.bt-card.unit-card:not(.boss-stage) {
+  padding: 3px; gap: 3px; border-radius: 6px;
+  background: linear-gradient(180deg, #4a3624, #2a1c10);
+  color: #f1e6cc;
+  box-shadow: inset 0 0 0 1px rgba(214, 178, 94, .45), 0 3px 8px rgba(0, 0, 0, .55);
+}
+.bt-card.unit-card.el-frame[data-el]:not(.boss-stage) { border-color: rgba(var(--el-rgb), calc(var(--rk-border) * .6 + .35)); }
+.bt-card.unit-card:not(.boss-stage):hover { border-color: rgba(var(--el-rgb, 214, 178, 94), .95); }
+.bt-card.unit-card:not(.boss-stage) .bt-art { border: 1px solid rgba(214, 178, 94, .55); border-radius: 3px; }
+.bt-card.front .bt-info { position: relative; gap: 3px; padding: 0; background: none; }
+.bt-card.mine .bt-info { background: none; }
+.bt-card.front .bt-name {
+  display: block; padding: 1px 4px; border-radius: 3px; font-size: 12.5px; line-height: 1.35;
+  background: linear-gradient(180deg, #f6eed8, #e3d4ae); color: #2e2010; box-shadow: inset 0 0 0 1px rgba(150, 115, 60, .5);
+}
+.bt-card.foe.front .bt-name { color: #3a1c14; }
+.bt-card.front .bt-name .stars { font-size: 10px; margin-left: 2px; }
+.bt-card.front .bt-hpline { flex-wrap: nowrap; align-items: center; gap: 3px; padding: 0 1px; color: #e9dcbc; font-size: 10.5px; line-height: 1; }
+.bt-hpk { flex: none; font-size: 9px; font-weight: 700; color: #d6b25e; letter-spacing: .02em; }
+.bt-card.front .bt-hpline .hpbar { flex: 1; min-width: 14px; height: 7px; margin: 0; background: rgba(0, 0, 0, .55); border-color: rgba(214, 178, 94, .35); }
+.bt-card.front .bt-hpline .bt-hp { flex: none; white-space: nowrap; }
+.bt-card.front .bt-hpline .bt-hp b { font-size: 12px; color: #fff; }
+.bt-card.front .bt-pinch { position: absolute; left: 3px; top: -19px; z-index: 3; }
+.bt-cdwrap { position: absolute; right: 2px; bottom: 2px; z-index: 3; }
+.bt-cdwrap .bt-cd { display: block; padding: 0 4px; border-radius: 3px; font-size: 10px; line-height: 15px; color: #f1e6cc; background: rgba(0, 0, 0, .66); }
+.bt-cdwrap .bt-cd.ok { color: #a8e6b0; }
+.bt-card .hpbar > i { background: #5fa06a; }
+
+/* 技の欄（待機中）：技のボタンと同じ高さ */
+.bt-wait {
+  display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 3px; min-height: 54px; margin-top: 0; padding: 0 2px; border-radius: 4px;
+  background: rgba(0, 0, 0, .32); border: 1px solid rgba(214, 178, 94, .3); color: #d4c6a6; font-size: 10.5px; line-height: 1.2; white-space: nowrap; overflow: hidden;
+}
+.bt-wait svg { flex: none; width: 14px; height: 14px; color: #d6b25e; }
+.bt-wait.ko { color: #9a8a70; }
+.bt-move { margin-top: 0; }
+
+/* 攻撃＋回復の技：2 行に分ける */
+.mo-btn.both .mo-main { display: flex; flex-direction: column; align-items: center; font-size: min(15px, 13cqi); line-height: 1.12; letter-spacing: 0; }
+@supports not (font-size: 1cqi) { .mo-btn.both .mo-main { font-size: 14px; } }
+
+/* 技を選べる間：常に光らせず、縁を細く示すだけ */
+#ally-front.picking .bt-card.can-act { box-shadow: inset 0 0 0 1px rgba(214, 178, 94, .45), 0 0 0 1px var(--fx, #e8c46a), 0 3px 8px rgba(0, 0, 0, .55); }
+
+/* 選択中のカード（技の確認・詳細を開いている間）：少し上げて枠を強める。拡大はしない */
+.bt-card.unit-card.sel:not(.boss-stage) {
+  position: relative; z-index: 3; transform: translateY(-6px);
+  border-color: rgba(var(--el-rgb, 232, 196, 106), 1);
+  box-shadow: inset 0 0 0 1px rgba(240, 210, 140, .8), 0 0 0 2px #e8c46a, 0 8px 14px rgba(0, 0, 0, .6);
+}
+
+/* 後衛：前衛の下に一回り小さく（横長の絵＋HP） */
+.bt-back-row { grid-template-columns: repeat(3, minmax(0, 104px)); gap: 8px; }
+.bt-card.back .bt-art { aspect-ratio: 16 / 9; }
+.bt-card.back .hpbar { height: 5px; }
+.bt-card.back .bt-backline { position: absolute; left: 6px; bottom: 26px; z-index: 3; padding: 0 3px; border-radius: 3px; background: rgba(0, 0, 0, .55); color: #f1e6cc; }
+.bt-card.back .bt-backline:not(:has(*)) { display: none; }
+.bt-card.back .bt-backline .bt-cd { color: #f1e6cc; }
+.bt-card.back .bt-hp { line-height: 16px; }
+
+/* 見出しは小さく（敵とスロットの場所を残す） */
+.bt-ally .bt-label { margin: 2px auto 3px; font-size: 12.5px; padding: 0 18px; }
+.bt-range-note { margin: 3px 0 0; }
+/* スマホ縦：範囲の説明は技の確認画面に出るので省き、後衛まで 1 画面に収める */
+@media (orientation: portrait) { .bt-range-note { display: none; } }
+
+@media (prefers-reduced-motion: reduce) {
+  .bt-card.unit-card.sel { transition: none; }
+}
+/* 技の欄はカードの下端まで（横に並ぶカードの高さがそろう） */
+.bt-card.front { container-type: inline-size; }
+.bt-card.front .bt-move, .bt-card.front .bt-wait { flex: 1 1 auto; }
+.bt-card.front .bt-move { display: flex; }
+.bt-card.front .bt-move .mo-btn { flex: 1; }
+.bt-card.front .bt-name { font-size: min(12.5px, 10.6cqi); }
+.bt-card.front .bt-name .stars { font-size: min(10px, 8.4cqi); }
+/* 相手の後衛（未確認）：「？」の下に小さく */
+.bt-card.veiled .bt-backline { left: 0; right: 0; bottom: 3px; justify-content: center; background: none; font-size: 10px; }
+.bt-card.veiled .bt-veil { font-size: 26px; }
+/* 絵の上に重ねた小さな札は押しても絵（詳細）に届くように */
+.bt-cdwrap, .bt-card.back .bt-backline, .bt-card.front .bt-pinch { pointer-events: none; }

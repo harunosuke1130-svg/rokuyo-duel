@@ -429,8 +429,9 @@
     const ico = { both: MO_ICON.atk + MO_ICON.heal, atk: MO_ICON.atk, heal: MO_ICON.heal, none: '' }[kind];
     const main = kind === 'both' ? `攻${atkNum(p.boosted)}＋回${healVal}` : kind === 'atk' ? `攻撃 ${atkNum(p.boosted)}` : kind === 'heal' ? `回復 ${healVal}` : '—';
     // 攻撃と回復を分けて描く（固有スキルの強化で光らせるのは攻撃の数字だけ）
-    const atkTxt = kind === 'both' ? `攻${atkNum(p.boosted)}` : `攻撃 ${atkNum(p.boosted)}`;
-    const mainHtml = kind === 'both' ? `<span class="mo-atk">${esc(atkTxt)}</span>＋<span class="mo-heal">回${healVal}</span>`
+    // 攻撃＋回復の技は 2 行に分ける（数字がボタンからはみ出さないように）
+    const atkTxt = `攻撃 ${atkNum(p.boosted)}`;
+    const mainHtml = kind === 'both' ? `<span class="mo-atk">${esc(atkTxt)}</span><span class="mo-heal">回復 ${healVal}</span>`
       : kind === 'atk' ? `<span class="mo-atk">${esc(atkTxt)}</span>` : esc(main);
     const boosted = atk && s.turnSide === bt.me && (s.boost.mult > 1 || s.boost.bonus > 0);
     return `<button type="button" class="mo-btn ${kind}${boosted ? ' boosted' : ''}" data-move="${i}"${bt.locked || bt.waiting ? ' disabled' : ''} data-el="${esc(boostEl() || ch.element)}" aria-label="${esc(ch.name)}の通常技「${esc(p.move.name)}」${esc(main)}">
@@ -472,11 +473,15 @@
     const cd = u.hp > 0 && !hidden ? (u.cd > 0 ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : (mine ? '<span class="bt-cd ok">スキル可</span>' : '')) : '';
     const label = `${ch.name}${E.starsOf(ch.id) ? ' ★' + E.starsOf(ch.id) : ''} HP${u.hp}/${u.maxHp}${hpState(u) === 'low' ? '（ピンチ）' : ''}${u.hp <= 0 ? '（戦闘不能）' : ''}${lead ? '（リーダー）' : ''}`;
     const withMove = mine && kind === 'front' && u.hp > 0 && myActing(s) && !bt.waiting;
-    return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${withMove ? ' can-act' : ''}${shield ? ' has-barrier' : ''}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
-      <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: !E.isBoss(u.charId) })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${vu.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(vu) : ''}</span>
-      ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}${starsHtml(ch)}</span><span class="bt-hpline">${hpNum(vu)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}${cd}</span>${hpBar(vu)}</span>`
+    // 技の欄：数字が出るまでは待機の表示（欄の高さを保って、技が出ても並びがずれないように）
+    const waitTxt = !mine || kind !== 'front' || withMove || hidden || s.phase === 'formation' || s.phase === 'over' ? ''
+      : u.hp <= 0 ? '戦闘不能' : s.turnSide !== bt.me ? '相手のターン' : s.phase === 'roll' || bt.diceAnim ? '出目を待っています' : '待機中';
+    const sel = bt.sel === key ? ' sel' : '';
+    return `<div class="bt-card unit-card el-frame ${kind} ${mine ? 'mine' : 'foe'}${st ? ' hp-' + st : ''}${vu.hp <= 0 ? ' ko' : ''}${withMove ? ' can-act' : ''}${shield ? ' has-barrier' : ''}${sel}" ${frameAttrs(ch)} data-side="${side}" data-idx="${i}" data-pos="${kind}">
+      <span class="bt-art" role="button" tabindex="0" aria-label="${esc(label)}（詳細・固有スキル）">${portrait(ch, { zoom: !E.isBoss(u.charId) })}${elMark(ch)}<span class="bt-tags">${tags.join('')}</span>${vu.hp <= 0 ? '<span class="bt-ko">戦闘不能</span>' : ''}${kind === 'back' ? hpNum(vu) : cd ? `<span class="bt-cdwrap">${cd}</span>` : ''}</span>
+      ${kind === 'front' ? `<span class="bt-info"><span class="bt-name">${esc(ch.name)}${starsHtml(ch)}</span><span class="bt-hpline"><span class="bt-hpk">HP</span>${hpBar(vu)}${hpNum(vu)}${st === 'low' ? '<span class="bt-pinch">ピンチ</span>' : ''}</span></span>`
         : `${hpBar(vu)}<span class="bt-backline">${starsHtml(ch)}${u.hp > 0 && u.cd > 0 && !hidden ? `<span class="bt-cd" title="固有スキルの残りターン">⌛${u.cd}</span>` : ''}</span>`}
-      ${withMove ? `<span class="bt-move">${moveArea(i)}</span>` : ''}
+      ${withMove ? `<span class="bt-move">${moveArea(i)}</span>` : waitTxt ? `<span class="bt-wait${u.hp <= 0 ? ' ko' : ''}" aria-hidden="true">${u.hp > 0 && waitTxt === '出目を待っています' ? '<svg viewBox="0 0 16 16" aria-hidden="true"><path d="M4 1.5h8M4 14.5h8M5 1.5c0 3.5 6 3.5 6 6.5s-6 3-6 6.5M11 1.5c0 3.5-6 3.5-6 6.5s6 3 6 6.5" fill="none" stroke="currentColor" stroke-width="1.4" stroke-linecap="round"/></svg>' : ''}${waitTxt}</span>` : ''}
       ${hidden ? '<span class="bt-hidden">配置前</span>' : ''}
     </div>`;
   }
@@ -1625,6 +1630,12 @@
         perform('swap', { out, in: inn });
       }
     });
+    // 選択中のカード（技の確認・詳細を開いている間）：少し上げて枠を強める。拡大はしない
+    const markSel = card => {
+      bt.sel = card ? card.dataset.side + ':' + card.dataset.idx : null;
+      document.querySelectorAll('#screen-battle .bt-card.sel').forEach(c => c.classList.remove('sel'));
+      if (card) card.classList.add('sel');
+    };
     // カードの技欄＝通常技、絵（そのほか）＝詳細。1回のクリックでどちらか一方だけ
     const cardClick = e => {
       if (U.tapGuarded() || dragger.suppressed() || !bt.state) return;
@@ -1632,18 +1643,18 @@
       if (mv) {
         // 技が順番に浮かび上がっている間（約0.35秒）は押しても反応しない（出目が出た直後の誤操作を防ぐ）
         if (!U.FAST && !reduced() && Date.now() - (bt.revealAt || 0) < 350) return;
-        if (!mv.disabled && !bt.locked && !bt.waiting) showMoveConfirm(Number(mv.dataset.move));
+        if (!mv.disabled && !bt.locked && !bt.waiting) { markSel(mv.closest('.bt-card[data-idx]')); showMoveConfirm(Number(mv.dataset.move)); }
         return;
       }
       const card = e.target.closest('.bt-card[data-idx]');
       if (card && card.dataset.veiled) { toast('相手の後衛はまだ分かりません（前衛に出るか、固有スキルを使うと分かります）'); return; }
-      if (card) showDetailModal(card.dataset.side, Number(card.dataset.idx));
+      if (card) { markSel(card); showDetailModal(card.dataset.side, Number(card.dataset.idx)); }
     };
     ['#ally-front', '#ally-back', '#enemy-front', '#enemy-back'].forEach(sel => $(sel).addEventListener('click', cardClick));
     layout.addEventListener('keydown', e => {
       if ((e.key === 'Enter' || e.key === ' ') && e.target.matches && e.target.matches('.bt-art[role="button"]')) { e.preventDefault(); e.target.click(); }
     });
-    U.ui.onModalClose = () => { if (bt.active && bt.state && bt.state.phase === 'over') renderCenter(); };
+    U.ui.onModalClose = () => { markSel(null); if (bt.active && bt.state && bt.state.phase === 'over') renderCenter(); };
   }
 
   window.RikuyouBattle = {

@@ -1008,6 +1008,18 @@ for (const kind of ['mobile', 'desktop']) {
     assert.ok((await page.textContent('#roll-cap')).includes('止まった数字で技を選ぶ'));
     assert.equal(await page.textContent('#sl-plaque-text'), '狙って止めろ');
     assert.ok((await page.textContent('#sl-stop-sub')).includes('止める'));
+    // 味方の前衛：同じ幅で横一列・重ならない・傾けない。止める前の技の欄は待機の表示
+    const cards = await page.$$eval('#ally-front > .bt-card', cs => cs.map(c => { const r = c.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, w: r.width, tf: getComputedStyle(c).transform, wait: (c.querySelector('.bt-wait') || {}).textContent || '' }; }));
+    assert.equal(cards.length, 3);
+    assert.ok(cards.every(c => Math.abs(c.w - cards[0].w) < 1 && Math.abs(c.t - cards[0].t) < 1 && c.tf === 'none'), '同じ幅・同じ高さ・正面 ' + JSON.stringify(cards));
+    assert.ok(cards[0].r <= cards[1].l && cards[1].r <= cards[2].l, '重ならない');
+    assert.ok(cards.every(c => c.wait.includes('出目を待っています')), '技の欄は待機中');
+    const order = await page.$eval('#ally-front > .bt-card', c => ['.bt-art', '.bt-name', '.bt-hpline', '.bt-wait'].map(q => c.querySelector(q).getBoundingClientRect().top));
+    assert.ok(order.every((v, i) => !i || v > order[i - 1]), '絵→名前→HP→技の順 ' + order);
+    if (kind === 'mobile') {
+      const back = await rectOf(page, '#ally-back > .bt-card');
+      assert.ok(back.b <= 844 && back.t > cards[0].t && back.w < cards[0].w, '後衛は前衛の下に小さく・1画面に収まる ' + JSON.stringify(back));
+    }
     // 回っている：中央の数字が変わっていく（リール）
     const seen = new Set();
     for (let i = 0; i < 12; i++) { seen.add(await page.evaluate(() => window.RikuyouDice.topFace())); await page.waitForTimeout(70); }
@@ -1047,6 +1059,15 @@ for (const kind of ['mobile', 'desktop']) {
     // 技のボタンは画面の中（横にはみ出さない・数字がボタンからはみ出さない）
     const mo = await page.$$eval('#ally-front .mo-btn', bs => bs.map(b => { const r = b.getBoundingClientRect(), m = b.querySelector('.mo-main'); return { r: r.right, b: r.bottom, over: m.scrollWidth > m.clientWidth + 1 || m.getBoundingClientRect().right > r.right + 1 }; }));
     assert.ok(mo.length && mo.every(m => !m.over), '数字がボタンからはみ出さない');
+    assert.equal(await page.$$eval('#ally-front .bt-wait', w => w.length), 0, '出目が出たら技を出す');
+    // 選択中のカード：少し上がるだけ（拡大しない）。閉じると戻る
+    await page.click('#ally-front > .bt-card:nth-child(2) .mo-btn');
+    await page.waitForSelector('#modal:not(.hidden)');
+    const tf = await page.$eval('#ally-front > .bt-card:nth-child(2)', c => { const m = new DOMMatrix(getComputedStyle(c).transform); return [c.classList.contains('sel'), m.f, m.a]; });
+    assert.ok(tf[0] && tf[1] < 0 && tf[2] === 1, '選んだカードは少し上がる・拡大しない');
+    await page.click('#modal-x');
+    await page.waitForSelector('#modal', { state: 'hidden' });
+    assert.equal(await page.$$eval('#ally-front .bt-card.sel', c => c.length), 0, '閉じると戻る');
     assert.ok(await H.noHorizontalScroll(page));
     // 1〜6 すべて：止まる数字と大きな面が指定どおり（見た目だけの確認。ゲームの状態は変えない）
     for (let n = 1; n <= 6; n++) {
