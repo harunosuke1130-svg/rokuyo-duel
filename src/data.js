@@ -1940,6 +1940,135 @@
         text: '味方前衛全員を、それぞれ回復力×10回復する。',
         effects: [{ type: 'heal', amount: 10 }]
       }
+    },
+    // ---- 自動追加 2026-11-25（第2弾「魂と毒の宴」・★は無作為 1 3 2 2 3 1）----
+    {
+      id: 'koumori', name: '軒下の蝙蝠っ子', glyph: '蝠', maxHp: 92, element: 'dark', series: 2,
+      subTypes: ['獣'],
+      leaderSkill: { name: '夜更かしの羽音', text: '味方全員の最大HP+4%。', effects: [{ type: 'maxHp', scope: 'all', percent: 4 }] },
+      moves: [
+        { name: '小さな噛みつき', atk: 12, heal: 0 },
+        { name: '逆さ吊りの昼寝', atk: 0, heal: 8 },
+        { name: '羽ばたき打ち', atk: 11, heal: 0 },
+        { name: '超音波のささやき', atk: 3, heal: 4 },
+        { name: '軒先からの急降下', atk: 13, heal: 0 },
+        { name: '軒下の雨宿り', atk: 0, heal: 7 },
+        { name: '群れの大旋回', atk: 18, heal: 0 },
+        { name: '月夜の毛づくろい', atk: 0, heal: 13 },
+        { name: '夜風のひと舞い', atk: 9, heal: 7 }
+      ],
+      skill: {
+        name: '軒下の大群舞', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×8のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'uzushio', name: '渦潮の海竜使い', glyph: '渦', maxHp: 148, element: 'water', series: 2,
+      subTypes: ['竜使い', '海の民'],
+      leaderSkill: { name: '大渦の守り', text: '味方全員の通常技の回復の数字+2（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 2 }] },
+      trait: { name: '海竜の鱗', text: '根性：1戦に1回、倒れるダメージを受けてもHP1で耐える（HPが2以上のとき）。', effects: [{ type: 'guts' }] },
+      moves: [
+        { name: '海竜の尾撃', atk: 20, heal: 0 },
+        { name: '潮の満ち引き', atk: 0, heal: 14 },
+        { name: '渦巻く牙', atk: 15, heal: 0, fx: { type: 'drain', percent: 30 } },
+        { name: '波間の囁き', atk: 4, heal: 9 },
+        { name: '大渦の一撃', atk: 22, heal: 0 },
+        { name: '珊瑚の寝床', atk: 0, heal: 12 },
+        { name: '海竜の大咆哮', atk: 32, heal: 0 },
+        { name: '深海の癒やし', atk: 0, heal: 24 },
+        { name: '鳴門の舞', atk: 18, heal: 13 }
+      ],
+      skill: {
+        name: '渦潮の呑み込み', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 12, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'imoji', name: '鋳物師の娘', glyph: '鋳', maxHp: 108, element: 'fire', series: 2,
+      subTypes: ['職人'],
+      leaderSkill: { name: '湯口の熱', text: '猛火属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 2 }] },
+      moves: [
+        { name: '湯汲み柄杓', atk: 15, heal: 0 },
+        { name: '鋳型の冷まし', atk: 0, heal: 10 },
+        { name: '真砂の目潰し', atk: 14, heal: 0 },
+        { name: 'ふいご踏み', atk: 3, heal: 6 },
+        { name: '溶けた銅', atk: 17, heal: 0 },
+        { name: '炉端の握り飯', atk: 0, heal: 9 },
+        { name: '大釜の鋳込み', atk: 24, heal: 0 },
+        { name: '焼き上がりの鐘', atk: 0, heal: 17 },
+        { name: '火花の型抜き', atk: 12, heal: 8 }
+      ],
+      skill: {
+        name: '灼けた湯流し', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'chikurin', name: '竹林の隠者', glyph: '竹', maxHp: 112, element: 'nature', series: 2,
+      subTypes: ['隠者'],
+      leaderSkill: { name: '竹林の静けさ', text: '味方の固有スキルの回復の数字+3（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 3 }] },
+      moves: [
+        { name: '竹杖の突き', atk: 13, heal: 0 },
+        { name: '笹の葉茶', atk: 0, heal: 11 },
+        { name: 'しなる若竹', atk: 14, heal: 0 },
+        { name: '竹の子掘り', atk: 3, heal: 7 },
+        { name: '竹槍の構え', atk: 15, heal: 0 },
+        { name: '庵の座禅', atk: 0, heal: 9 },
+        { name: '竹林の嵐', atk: 22, heal: 0 },
+        { name: '清風の悟り', atk: 0, heal: 18 },
+        { name: '竹取りの月', atk: 10, heal: 10 }
+      ],
+      skill: {
+        name: '笹鳴りの癒やし', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×11回復する。',
+        effects: [{ type: 'heal', amount: 11 }]
+      }
+    },
+    {
+      id: 'kagamimori', name: '黄泉の鏡守', glyph: '鏡', maxHp: 140, element: 'dark', series: 2,
+      subTypes: ['巫女', '亡霊'],
+      leaderSkill: { name: '合わせ鏡の呪い', text: '味方の固有スキルのダメージの数字+4（対象1体ごと）。', effects: [{ type: 'skillDamageBonus', value: 4 }] },
+      trait: { name: '映し身の追い打ち', text: '追撃：相手の前衛がピンチ（HP3割以下）なら、通常技がもう1回当たる（2回目は1回目の半分）。', effects: [{ type: 'pursuit', percent: 50, under: 30 }] },
+      moves: [
+        { name: '鏡面の刃', atk: 22, heal: 0 },
+        { name: '冥界の水鏡', atk: 0, heal: 12 },
+        { name: '曇り鏡の呪詛', atk: 16, heal: 0, fx: { type: 'poison', value: 3, turns: 3 } },
+        { name: '映し返し', atk: 5, heal: 7 },
+        { name: '黄泉の照り返し', atk: 24, heal: 0 },
+        { name: '鏡台の眠り', atk: 0, heal: 11 },
+        { name: '千枚鏡の乱反射', atk: 34, heal: 0 },
+        { name: '魂映しの光', atk: 0, heal: 22 },
+        { name: '鏡の奥の囁き', atk: 19, heal: 11 }
+      ],
+      skill: {
+        name: '黄泉鏡の閃き', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 12, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'junrei', name: '巡礼の少女', glyph: '巡', maxHp: 94, element: 'holy', series: 2,
+      subTypes: ['聖職者'],
+      leaderSkill: { name: '巡礼の歩み', text: '味方全員の通常技の回復の数字+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
+      moves: [
+        { name: '巡礼杖の一打', atk: 11, heal: 0 },
+        { name: '旅の祈り', atk: 0, heal: 9 },
+        { name: '小石の投げ打ち', atk: 10, heal: 0 },
+        { name: '聖水のひと口', atk: 2, heal: 6 },
+        { name: '道標の光', atk: 12, heal: 0 },
+        { name: '宿坊の休息', atk: 0, heal: 7 },
+        { name: '聖地への誓い', atk: 17, heal: 0 },
+        { name: '巡礼路の加護', atk: 0, heal: 14 },
+        { name: '朝の鐘の祈り', atk: 8, heal: 8 }
+      ],
+      skill: {
+        name: '巡礼者の祈願', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
     }
   ];
 
