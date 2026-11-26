@@ -91,7 +91,8 @@
   const BGM_VOL = 0.32;
   // period：1 周の秒数（BPM と小節数から）。loopStart：2 周の途中のどこから 1 周をくり返すか
   const TRACKS = {
-    battle: { src: '@audio/bgm-battle.mp3', period: 252000 / 44100, loopStart: 1.0 }   // 通常戦（168BPM・4小節）
+    battle: { src: '@audio/bgm-battle.mp3', period: 252000 / 44100, loopStart: 1.0 },  // 通常戦（168BPM・4小節）
+    boss: { src: '@audio/bgm-boss.mp3', period: 252000 / 44100, loopStart: 1.0 }       // ボス戦（ダンジョンの中ボス・大ボス。168BPM・4小節）
   };
   const bgmOn = () => { try { return localStorage.getItem(BGM_KEY) !== 'off'; } catch (e) { return true; } };
   const B = { want: null, name: null, node: null, gain: null, bufs: {}, loading: {}, starts: 0 };

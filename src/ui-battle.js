@@ -90,6 +90,8 @@
     $('#fx-layer').innerHTML = '';
   }
 
+  // 曲：ダンジョンの中ボス・大ボスはボス戦の曲、それ以外（雑魚・CPU 対戦・対人戦）は通常戦の曲
+  const bgmName = s => (s && s.teams && s.teams[bt.foe] && s.teams[bt.foe].some(u => E.isBoss(u.charId) && /ボス/.test(E.unitChar(u).rank || '')) ? 'boss' : 'battle');
   /* ---------- 開始 ---------- */
   // opts: { mode, state, title, foeName, cpuPlan, backend, code, onFinish(result), onExit() }
   function start(opts) {
@@ -114,7 +116,7 @@
     $('#screen-battle').dataset.bg = opts.bg || 'arena';
     $('#screen-battle').classList.remove('ending'); // 背景（ダンジョンごと）。操作部分の位置は共通
     U.showScreen('battle');
-    if (window.RikuyouSound && window.RikuyouSound.bgm) window.RikuyouSound.bgm.play('battle');   // 戦闘の BGM（通常戦）
+    if (window.RikuyouSound && window.RikuyouSound.bgm) window.RikuyouSound.bgm.play(bgmName(bt.state));   // 戦闘の BGM
     if (bt.mode !== 'cpu') startRoomLink();
     if (isHost()) pushState(null); // 対戦開始時の状態をゲストに渡す
     if (bt.state) { render(); advance(); } else render();
