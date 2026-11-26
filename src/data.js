@@ -2069,6 +2069,49 @@
         text: '味方前衛全員を、それぞれ回復力×10回復する。',
         effects: [{ type: 'heal', amount: 10 }]
       }
+    },
+    // ---- 自動追加 2026-11-26（第2弾「魂と毒の宴」・★は無作為 1 1 3 2 2 3 → 残り2体なので先頭の 1 1）----
+    {
+      id: 'yakiimo', name: '焼き芋屋の娘', glyph: '芋', maxHp: 92, element: 'fire', series: 2,
+      subTypes: ['商人'],
+      leaderSkill: { name: 'ほかほかの差し入れ', text: '味方全員の最大HP+4%。', effects: [{ type: 'maxHp', scope: 'all', percent: 4 }] },
+      moves: [
+        { name: '焼け石の投げ打ち', atk: 12, heal: 0 },
+        { name: 'ほくほくのひと口', atk: 0, heal: 8 },
+        { name: '火箸のひと突き', atk: 11, heal: 0 },
+        { name: '落ち葉の焚き火', atk: 3, heal: 4 },
+        { name: '熱々の石焼き', atk: 13, heal: 0 },
+        { name: '屋台の湯気', atk: 0, heal: 7 },
+        { name: '大鍋の焼き上げ', atk: 18, heal: 0 },
+        { name: '甘い蜜の香り', atk: 0, heal: 13 },
+        { name: '売り声の火の粉', atk: 9, heal: 7 }
+      ],
+      skill: {
+        name: '石焼きの熱波', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×8のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 8, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'hasukaeru', name: '蓮池の蛙っ子', glyph: '蛙', maxHp: 90, element: 'water', series: 2,
+      subTypes: ['獣'],
+      leaderSkill: { name: '蓮の葉の雫', text: '味方全員の通常技の回復の数字+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
+      moves: [
+        { name: '跳ね飛び蹴り', atk: 11, heal: 0 },
+        { name: '蓮の葉の昼寝', atk: 0, heal: 9 },
+        { name: '舌のひと打ち', atk: 12, heal: 0 },
+        { name: '池の水浴び', atk: 2, heal: 5 },
+        { name: '水しぶき跳ね', atk: 13, heal: 0 },
+        { name: '雨乞いの合唱', atk: 0, heal: 7 },
+        { name: '大跳びの水落とし', atk: 17, heal: 0 },
+        { name: '蓮華の癒やし水', atk: 0, heal: 14 },
+        { name: '夕立の歌', atk: 8, heal: 8 }
+      ],
+      skill: {
+        name: '蛙の大合唱', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
     }
   ];
 
