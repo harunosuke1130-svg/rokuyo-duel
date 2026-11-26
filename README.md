@@ -45,7 +45,7 @@ rikuyou-duel/
 │  ├─ backend.js     保存と通信（この端末 / Firebase）・対戦ルーム
 │  ├─ ui-core.js     画面の共通部品
 │  ├─ ui-dice.js     戦闘のスロット（リールと STOP の動きだけ。出目は決めない）
-│  ├─ ui-sound.js    ボタンを押したときの効果音（開く・始める・戻る・ふつう。設定の効果音で切れる）
+│  ├─ ui-sound.js    ボタンを押したときの効果音（設定の効果音で切れる）と戦闘の BGM（src/audio/・設定の BGM で切れる）
 │  ├─ ui-battle.js   戦闘画面（CPU戦・対人戦のホスト／ゲスト）
 │  ├─ ui-app.js      ログイン・ホーム・チーム・図鑑・ダンジョン・ガチャ・ロビー
 │  └─ img/           画像（ビルドで埋め込む）。chara/<キャラID>.webp・element/<属性ID>.webp を置くとキャラの絵・属性マークになる

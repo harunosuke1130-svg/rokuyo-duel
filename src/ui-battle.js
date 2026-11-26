@@ -69,7 +69,9 @@
     }, ms);
     bt.timers.add(id);
   }
-  function stop() {
+  // keepBgm：次の戦闘をすぐ始めるとき（ダンジョンの次の階など）は曲を切らずに続ける
+  function stop(keepBgm) {
+    if (keepBgm !== true && window.RikuyouSound && window.RikuyouSound.bgm) window.RikuyouSound.bgm.stop();
     bt.timers.forEach(id => { clearTimeout(id); clearInterval(id); });
     bt.timers.clear();
     bt.session++;
@@ -91,7 +93,7 @@
   /* ---------- 開始 ---------- */
   // opts: { mode, state, title, foeName, cpuPlan, backend, code, onFinish(result), onExit() }
   function start(opts) {
-    stop();
+    stop(true);
     bt.active = true;
     bt.opts = opts;
     bt.mode = opts.mode || 'cpu';
@@ -112,6 +114,7 @@
     $('#screen-battle').dataset.bg = opts.bg || 'arena';
     $('#screen-battle').classList.remove('ending'); // 背景（ダンジョンごと）。操作部分の位置は共通
     U.showScreen('battle');
+    if (window.RikuyouSound && window.RikuyouSound.bgm) window.RikuyouSound.bgm.play('battle');   // 戦闘の BGM（通常戦）
     if (bt.mode !== 'cpu') startRoomLink();
     if (isHost()) pushState(null); // 対戦開始時の状態をゲストに渡す
     if (bt.state) { render(); advance(); } else render();
@@ -645,6 +648,8 @@
 
   function render() {
     if (bt.state) $('#screen-battle').classList.toggle('boss-fight', bt.state.teams[bt.foe].some(u => E.isBoss(u.charId)));
+    // 決着したら BGM を静かに止める（結果の画面へ）
+    if (bt.state && bt.state.phase === 'over' && window.RikuyouSound && window.RikuyouSound.bgm && window.RikuyouSound.bgm.state().want) window.RikuyouSound.bgm.stop(1.6);
     if (!bt.state) {
       $('#phase-text').textContent = '準備中';
       $('#phase-sub').textContent = '相手の準備を待っています…';
@@ -669,11 +674,19 @@
     openModal(`<h3>メニュー</h3>
       <div class="modal-actions">
         <button type="button" class="btn btn-ghost btn-block" id="btn-menu-log">戦闘履歴</button>
+        ${window.RikuyouSound && window.RikuyouSound.bgm ? `<button type="button" class="btn btn-ghost btn-block" id="btn-menu-bgm" aria-pressed="${window.RikuyouSound.bgm.on()}">BGM：${window.RikuyouSound.bgm.on() ? 'オン' : 'オフ'}</button>` : ''}
         ${bt.opts && bt.opts.onHelp ? '<button type="button" class="btn btn-ghost btn-block" id="btn-menu-help">遊び方</button>' : ''}
         ${over ? '' : `<button type="button" class="btn btn-ghost btn-block btn-danger" id="btn-surrender">${bt.mode !== 'cpu' ? '降参して退出' : '戦闘をやめる'}</button>`}
         <button type="button" class="btn btn-primary btn-block" data-close="1">閉じる</button>
       </div>`, { kind: 'menu', bind: b => {
       b.querySelector('#btn-menu-log').addEventListener('click', showLogModal);
+      const bg = b.querySelector('#btn-menu-bgm');
+      if (bg) bg.addEventListener('click', () => {
+        const S = window.RikuyouSound.bgm;
+        S.set(!S.on());
+        bg.setAttribute('aria-pressed', String(S.on()));
+        bg.textContent = `BGM：${S.on() ? 'オン' : 'オフ'}`;
+      });
       const h = b.querySelector('#btn-menu-help');
       if (h) h.addEventListener('click', () => { closeModal(true); bt.opts.onHelp(); });
       const sr = b.querySelector('#btn-surrender');

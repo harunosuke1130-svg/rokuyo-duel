@@ -12,6 +12,7 @@
  *   dist/artifact/rikuyou-duel.html claude.ai 公開用（本文のみ・この端末に保存）
  *
  * 画像：style.css の url("img/...") は data URI にして埋め込む。
+ * 音声：JS の '@audio/<ファイル名>'（src/audio/）も data URI にして埋め込む（BGM）。
  *   src/img/chara/<キャラID>.webp（または .png / .jpg / .svg）を置くと、そのキャラの絵になる
  *   src/img/element/<属性ID>.webp（fire / water / nature / holy / dark）を置くと、属性マークになる
  */
@@ -35,7 +36,7 @@ function read(name) {
 }
 
 // 画像は data URI にして埋め込む（単一HTMLを1ファイルのまま・外部通信なしで動かすため）
-const IMG_TYPES = { '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.woff2': 'font/woff2' };
+const IMG_TYPES = { '.webp': 'image/webp', '.png': 'image/png', '.jpg': 'image/jpeg', '.jpeg': 'image/jpeg', '.svg': 'image/svg+xml', '.woff2': 'font/woff2', '.mp3': 'audio/mpeg' };
 function dataUri(rel) {
   const file = path.join(SRC, rel);
   const type = IMG_TYPES[path.extname(file).toLowerCase()];
@@ -93,7 +94,8 @@ function buildHtml() {
     return '<style>\n' + css + '</style>';
   });
   html = html.replace(/<script src="([^"]+)"><\/script>/g, (m, file) => {
-    const js = read(file);
+    // 音声：JS の '@audio/<ファイル名>' は src/audio/ のファイルの data URI にする（BGM）
+    const js = read(file).replace(/'@(audio\/[\w.-]+)'/g, (m, rel) => JSON.stringify(dataUri(rel)));
     if (/<\/script/i.test(js)) throw new Error(file + ' に </script が含まれています');
     return '<script>\n/* ---- ' + file + ' ---- */\n' + js + '</script>';
   });

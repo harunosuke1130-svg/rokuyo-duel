@@ -1001,6 +1001,28 @@ const assertFlat = (d, n, msg) => {
 };
 const rectOf = (page, sel) => page.$eval(sel, e => { const r = e.getBoundingClientRect(); return { l: r.left, r: r.right, t: r.top, b: r.bottom, w: r.width, h: r.height }; });
 
+test('mobile: 戦闘の BGM（戦闘で流れる・継ぎ目なしのループ・メニューでオフにでき保存される・決着で止まる）', async () => {
+  const { ctx, page, errors } = await open('mobile', 'seed=7');
+  assert.equal((await page.evaluate(() => window.RikuyouSound.bgm.state())).want, null, '戦闘の前は流さない');
+  await startFree(page, '音手');
+  await page.waitForFunction(() => window.RikuyouSound.bgm.state().playing, null, { timeout: 8000 });
+  const st = await page.evaluate(() => window.RikuyouSound.bgm.state());
+  assert.equal(st.name, 'battle');
+  assert.ok(Math.abs(st.loop[1] - st.loop[0] - 252000 / 44100) < 1e-6, '1周（168BPM・4小節）をくり返す');
+  await page.click('#btn-battle-menu');
+  await page.click('#btn-menu-bgm');
+  assert.equal((await page.evaluate(() => window.RikuyouSound.bgm.state())).playing, false, 'オフで止まる');
+  assert.equal(await page.evaluate(() => localStorage.getItem('rikuyou.bgm')), 'off', '設定は保存');
+  await page.click('#btn-menu-bgm');
+  await page.waitForFunction(() => window.RikuyouSound.bgm.state().playing);
+  await page.click('#modal-x');
+  await page.evaluate(() => { window.RikuyouApp.getState().phase = 'over'; window.RikuyouBattle.redraw(); });
+  const end = await page.evaluate(() => window.RikuyouSound.bgm.state());
+  assert.ok(!end.playing && end.want === null, '決着で止まる');
+  assert.deepEqual(errors, []);
+  await ctx.close();
+});
+
 for (const kind of ['mobile', 'desktop']) {
   test(`${kind}: スロットを STOP で止める（押した目が Engine に渡る・連打しても1回・中央の数字と大きな面が出目と一致）`, async () => {
     const { ctx, page, errors } = await open(kind, 'seed=7');
