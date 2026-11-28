@@ -443,7 +443,7 @@ test('管理用アカウント：すべての対戦・ダンジョンを選べ�
 
 test('属性ガチャ：その属性のキャラだけが出る・値段は通常と同じ', () => {
   const D2 = require('../src/data.js');
-  assert.deepEqual(D2.GACHAS.map(g => g.id), ['all', 's2', 'fire', 'water', 'nature', 'holy', 'dark']);
+  assert.deepEqual(D2.GACHAS.map(g => g.id), ['all', 's2', 's3', 'fire', 'water', 'nature', 'holy', 'dark']);
   for (const g of D2.GACHAS.filter(x => x.element)) {
     const pool = P.gachaPool(g.id);
     assert.ok(pool.length >= 1, g.name + 'に1体以上');
@@ -458,6 +458,7 @@ test('属性ガチャ：その属性のキャラだけが出る・値段は通�
   }
   assert.equal(P.gachaPool('all').length, E.CHARACTERS.filter(c => (c.series || 1) === 1).length, '星泉ガチャは第1弾だけ');
   assert.equal(P.gachaPool('s2').length, E.CHARACTERS.filter(c => c.series === 2).length, '第2弾ガチャは第2弾だけ');
+  assert.equal(P.gachaPool('s3').length, E.CHARACTERS.filter(c => c.series === 3).length, '第3弾ガチャは第3弾だけ');
   assert.equal(P.gachaPool('fire').length, E.CHARACTERS.filter(c => c.element === 'fire').length, '属性ガチャはすべての弾から');
   assert.equal(P.drawGacha(P.newProfile({ uid: 'h' }), 1, Math.random, 'nothing').ok, false, '無い種類は引けない');
 });

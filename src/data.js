@@ -2112,6 +2112,135 @@
         text: '味方前衛全員を、それぞれ回復力×10回復する。',
         effects: [{ type: 'heal', amount: 10 }]
       }
+    },
+    // ---- 自動追加 2026-11-28（第3弾「月下の百鬼夜行」・★は無作為 3 2 3 2 2 1）----
+    {
+      id: 'inarigitsune', name: '月白の稲荷狐', glyph: '稲', maxHp: 140, element: 'holy', series: 3,
+      subTypes: ['獣', '神使'],
+      leaderSkill: { name: '社の御守り', text: '戦闘開始時、味方前衛全員に結界を付ける（各自、次に受ける防御可能なダメージ1回を半減）。', effects: [{ type: 'startBarrier' }] },
+      trait: { name: '一番祓い', text: '先手：戦闘で自分の陣営の最初のターンだけ、通常技の攻撃1.5倍。', effects: [{ type: 'firstStrike', mult: 1.5 }] },
+      moves: [
+        { name: '狐火の祓い', atk: 20, heal: 0 },
+        { name: '稲穂の恵み', atk: 0, heal: 12 },
+        { name: '鳥居くぐりの舞', atk: 15, heal: 0, fx: { type: 'weaken', stat: 'atk', percent: 25, turns: 2 } },
+        { name: '神楽鈴の音', atk: 5, heal: 7 },
+        { name: '白尾の一閃', atk: 23, heal: 0 },
+        { name: '社の静けさ', atk: 0, heal: 11 },
+        { name: '九尾の神火', atk: 33, heal: 0 },
+        { name: '稲荷の加護', atk: 0, heal: 22 },
+        { name: '月下の神楽', atk: 18, heal: 11 }
+      ],
+      skill: {
+        name: '千本鳥居の結界', cd: 4,
+        text: '味方前衛全員に結界を付ける。さらに、味方前衛全員をそれぞれ回復力×8回復する。',
+        effects: [{ type: 'barrier' }, { type: 'heal', amount: 8 }]
+      }
+    },
+    {
+      id: 'sawakappa', name: '沢渡りの河童', glyph: '河', maxHp: 110, element: 'nature', series: 3,
+      subTypes: ['妖怪'],
+      leaderSkill: { name: '胡瓜の差し入れ', text: '味方全員の最大HP+5%。', effects: [{ type: 'maxHp', scope: 'all', percent: 5 }] },
+      moves: [
+        { name: '甲羅の体当たり', atk: 14, heal: 0 },
+        { name: '皿の水差し', atk: 0, heal: 10 },
+        { name: '尻子玉抜き', atk: 13, heal: 0 },
+        { name: '沢蟹つまみ', atk: 3, heal: 6 },
+        { name: '水かきの張り手', atk: 16, heal: 0 },
+        { name: '岩陰の昼寝', atk: 0, heal: 9 },
+        { name: '大渦の相撲', atk: 23, heal: 0 },
+        { name: '清流の皿満たし', atk: 0, heal: 17 },
+        { name: '川面の水鉄砲', atk: 11, heal: 8 }
+      ],
+      skill: {
+        name: '河童の川流し', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'oboroonibi', name: '朧夜の鬼火使い', glyph: '朧', maxHp: 138, element: 'dark', series: 3,
+      subTypes: ['妖怪', '術師'],
+      leaderSkill: { name: '百鬼の行列', text: '呪闇属性の味方の通常技の攻撃の数字+3（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'dark', value: 3 }] },
+      trait: { name: '消えぬ鬼火', text: '根性：1戦に1回、倒れるダメージを受けても HP1 で耐える（HP が2以上のとき）。', effects: [{ type: 'guts' }] },
+      moves: [
+        { name: '青い鬼火', atk: 22, heal: 0 },
+        { name: '夜霧の衣', atk: 0, heal: 12 },
+        { name: '鬼火の三つ巴', atk: 18, heal: 0, fx: { type: 'multi', hits: 3 } },
+        { name: '提灯の明かり', atk: 5, heal: 6 },
+        { name: '朧月の呪い', atk: 24, heal: 0 },
+        { name: '丑三つの眠り', atk: 0, heal: 11 },
+        { name: '百鬼の大火輪', atk: 34, heal: 0 },
+        { name: '冥火の温もり', atk: 0, heal: 21 },
+        { name: '狐狸の化かし火', atk: 19, heal: 10 }
+      ],
+      skill: {
+        name: '鬼火の大行列', cd: 4,
+        text: '敵前衛全員に、それぞれ攻撃力×12のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 12, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'yukimijo', name: '雪見の雪女', glyph: '雪', maxHp: 108, element: 'water', series: 3,
+      subTypes: ['妖怪'],
+      leaderSkill: { name: '雪化粧', text: '味方全員の通常技の回復の数字+1（回復0の技は除く）。', effects: [{ type: 'healBonus', value: 1 }] },
+      moves: [
+        { name: '凍て息', atk: 13, heal: 0 },
+        { name: '雪見障子', atk: 0, heal: 11 },
+        { name: '氷柱落とし', atk: 14, heal: 0 },
+        { name: '粉雪の舞', atk: 3, heal: 6 },
+        { name: '吹雪の袖', atk: 15, heal: 0 },
+        { name: 'かまくらの灯', atk: 0, heal: 9 },
+        { name: '白魔の大吹雪', atk: 22, heal: 0 },
+        { name: '雪解けの雫', atk: 0, heal: 18 },
+        { name: '六花の吐息', atk: 10, heal: 9 }
+      ],
+      skill: {
+        name: '深雪の眠り', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×12回復する。',
+        effects: [{ type: 'heal', amount: 12 }]
+      }
+    },
+    {
+      id: 'karakasa', name: '唐傘の付喪神', glyph: '傘', maxHp: 106, element: 'fire', series: 3,
+      subTypes: ['妖怪', '道具'],
+      leaderSkill: { name: '番傘の火除け', text: '猛火属性の味方の通常技の攻撃の数字+2（攻撃0の技は除く）。', effects: [{ type: 'atkBonus', scope: 'element', element: 'fire', value: 2 }] },
+      moves: [
+        { name: '一本足跳び', atk: 15, heal: 0 },
+        { name: '油紙の雨宿り', atk: 0, heal: 10 },
+        { name: '骨組みの突き', atk: 14, heal: 0 },
+        { name: 'べろり舐め', atk: 3, heal: 6 },
+        { name: '火の粉の傘回し', atk: 17, heal: 0 },
+        { name: '軒先の干し', atk: 0, heal: 8 },
+        { name: '大番傘の焔舞', atk: 24, heal: 0 },
+        { name: '蛇の目の守り', atk: 0, heal: 16 },
+        { name: '提灯傘の灯', atk: 12, heal: 7 }
+      ],
+      skill: {
+        name: '唐傘の火車回し', cd: 3,
+        text: '敵前衛全員に、それぞれ攻撃力×10のダメージ（属性倍率なし・結界は有効）。',
+        effects: [{ type: 'damage', amount: 10, ignoreDefense: false }]
+      }
+    },
+    {
+      id: 'kodamawarabe', name: '木霊の童', glyph: '霊', maxHp: 92, element: 'nature', series: 3,
+      subTypes: ['精霊'],
+      leaderSkill: { name: 'こだま返し', text: '味方の固有スキルの回復の数字+2（対象1体ごと）。', effects: [{ type: 'skillHealBonus', value: 2 }] },
+      moves: [
+        { name: '小枝のつつき', atk: 11, heal: 0 },
+        { name: '若葉の寝床', atk: 0, heal: 9 },
+        { name: '木の実落とし', atk: 12, heal: 0 },
+        { name: '首かしげ', atk: 2, heal: 5 },
+        { name: '根っこ転がし', atk: 13, heal: 0 },
+        { name: '森の子守歌', atk: 0, heal: 7 },
+        { name: '大木の呼び声', atk: 17, heal: 0 },
+        { name: '木漏れ日の癒やし', atk: 0, heal: 13 },
+        { name: 'カタカタ笑い', atk: 8, heal: 7 }
+      ],
+      skill: {
+        name: '森のこだま', cd: 3,
+        text: '味方前衛全員を、それぞれ回復力×10回復する。',
+        effects: [{ type: 'heal', amount: 10 }]
+      }
     }
   ];
 
@@ -2157,11 +2286,13 @@
   //   limit：その弾に入れるキャラの数の目安（毎日のキャラ作りは、ここまで来たら止める）
   const SERIES = [
     { id: 1, name: '旅立ちの星泉', gacha: 'all' },
-    { id: 2, name: '魂と毒の宴', gacha: 's2', limit: 40 }   // 2026-11-23 に「暁の新星」から改名（利用者の希望）
+    { id: 2, name: '魂と毒の宴', gacha: 's2', limit: 40 },  // 2026-11-23 に「暁の新星」から改名（利用者の希望）。2026-11-27 に 40 体そろった
+    { id: 3, name: '月下の百鬼夜行', gacha: 's3', limit: 40 }  // 2026-11-28〜
   ];
   const GACHAS = [
     { id: 'all', series: 1, name: '旅立ちの星泉ガチャ', text: '第1弾のキャラが同じ確率で出ます。' },
-    { id: 's2', series: 2, name: '魂と毒の宴ガチャ', feature: ['tamakui', 'dokujahime'], art: 's2', text: '第2弾のキャラだけが出ます（その中では全員同じ確率）。主役は★4の虚ろの魂喰らいと腐れ沼の毒蛇姫。' }
+    { id: 's2', series: 2, name: '魂と毒の宴ガチャ', feature: ['tamakui', 'dokujahime'], art: 's2', text: '第2弾のキャラだけが出ます（その中では全員同じ確率）。主役は★4の虚ろの魂喰らいと腐れ沼の毒蛇姫。'},
+    { id: 's3', series: 3, name: '月下の百鬼夜行ガチャ', text: '第3弾のキャラだけが出ます（その中では全員同じ確率）。月夜に集う妖怪たちの弾です。' }
   ].concat(Object.keys(ELEMENTS).map(el => ({
     id: el, element: el, name: ELEMENTS[el].name + 'ガチャ', text: `${ELEMENTS[el].name}属性のキャラだけが出ます（すべての弾から。その中では全員同じ確率）。`
   })));
